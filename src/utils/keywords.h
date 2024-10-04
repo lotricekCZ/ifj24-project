@@ -58,4 +58,12 @@ typedef enum _token_type
 	tok_t_com	 	// comma
 } token_type;
 
+
+typedef struct _Keywords
+{
+	token_type type;
+	char *lexeme;
+} Keyword;
+
+Keyword keywords[];
 #endif // KEYWORDS_H

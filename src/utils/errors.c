@@ -49,6 +49,7 @@ size_t err_fetch(err_codes code)
     }
     return ERR_COUNT - 1;
 }
+
 /**
  * @brief Vypise chybovou zpravy dle kody chyby
  *
