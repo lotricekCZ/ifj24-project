@@ -46,7 +46,8 @@
 			prefix##_dll_element_ptr temp = dll->firstElement; \
 			dll->firstElement = dll->firstElement->next;       \
 			deallocate(temp->ptr);                             \
-			free(temp->ptr);                                   \
+			if (deallocate == nothing)                         \
+				free(temp->ptr);                               \
 			free(temp);                                        \
 		}                                                      \
 	}
@@ -148,7 +149,8 @@
 			dll->lastElement = temp->previous;                       \
 		}                                                            \
 		deallocate(temp->ptr);                                       \
-		free(temp->ptr);                                             \
+		if (deallocate == nothing)                                   \
+			free(temp->ptr);                                         \
 		free(temp);                                                  \
 		dll->currentLength--;                                        \
 	}

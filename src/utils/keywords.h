@@ -65,5 +65,6 @@ typedef struct _Keyword
 	char *lexeme;
 } Keyword;
 
+char* kw_fetch(token_type type);
 extern Keyword keywords[];
 #endif // KEYWORDS_H

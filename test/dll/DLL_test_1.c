@@ -18,9 +18,7 @@
  *
  * @author xramas01 Jakub Ramaseuski
  */
-void nothing() {
-	
-}
+
 _DLL(test, t, int, nothing)
 DLL(test, t, int, nothing)
 void dll_print(t_dllist *dll) {

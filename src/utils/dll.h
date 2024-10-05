@@ -28,6 +28,15 @@
 	prefix##_dll_element_ptr prefix##_dll_at(prefix##_dllist *dll, size_t index); \
 	prefix##_dll_element_ptr prefix##_dll_next(prefix##_dllist *dll);
 
+/**
+ * @brief Nic nedela
+ *
+ * Funkce nic nedela, je zde z duvodu, aby v pripade, kdy
+ * element nema zadnou specialni deiniciacni funkci mohl byt vlozen do makra.
+ */
+void nothing() {
+	
+}
 #endif
 
 // void DLL_First(DLList *);

@@ -3,10 +3,11 @@
  */
 
 #include "keywords.h"
+#include <stddef.h>
 
 Keyword keywords[] = {
-    {tok_t_init, ""},
-    {tok_t_sym, ""},
+    // {tok_t_init, ""},
+    // {tok_t_sym, ""},
     {tok_t_nl, "\n"},
     {tok_t_const, "const"},
     {tok_t_else, "else"},
@@ -21,10 +22,10 @@ Keyword keywords[] = {
     {tok_t_var, "var"},
     {tok_t_void, "void"},
     {tok_t_while, "while"},
-    {tok_t_val, ""},
-    {tok_t_flt, ""},
-    {tok_t_int, ""},
-    {tok_t_str, ""},
+    // {tok_t_val, ""},
+    // {tok_t_flt, ""},
+    // {tok_t_int, ""},
+    // {tok_t_str, ""},
     {tok_t_lbr, "{"}, 
     {tok_t_rbr, "}"}, 
     {tok_t_lpa, "("}, 
@@ -45,3 +46,12 @@ Keyword keywords[] = {
     {tok_t_colon, ":"},
     {tok_t_com, "."}
 };
+
+char* kw_fetch(token_type type) {
+    for (int i = 0; i < sizeof(keywords) / sizeof(Keyword); i++) {
+        if (keywords[i].type == type) {
+            return keywords[i].lexeme;
+        }
+    }
+    return NULL;
+}

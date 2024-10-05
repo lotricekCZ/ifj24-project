@@ -3,9 +3,6 @@
 #include "../../src/utils/dll.c"
 #include "../../src/utils/dll.h"
 
-void nothing() {
-	
-}
 _DLL(test, t, int, nothing)
 DLL(test, t, int, nothing)
 
