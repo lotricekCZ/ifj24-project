@@ -2,9 +2,9 @@
  * xramas01; Jakub Ramaseuski
  */
 
-#include "errors.h"
-
+#include <stdlib.h>
 #include <stdio.h>
+#include "errors.h"
 
 /**
  * @file errors.c

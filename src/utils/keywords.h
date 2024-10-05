@@ -59,11 +59,11 @@ typedef enum _token_type
 } token_type;
 
 
-typedef struct _Keywords
+typedef struct _Keyword
 {
 	token_type type;
 	char *lexeme;
 } Keyword;
 
-Keyword keywords[];
+extern Keyword keywords[];
 #endif // KEYWORDS_H
