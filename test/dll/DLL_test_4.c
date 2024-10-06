@@ -20,7 +20,7 @@ void dll_print(tok_dllist *dll)
 	tok_dll_element_ptr temp = dll->firstElement;
 	while (temp != NULL)
 	{
-		printf("%s ", kw_fetch(temp->ptr->type));
+		printf("%s ", kw_get_lexeme(temp->ptr->type));
 		temp = temp->next;
 	}
 	printf("\n");

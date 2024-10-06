@@ -55,6 +55,7 @@ typedef enum _token_type
 
 	tok_t_quot,	 	// quote
 	tok_t_colon, 	// :
+	tok_t_semicolon,// ;
 	tok_t_com	 	// comma
 } token_type;
 
@@ -65,6 +66,7 @@ typedef struct _Keyword
 	char *lexeme;
 } Keyword;
 
-char* kw_fetch(token_type type);
+char* kw_get_lexeme(token_type type);
+token_type kw_get_type(char *lexeme);
 extern Keyword keywords[];
 #endif // KEYWORDS_H

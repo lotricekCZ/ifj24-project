@@ -7,16 +7,18 @@ set(CMAKE_BUILD_TYPE Debug)
 set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(TEST ${CMAKE_CURRENT_SOURCE_DIR}/test)
 set(UTILS ${SRC}/utils)
+set(SCANNER ${SRC}/scanner)
 add_executable(ifj2024 src/main.c)
 
 add_library(errors SHARED    	 ${UTILS}/errors.c)
 add_library(token SHARED    	 ${UTILS}/token.c)
-add_library(keyword SHARED 	 	${UTILS}/keywords.c)
+add_library(keyword SHARED 	 	 ${UTILS}/keywords.c)
 add_library(dll SHARED    	     ${UTILS}/dll.c)
+add_library(scanner SHARED    	 ${SCANNER}/scanner.c)
 add_library(token_dll SHARED 	 ${UTILS}/token_dll.c)
-# add_library(scanner SHARED  src/scanner/scanner.c)
 
-target_link_libraries(ifj2024 errors token)
+target_link_libraries(scanner token keyword token_dll)
+target_link_libraries(ifj2024 errors token scanner)
 enable_testing()
 
 
@@ -25,9 +27,11 @@ add_executable(test_dll_1 ${TEST}/dll/DLL_test_1.c)
 add_executable(test_dll_2 ${TEST}/dll/DLL_test_2.c)
 add_executable(test_dll_3 ${TEST}/dll/DLL_test_3.c)
 add_executable(test_dll_4 ${TEST}/dll/DLL_test_4.c)
+add_executable(test_scan_1 ${TEST}/scanner/scan_1.c)
 
 
 target_link_libraries(test_dll_4 token dll keyword)
+target_link_libraries(test_scan_1 token dll keyword scanner)
 
 # test covering initialization, push_front and clear in DLL macro
 add_test(NAME "dll-init" COMMAND test_dll_1)
