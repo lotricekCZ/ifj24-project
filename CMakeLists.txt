@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(ifj2024)
+set(CMAKE_C_STANDARD 99)
 include (CTest)
 
 set(VALGRIND_OK ".*All heap blocks were freed -- no leaks are possible.*")

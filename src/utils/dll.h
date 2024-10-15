@@ -1,6 +1,6 @@
 #ifndef DLL_H
 #define DLL_H
-#define _DLL(name, prefix, element, deallocate)                                   \
+#define _DLL(name, prefix, element)                                   \
 	typedef struct _##prefix##_dll_element                                        \
 	{                                                                             \
 		element *ptr;                                                             \
@@ -25,6 +25,7 @@
 	void prefix##_dll_push_front(prefix##_dllist *dll, element data);            \
 	void prefix##_dll_pop_back(prefix##_dllist *dll);                             \
 	void prefix##_dll_pop_front(prefix##_dllist *dll);                            \
+	void prefix##_dll_first(prefix##_dllist *dll);                            \
 	prefix##_dll_element_ptr prefix##_dll_at(prefix##_dllist *dll, size_t index); \
 	prefix##_dll_element_ptr prefix##_dll_next(prefix##_dllist *dll);
 

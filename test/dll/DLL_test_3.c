@@ -12,8 +12,8 @@
  * @author xramas01 Jakub Ramaseuski
  */
 
-_DLL(test, t, char *, nothing)
-DLL(test, t, char *, nothing)
+_DLL(test, t, char *)
+DLL(test, t, char *, nothing, nothing)
 void dll_print(t_dllist *dll) {
 	t_dll_element_ptr temp = dll->firstElement;
 	while (temp != NULL) {

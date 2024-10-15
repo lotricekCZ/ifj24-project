@@ -28,14 +28,18 @@ typedef enum _token_type
 	tok_t_var,	 	// variable
 	tok_t_void,	 	// void
 	tok_t_while, 	// while
-
+	tok_t_import, 	// @import
+	tok_t_as, 		// @as
+	tok_t_fnbui, 	// builtin fn
 	tok_t_val, 		// value like 42, "Foo", or 6.022e-22
 
 	tok_t_flt,		// DOUBLE or floating point value
 	tok_t_int,		// INT or integer value
 	tok_t_str,		// STRING or anything enclosed in quotes
-	tok_t_lbr,		// {, curly brace
-	tok_t_rbr,		// }, right curly brace
+	tok_t_lbr,		// [, left brace
+	tok_t_rbr,		// ], right brace
+	tok_t_lcbr,		// {, left curly brace
+	tok_t_rcbr,		// }, right curly brace
 	tok_t_lpa,		// (, left parenthese
 	tok_t_rpa,		// ), right parenthese
 	tok_t_ass,		// =, assignment operator
@@ -56,7 +60,9 @@ typedef enum _token_type
 	tok_t_quot,	 	// quote
 	tok_t_colon, 	// :
 	tok_t_semicolon,// ;
-	tok_t_com	 	// comma
+	tok_t_com,	 	// comma
+	tok_t_eof,	 	// end of file
+	tok_t_alias, 	// alias (those |inpOk| things around)
 } token_type;
 
 

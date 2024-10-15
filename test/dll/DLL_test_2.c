@@ -3,8 +3,8 @@
 #include "../../src/utils/dll.c"
 #include "../../src/utils/dll.h"
 
-_DLL(test, t, int, nothing)
-DLL(test, t, int, nothing)
+_DLL(test, t, int)
+DLL(test, t, int, nothing, nothing)
 
 
 int main() {

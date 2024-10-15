@@ -74,7 +74,7 @@
  * @param index Pozice, na kterou se ma prvek vlozit.
  * @param data Hodnota prvku, ktery se ma vlozit.
  */
-#define DLL_INSERT(name, prefix, element, deallocate)                                         \
+#define DLL_INSERT(name, prefix, element, copy, deallocate)                                   \
 	void prefix##_dll_insert(prefix##_dllist *dll, size_t index, element data)                \
 	{                                                                                         \
 		prefix##_dll_element_ptr newElement = malloc(sizeof(struct _##prefix##_dll_element)); \
@@ -87,7 +87,10 @@
 		{                                                                                     \
 			return;                                                                           \
 		}                                                                                     \
-		*newElement->ptr = data;                                                              \
+		if (copy != nothing)                                                                  \
+			copy(newElement->ptr, data);                                                     \
+		else                                                                                  \
+			*newElement->ptr = data;                                                          \
 		if (index == 0)                                                                       \
 		{                                                                                     \
 			newElement->previous = NULL;                                                      \
@@ -167,6 +170,19 @@
 	{                                                               \
 		prefix##_dll_insert(dll, dll->currentLength, data);         \
 	}
+
+/**
+ * @brief Nastavi aktivni prvek na prvni prvek v seznamu
+ *
+ * Funkce nastavi aktivni prvek na prvni prvek v seznamu.
+ *
+ * @param dll Ukazatel na seznam, v nemz se nastavuje aktivni prvek.
+ */
+#define DLL_FIRST(name, prefix, element, deallocate) \
+	void prefix##_dll_first(prefix##_dllist *dll)    \
+	{                                                \
+		dll->activeElement = dll->firstElement;      \
+	}
 /**
  * @brief Prida prvek na zacatek seznamu
  *
@@ -243,16 +259,18 @@
 		dll->activeElement = dll->activeElement->next;               \
 		return dll->activeElement;                                   \
 	}
-#define DLL(name, prefix, element, deallocate)        \
-	DLL_INIT(name, prefix, element, deallocate)       \
-	DLL_INSERT(name, prefix, element, deallocate)     \
-	DLL_DELETE(name, prefix, element, deallocate)     \
-	DLL_PUSH_BACK(name, prefix, element, deallocate)  \
-	DLL_PUSH_FRONT(name, prefix, element, deallocate) \
-	DLL_POP_BACK(name, prefix, element, deallocate)   \
-	DLL_POP_FRONT(name, prefix, element, deallocate)  \
-	DLL_AT(name, prefix, element, deallocate)         \
-	DLL_NEXT(name, prefix, element, deallocate)       \
-	DLL_DISPOSE(name, prefix, element, deallocate)    \
-	DLL_CLEAR(name, prefix, element, deallocate)
+#define DLL(name, prefix, element, copy, deallocate)    \
+	DLL_INIT(name, prefix, element, deallocate)         \
+	DLL_INSERT(name, prefix, element, copy, deallocate) \
+	DLL_DELETE(name, prefix, element, deallocate)       \
+	DLL_PUSH_BACK(name, prefix, element, deallocate)    \
+	DLL_PUSH_FRONT(name, prefix, element, deallocate)   \
+	DLL_POP_BACK(name, prefix, element, deallocate)     \
+	DLL_POP_FRONT(name, prefix, element, deallocate)    \
+	DLL_AT(name, prefix, element, deallocate)           \
+	DLL_NEXT(name, prefix, element, deallocate)         \
+	DLL_DISPOSE(name, prefix, element, deallocate)      \
+	DLL_CLEAR(name, prefix, element, deallocate)        \
+	DLL_FIRST(name, prefix, element, deallocate)
+
 #endif

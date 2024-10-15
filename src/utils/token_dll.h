@@ -6,6 +6,6 @@
 #include "token.h"
 #include "dll.c"
 
-_DLL(token, tok, Token, tok_free)
+_DLL(token, tok, Token)
 
 #endif
