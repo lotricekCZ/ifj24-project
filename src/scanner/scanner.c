@@ -39,7 +39,8 @@ SCA_GREATER_DECL(comments, 31) // for comments
 Scan_node sca_init = {.state = sca_s_init, .children = NULL, .count = 0};
 
 Scan_node sca_underscore = {.state = sca_s_underscore, .children = NULL, .count = 0};
-Scan_node sca_alpha = {.state = sca_s_alpha, .children = NULL, .count = 0};
+Scan_node sca_lexeme = {.state = sca_s_lexeme, .children = NULL, .count = 0};
+Scan_node sca_opt_str_lexeme = {.state = sca_s_opt_str_lexeme, .children = NULL, .count = 0}; // optional or string lexeme
 
 Scan_node sca_qm = {.state = sca_s_qm, .children = NULL, .count = 0};
 Scan_node sca_bro = {.state = sca_s_bro, .children = NULL, .count = 0};
@@ -84,38 +85,145 @@ Scan_node sca_parenthese_open = {.state = sca_s_parenthese_open, .children = NUL
 Scan_node sca_parenthese_close = {.state = sca_s_parenthese_close, .children = NULL, .count = 0};
 Scan_node sca_semicolon = {.state = sca_s_semicolon, .children = NULL, .count = 0};
 Scan_node sca_slash = {.state = sca_s_slash, .children = NULL, .count = 0};
+Scan_node sca_comment = {.state = sca_s_comment, .children = NULL, .count = 0};
 Scan_node sca_vertical = {.state = sca_s_vertical, .children = NULL, .count = 0};
 Scan_node sca_colon = {.state = sca_s_colon, .children = NULL, .count = 0};
 Scan_node sca_exclamation = {.state = sca_s_exclamation, .children = NULL, .count = 0};
+Scan_node sca_notequal = {.state = sca_s_notequal, .children = NULL, .count = 0};
 Scan_node sca_greater = {.state = sca_s_greater, .children = NULL, .count = 0};
+Scan_node sca_greaterequal = {.state = sca_s_greaterequal, .children = NULL, .count = 0};
+Scan_node sca_assign = {.state = sca_s_assign, .children = NULL, .count = 0};
 Scan_node sca_equal = {.state = sca_s_equal, .children = NULL, .count = 0};
 Scan_node sca_less = {.state = sca_s_less, .children = NULL, .count = 0};
+Scan_node sca_lessequal = {.state = sca_s_lessequal, .children = NULL, .count = 0};
 Scan_node sca_asterisk = {.state = sca_s_asterisk, .children = NULL, .count = 0};
 Scan_node sca_minus = {.state = sca_s_minus, .children = NULL, .count = 0};
 Scan_node sca_plus = {.state = sca_s_plus, .children = NULL, .count = 0};
+Scan_node sca_comma = {.state = sca_s_comma, .children = NULL, .count = 0};
 Scan_node sca_hashtag = {.state = sca_s_hashtag, .children = NULL, .count = 0};
 
 
+// init to init
 SCA_PATH_DEF(sca_init, sca_init)
-SCA_PATH_DEF(sca_init, sca_s1)
-// SCA_PATH_DEF(sca_init, sca_underscore, SCA_MATCH(underscore))
-// SCA_PATH_DEF(sca_init, sca_alpha, isalpha)
-// SCA_PATH_DEF(sca_init, sca_qm, SCA_MATCH(question_mark))
-// SCA_PATH_DEF(sca_init, sca_bro, SCA_MATCH(brace_open))
-// SCA_PATH_DEF(sca_init, sca_at, SCA_MATCH(at))
-// SCA_PATH_DEF(sca_init, sca_dt, SCA_MATCH(dot))
 
-// SCA_PATH_DEF(sca_init, sca_int, isdigit)
-// SCA_PATH_DEF(sca_init, sca_backslash, SCA_MATCH(backslash))
-// SCA_PATH_DEF(sca_init, sca_curlybrace_open, SCA_MATCH(curlybrace_open))
-// SCA_PATH_DEF(sca_init, sca_curlybrace_close, SCA_MATCH(curlybrace_close))
-// SCA_PATH_DEF(sca_init, sca_parenthese_open, SCA_MATCH(parenthese_close))
-// SCA_PATH_DEF(sca_init, sca_vertical, SCA_MATCH(vertical))
-// SCA_PATH_DEF(sca_init, sca_slash, SCA_MATCH(slash))
-SCA_PATH_DEF(sca_s1, sca_s5, SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
-SCA_PATH_DEF(sca_s5, sca_s5, SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
-SCA_PATH_DEF(sca_s1, sca_str, SCA_MATCH(quote))
-SCA_PATH_DEF(sca_s5, sca_str, SCA_MATCH(quote))
+// init to lexeme identification paths
+SCA_PATH_DEF(sca_init, sca_underscore)
+SCA_PATH_DEF(sca_init, sca_lexeme)
+SCA_PATH_DEF(sca_lexeme, sca_lexeme)
+SCA_PATH_DEF(sca_underscore, sca_lexeme)
+
+// init to optional/string data type paths
+SCA_PATH_DEF(sca_init, sca_qm)
+SCA_PATH_DEF(sca_init, sca_bro)
+SCA_PATH_DEF(sca_qm, sca_bro)
+SCA_PATH_DEF(sca_bro, sca_brc)
+SCA_PATH_DEF(sca_brc, sca_opt_str_lexeme)
+SCA_PATH_DEF(sca_qm, sca_opt_str_lexeme)
+SCA_PATH_DEF(sca_opt_str_lexeme, sca_opt_str_lexeme)
+
+// init to import and as keywords
+SCA_PATH_DEF(sca_init, sca_at)
+SCA_PATH_DEF(sca_at, sca_atid)
+SCA_PATH_DEF(sca_atid, sca_atid)
+
+// init to builtin function paths
+SCA_PATH_DEF(sca_init, sca_dt)
+SCA_PATH_DEF(sca_dt, sca_dtus)
+SCA_PATH_DEF(sca_dt, sca_fn)
+SCA_PATH_DEF(sca_dtus, sca_fn)
+SCA_PATH_DEF(sca_fn, sca_fn)
+
+// init to number paths
+SCA_PATH_DEF(sca_init, sca_int)
+SCA_PATH_DEF(sca_int, sca_int2)
+SCA_PATH_DEF(sca_int, sca_intdt)
+SCA_PATH_DEF(sca_int, sca_intexp)
+
+SCA_PATH_DEF(sca_int2, sca_int2)
+SCA_PATH_DEF(sca_int2, sca_intdt)
+SCA_PATH_DEF(sca_int2, sca_intexp)
+SCA_PATH_DEF(sca_intexp, sca_dec)
+
+SCA_PATH_DEF(sca_dec, sca_dec)
+SCA_PATH_DEF(sca_intdt, sca_dec2)
+SCA_PATH_DEF(sca_dec2, sca_dec2)
+SCA_PATH_DEF(sca_dec2, sca_intexp)
+
+// init to string paths
+SCA_PATH_DEF(sca_init, sca_s1)
+SCA_PATH_DEF(sca_s1, sca_s5)
+SCA_PATH_DEF(sca_s1, sca_s2)
+SCA_PATH_DEF(sca_s2, sca_s3)
+
+SCA_PATH_DEF(sca_s3, sca_s_max1)
+SCA_PATH_DEF(sca_s_max1, sca_s_max2)
+SCA_PATH_DEF(sca_s_max2, sca_s2)
+SCA_PATH_DEF(sca_s_max2, sca_s5)
+
+SCA_PATH_DEF(sca_s5, sca_s5)
+SCA_PATH_DEF(sca_s5, sca_s2)
+SCA_PATH_DEF(sca_s2, sca_s5)
+SCA_PATH_DEF(sca_s1, sca_str)
+
+SCA_PATH_DEF(sca_s5, sca_str)
+SCA_PATH_DEF(sca_s_max2, sca_str)
+
+// init to multiline paths (reserved for future implementation)
+
+// init to eof
+SCA_PATH_DEF(sca_init, sca_eof)
+
+// init to curly brace paths
+SCA_PATH_DEF(sca_init, sca_curlybrace_close)
+SCA_PATH_DEF(sca_init, sca_curlybrace_open)
+
+// init to parenthese paths
+SCA_PATH_DEF(sca_init, sca_parenthese_close)
+SCA_PATH_DEF(sca_init, sca_parenthese_open)
+
+// init to semicolon paths
+SCA_PATH_DEF(sca_init, sca_semicolon)
+
+// init to slash paths
+SCA_PATH_DEF(sca_init, sca_slash)
+SCA_PATH_DEF(sca_slash, sca_comment)
+
+// init to vertical path
+SCA_PATH_DEF(sca_init, sca_vertical)
+
+// init to colon paths
+SCA_PATH_DEF(sca_init, sca_colon)
+
+// init to exclamation paths
+SCA_PATH_DEF(sca_init, sca_exclamation)
+SCA_PATH_DEF(sca_init, sca_notequal)
+
+// init to greater paths
+SCA_PATH_DEF(sca_init, sca_greater)
+SCA_PATH_DEF(sca_greater, sca_greaterequal)
+
+// init to equal paths
+SCA_PATH_DEF(sca_init, sca_assign)
+SCA_PATH_DEF(sca_assign, sca_equal)
+
+// init to less paths
+SCA_PATH_DEF(sca_init, sca_less)
+SCA_PATH_DEF(sca_less, sca_lessequal)
+
+// init to asterisk path
+SCA_PATH_DEF(sca_init, sca_asterisk)
+
+// init to plus path
+SCA_PATH_DEF(sca_init, sca_plus)
+
+// init to minus path
+SCA_PATH_DEF(sca_init, sca_minus)
+
+// init to comma path
+SCA_PATH_DEF(sca_init, sca_comma)
+
+// init to hashtag path
+SCA_PATH_DEF(sca_init, sca_hashtag)
 
 Scan_path sca_paths[] = {
 

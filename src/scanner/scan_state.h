@@ -6,7 +6,8 @@ typedef enum
 	sca_s_init,
 
 	sca_s_underscore,
-	sca_s_alpha,
+	sca_s_lexeme,
+	sca_s_opt_str_lexeme,
 
 	sca_s_qm,
 	sca_s_bro,
@@ -51,16 +52,23 @@ typedef enum
 	sca_s_parenthese_close,
 	sca_s_semicolon,
 	sca_s_slash,
+	sca_s_comment,
 	sca_s_vertical,
 	sca_s_colon,
 	sca_s_exclamation,
+	sca_s_notequal,
 	sca_s_greater,
+	sca_s_greaterequal,
+	sca_s_assign,
 	sca_s_equal,
 	sca_s_less,
+	sca_s_lessequal,
 	sca_s_asterisk,
 	sca_s_minus,
 	sca_s_plus,
-	sca_s_hashtag
+	sca_s_comma,
+	sca_s_hashtag,
+
 } scn_state_t;
 
 #endif
