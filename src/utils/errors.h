@@ -34,4 +34,5 @@ Err_message err_msg[];
 size_t err_fetch(err_codes err);
 void err_print(err_codes err);
 
+// void err_internal();
 #endif

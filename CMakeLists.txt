@@ -29,10 +29,12 @@ add_executable(test_dll_2 ${TEST}/dll/DLL_test_2.c)
 add_executable(test_dll_3 ${TEST}/dll/DLL_test_3.c)
 add_executable(test_dll_4 ${TEST}/dll/DLL_test_4.c)
 add_executable(test_scan_1 ${TEST}/scanner/scan_1.c)
+add_executable(test_scan_2 ${TEST}/scanner/scan_2.c)
 
 
 target_link_libraries(test_dll_4 token dll keyword)
 target_link_libraries(test_scan_1 token dll keyword scanner)
+target_link_libraries(test_scan_2 token dll keyword scanner)
 
 # test covering initialization, push_front and clear in DLL macro
 add_test(NAME "dll-init" COMMAND test_dll_1)

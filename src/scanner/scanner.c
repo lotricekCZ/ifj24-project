@@ -34,9 +34,87 @@ SCA_MATCH_DECL(plus, '+')
 SCA_MATCH_DECL(hashtag, '#')
 SCA_GREATER_DECL(text, 34)
 
+// Scan_node sca_underscore {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_alpha {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_qm {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_bro {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_at {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_dt {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_int {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_backslash {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_curlybrace_open {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_curlybrace_close {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_parenthese_open {.children = {SCA_PATH(sca_init, )}};
+// Scan_node sca_vertical {.children = {SCA_PATH(sca_init, )}};
+
+SCA_PATH_DEF(sca_init, sca_init)
+SCA_PATH_DEF(sca_init, sca_s1)
+// SCA_PATH_DEF(sca_init, sca_underscore, SCA_MATCH(underscore))
+// SCA_PATH_DEF(sca_init, sca_alpha, isalpha)
+// SCA_PATH_DEF(sca_init, sca_qm, SCA_MATCH(question_mark))
+// SCA_PATH_DEF(sca_init, sca_bro, SCA_MATCH(brace_open))
+// SCA_PATH_DEF(sca_init, sca_at, SCA_MATCH(at))
+// SCA_PATH_DEF(sca_init, sca_dt, SCA_MATCH(dot))
+
+// SCA_PATH_DEF(sca_init, sca_int, isdigit)
+// SCA_PATH_DEF(sca_init, sca_backslash, SCA_MATCH(backslash))
+// SCA_PATH_DEF(sca_init, sca_curlybrace_open, SCA_MATCH(curlybrace_open))
+// SCA_PATH_DEF(sca_init, sca_curlybrace_close, SCA_MATCH(curlybrace_close))
+// SCA_PATH_DEF(sca_init, sca_parenthese_open, SCA_MATCH(parenthese_close))
+// SCA_PATH_DEF(sca_init, sca_vertical, SCA_MATCH(vertical))
+// SCA_PATH_DEF(sca_init, sca_slash, SCA_MATCH(slash))
+SCA_PATH_DEF(sca_s1, sca_s5, SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+SCA_PATH_DEF(sca_s5, sca_s5, SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+SCA_PATH_DEF(sca_s1, sca_str, SCA_MATCH(quote))
+SCA_PATH_DEF(sca_s5, sca_str, SCA_MATCH(quote))
+
+Scan_node sca_init = {.children = {&SCA_PATH(sca_init, sca_s1), &SCA_PATH(sca_init, sca_s1)}};
+Scan_node sca_s5 = {.children = {&SCA_PATH(sca_s5, sca_s5)}};
+Scan_node sca_str = {.children = {&SCA_PATH(sca_s5, sca_s5)}};
+Scan_node sca_s1 = {.children = {&SCA_PATH(sca_s1, sca_s5)}};
+
+Scan_path sca_paths[] = {
+
+};
+
+/**
+ * @brief Assigns children to a Scan_node.
+ * @details This function uses a varargs list to assign children to a Scan_node.
+ * The first argument is the size of the array, and the rest of the arguments are
+ * pointers to Scan_path structures.
+ * @param node The Scan_node to assign children to.
+ */
+void sca_assign_children(Scan_node_ptr node, int argc, ...)
+{
+	va_list args;
+	va_start(args, argc);
+	node->children = malloc(argc * sizeof(Scan_path *));
+	node->count = argc;
+	for (size_t i = 0; i < argc; i++)
+		node->children[i] = va_arg(args, Scan_path *);
+	va_end(args);
+}
+
+/**
+ * @brief Frees memory allocated for a Scan_node and all its children.
+ * @details Calls SCA_PATH_DEINIT on each child and then frees the memory allocated for children array and the node itself.
+ * @param node The Scan_node to free.
+ */
+void sca_free(Scan_node_ptr node)
+{
+
+	for (size_t i = 0; i < node->count; i++)
+	{
+		SCA_PATH_DEINIT((*node->children[i]))
+		free(node->children[i]);
+	}
+	free(node->children);
+	free(node);
+}
 
 Scanner_ptr scn_init(char *filename)
 {
+	// scanner setup
 	Scanner_ptr scanner = malloc(sizeof(Scanner));
 
 	if (scanner == NULL)
@@ -44,328 +122,136 @@ Scanner_ptr scn_init(char *filename)
 		// TODO: throw error err_internal
 		return NULL;
 	}
-
 	scanner->file_name = malloc(strlen(filename) + 1);
 	if (scanner->file_name == NULL)
 	{
 		// TODO: throw error err_internal
 		return NULL;
 	}
-
 	strcpy(scanner->file_name, filename);
 	scanner->list = tok_dll_init();
-	/*
-	test/scanner/test0.zig program in tokens
 
-	const ifj = @import("ifj24.zig");
+	// scanner graph path config
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_init), isspace)
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_s1), SCA_MATCH(quote))
+	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_str), SCA_MATCH(quote))
+	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_str), SCA_MATCH(quote))
 
-	pub fn bar(param : []u8) []u8 {
-		const r = foo(param);
-		return r;
-	}
+	// scanner graph node config
+	sca_assign_children(&sca_init, 2, &SCA_PATH(sca_init, sca_init), &SCA_PATH(sca_init, sca_s1));
+	sca_assign_children(&sca_s1, 2, &SCA_PATH(sca_s1, sca_s5), &SCA_PATH(sca_s1, sca_str));
+	sca_assign_children(&sca_s5, 2, &SCA_PATH(sca_s5, sca_s5), &SCA_PATH(sca_s5, sca_str));
 
-	pub fn foo(par : []u8) []u8 {
-		const ret = bar(par);
-		return ret;
-	}
-
-	pub fn main() void {
-		const par = ifj.string("ahoj");
-		_ = bar(par);
-	}
-	 */
-	Token_ptr token[] = {
-		// line 1
-		tok_init(tok_t_const),
-		tok_init(tok_t_sym), // here ifj
-		tok_init(tok_t_ass),
-		tok_init(tok_t_import),
-		tok_init(tok_t_lpa),
-		tok_init(tok_t_str), // here ifj24.zig
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_semicolon),
-		tok_init(tok_t_nl),
-		// line 2
-		tok_init(tok_t_nl),
-		// line 3
-		/*
-		pub fn bar(param : []u8) []u8 {
-			const r = foo(param);
-			return r;
-		}
-		*/
-		tok_init(tok_t_pub),
-		tok_init(tok_t_fn),
-		tok_init(tok_t_sym), // here bar
-		tok_init(tok_t_lpa),
-		tok_init(tok_t_sym), // here param
-		tok_init(tok_t_colon),
-		tok_init(tok_t_u8),
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_u8),
-		tok_init(tok_t_lcbr),
-		tok_init(tok_t_nl),
-		// line 4
-		tok_init(tok_t_const),
-		tok_init(tok_t_sym), // here r
-		tok_init(tok_t_ass),
-		tok_init(tok_t_sym), // here foo
-		tok_init(tok_t_lpa),
-		tok_init(tok_t_sym), // here param
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_semicolon),
-		tok_init(tok_t_nl),
-		// line 5
-		tok_init(tok_t_return),
-		tok_init(tok_t_sym), // here r
-		tok_init(tok_t_semicolon),
-		tok_init(tok_t_nl),
-		// line 6
-		tok_init(tok_t_rcbr),
-		tok_init(tok_t_nl),
-		// line 7
-		tok_init(tok_t_nl),
-		// line 8
-		/*
-		pub fn foo(par : []u8) []u8 {
-			const ret = bar(par);
-			return ret;
-		}
-		*/
-		tok_init(tok_t_pub),
-		tok_init(tok_t_fn),
-		tok_init(tok_t_sym), // here foo
-		tok_init(tok_t_lpa),
-		tok_init(tok_t_sym), // here par
-		tok_init(tok_t_colon),
-		tok_init(tok_t_u8),
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_u8),
-		tok_init(tok_t_lcbr),
-		tok_init(tok_t_nl),
-		// line 9
-		tok_init(tok_t_const),
-		tok_init(tok_t_sym), // here ret
-		tok_init(tok_t_ass),
-		tok_init(tok_t_sym), // here bar
-		tok_init(tok_t_lpa),
-		tok_init(tok_t_sym), // here par
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_semicolon),
-		tok_init(tok_t_nl),
-		// line 10
-		tok_init(tok_t_return),
-		tok_init(tok_t_sym), // here ret
-		tok_init(tok_t_semicolon),
-		tok_init(tok_t_nl),
-		// line 11
-		tok_init(tok_t_rcbr),
-		tok_init(tok_t_nl),
-		// line 12
-		tok_init(tok_t_nl),
-		// line 13
-		/*
-		pub fn main() void {
-			const par = ifj.string("ahoj");
-			_ = bar(par);
-		}
-		*/
-		tok_init(tok_t_pub),
-		tok_init(tok_t_fn),
-		tok_init(tok_t_sym), // here main
-		tok_init(tok_t_lpa),
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_void),
-		tok_init(tok_t_lcbr),
-		tok_init(tok_t_nl),
-		// line 14
-		tok_init(tok_t_const),
-		tok_init(tok_t_sym), // here par
-		tok_init(tok_t_ass),
-		tok_init(tok_t_sym), // here ifj
-		tok_init(tok_t_com),
-		tok_init(tok_t_fnbui), // here string
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_str), // here ahoj
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_semicolon),
-		tok_init(tok_t_nl),
-		// line 15
-		tok_init(tok_t_sym), // here _
-		tok_init(tok_t_ass),
-		tok_init(tok_t_sym), // here bar
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_str), // here par
-		tok_init(tok_t_rpa),
-		tok_init(tok_t_semicolon),
-		tok_init(tok_t_nl),
-		// line 15
-		tok_init(tok_t_rcbr),
-		tok_init(tok_t_nl),
-		tok_init(tok_t_eof)
-		};
-	
-	tok_set_attribute(token[1], "ifj");
-	tok_set_attribute(token[5], "ifj24.zig");
-	tok_set_attribute(token[12], "bar");
-	tok_set_attribute(token[14], "param");
-	tok_set_attribute(token[22], "r");
-	tok_set_attribute(token[24], "foo");
-	tok_set_attribute(token[26], "param");
-	tok_set_attribute(token[31], "r");
-	tok_set_attribute(token[39], "foo");
-	tok_set_attribute(token[41], "par");
-	tok_set_attribute(token[49], "ret");
-	tok_set_attribute(token[51], "bar");
-	tok_set_attribute(token[53], "par");
-	tok_set_attribute(token[58], "ret");
-	tok_set_attribute(token[66], "main");
-	tok_set_attribute(token[73], "par");
-	tok_set_attribute(token[75], "ifj");
-	tok_set_attribute(token[77], "string");
-	tok_set_attribute(token[79], "ahoj");
-	tok_set_attribute(token[83], "_");
-	tok_set_attribute(token[85], "bar");
-	tok_set_attribute(token[87], "par");
-	for (int i = 0; i < 94; i++)
-	{
-		tok_dll_push_back(scanner->list, *token[i]);
-		tok_free(token[i]);
-	}
-	tok_dll_first(scanner->list);
 	return scanner;
 }
 
 void scn_free(Scanner_ptr scanner)
 {
+	SCA_PATH_DEINIT(SCA_PATH(sca_init, sca_init))
+	SCA_PATH_DEINIT(SCA_PATH(sca_init, sca_s1))
+	SCA_PATH_DEINIT(SCA_PATH(sca_s1, sca_s5))
+	SCA_PATH_DEINIT(SCA_PATH(sca_s5, sca_s5))
+	SCA_PATH_DEINIT(SCA_PATH(sca_s5, sca_str))
+	SCA_PATH_DEINIT(SCA_PATH(sca_s1, sca_str))
 	tok_dll_dispose(scanner->list);
 	free(scanner->file_name);
 	free(scanner);
 }
+/**
+ * @brief Vyhleda v poli podminek, zdali je splnena nejaka podminka.
+ * @details Vyhleda v poli podminek, zdali je splnena nejaka podminka.
+ * Podminky jsou v OR vztahu, takze jakmile najde splnenou podminku, funkce
+ * skonci a vraci true. Pokud nesplni zadnou podminku, vraci false.
+ * @param path Ukazatel na strukturu Scan_path, ktera obsahuje pole podminek.
+ * @param c Char, ktery se ma zkontrolovat.
+ * @returns true, pokud byla splnena nejaka podminka, jinak false.
+ */
+bool sca_p_has_match(Scan_path *path, char c)
+{
+	for (int index = 0; index < path->count; index++)
+		if ((bool)(path->matches[index])((int)c))
+			return true; // no need to evaluate further, conditions are in an OR relation
+	return false;
+}
 
-// bool scn_scan(Scanner_ptr scanner)
-// {
+/**
+ * @brief Najde cestu z uzlu, ktera vyhovuje danemu znaku.
+ * @details Iterativne projde cesty a hleda takovou, ktera vyhovuje danemu znaku.
+ * Pokud takova cesta je nalezena, vraci ji. Pokud ne, vraci NULL.
+ * @param node Uzel, ktery se ma prohledat.
+ * @param c Znak, ktery se ma hledat.
+ * @returns Cesta, ktera vyhovuje danemu znaku, nebo NULL, pokud takova cesta neexistuje.
+ */
+Scan_path *sca_n_has_match(Scan_node *node, char c)
+{
+	Scan_path *result = NULL;
+	for (int index = 0; index < node->count; index++)
+		if (sca_p_has_match(node->children[index], c))
+		{
+#ifdef DEBUG
+			if (result != NULL)
+			{
+				fprintf(stderr, "Multiple matches found for character '%c', such behaviour is not NONDETERMINISTIC\n", c);
+				return NULL;
+			}
+			result = node->children[index];
+#else
+			return node->children[index];
+#endif
+		}
+#ifdef DEBUG
+	return result;
+#else
+	return NULL;
+#endif
+}
+Token_ptr scn_scan(Scanner_ptr scanner)
+{
+	char *source = "\"Hello World\" how is it going"; // scn_open_file(scanner);
+	if (source == NULL)
+	{
+		// TODO: throw error err_internal
+		return false;
+	}
+	size_t source_size = strlen(source);
+	printf("%s\n", source);
 
-// 	tok_dll_clear(scanner->list);
-// 	char *source = scn_open_file(scanner);
-// 	if (source == NULL)
-// 	{
-// 		// TODO: throw error err_internal
-// 		return false;
-// 	}
-// 	size_t source_size = strlen(source);
-// 	printf("%s\n", source);
-// 	scn_state_t state = scn_t_init;
-// 	Token_ptr token;
+	// scn_state_t state = scn_t_init;
+	Token_ptr token;
 
-// 	size_t low = 0;
-// 	size_t high = 0;
+	size_t low = 0;
+	size_t high = 0;
+	Scan_node *node = &sca_init;
+	bool has_match = true;
+	while (has_match)
+	{
+		Scan_path *path = high < source_size ? sca_n_has_match(node, source[high]) : NULL;
+		if (path != NULL)
+		{
+			node = path->to;
+			high++;
+		}
+		else
+		{
+			// TODO: capture token type (probably should be in node data)
+			char *token_text = (char *)malloc(sizeof(char) * (high - low + 1));
+			memcpy(token_text, source + low, high - low);
+			token_text[high - low] = '\0';
+			printf("Token: %s\n", token_text);
+			low = high;
+			has_match = false;
+			free(token_text);
+		}
+	}
 
-// 	while (high != source_size)
-// 	{
-// 		char c = (source)[high];
-// 		switch (state)
-// 		{
-// 		case scn_t_init:
-// 		{
-// 			/**
-// 			 *  scn_t_init
-// 			 *	scn_t_string	// anything between " and "
-// 			 *	scn_t_comment	// anything between // and \n
-// 			 *	scn_t_operator	// +, -, *, /, =, ==, !=, >, <, >=, <=, &&, ||
-// 			 *	scn_t_number	// 1, 2e-9, 1.1, 1.1e-9 -42
-// 			 *	scn_t_white		// space, tab, \n, \r
-// 			 *	scn_t_braces	// {, }, (, ), [, ], ., ;, |
-// 			 *	scn_t_lexeme	// any literal symbol not enclosed in quotes and comment, after scan it is determined whether it is a keyword or not
-// 			 */
-// 			low = high;
-// 			if (isalpha(c) || c == '_' || c == '@') // lexeme
-// 				state = scn_t_lexeme;
-// 			else if (isdigit(c)) // number
-// 				state = scn_t_number;
-// 			else if (c == '"') // string
-// 				state = scn_t_string;
-// 			else if (c == '/' && source[high + 1] == '/') // comment
-// 				state = scn_t_comment;
-// 			else if (c == ' ' || c == '\t' || c == '\n' || c == '\r') // white
-// 				state = scn_t_white;
-// 			else if (c == '{' || c == '}' || c == '(' || c == ')' || c == '[' || c == ']' || c == '.' || c == ';' || c == '|') // braces
-// 				state = scn_t_braces;
-// 			else if (c == '+' || c == '-' || c == '*' || (c == '/' && source[high + 1] == '/') || c == '=' || c == '!' || c == '>' || c == '<') // operator
-// 				state = scn_t_operator;
-// 			else
-// 			{
-// 				state = scn_t_init;
-// 				low = high;
-// 			}
-// 			break;
-// 		}
-// 		case scn_t_string:
-// 		{
-// 			if (c == '"')
-// 			{
-// 				char *lexeme = (char *)malloc(sizeof(char) * (high - low + 2));
-// 				strncpy(lexeme, source + low, high - low + 1);
-// 				lexeme[high - low + 1] = '\0';
-// 				printf("string: %s\n", lexeme);
-// 				free(lexeme);
-// 				state = scn_t_init;
-// 			}
-// 			if (c == '\n')
-// 			{
-// 				// error
-// 				// TODO: throw error err_internal
-// 				return false;
-// 			}
-
-// 			break;
-// 		}
-// 		case scn_t_comment:
-// 		{
-// 			if (c == '\n')
-// 			{
-// 				char *lexeme = (char *)malloc(sizeof(char) * (high - low + 1));
-// 				strncpy(lexeme, source + low, high - low);
-// 				lexeme[high - low] = '\0';
-// 				printf("comment: %s\n", lexeme);
-// 				free(lexeme);
-// 				state = scn_t_init;
-// 			}
-// 			break;
-// 		}
-// 		case scn_t_operator:
-// 		{
-// 			break;
-// 		}
-// 		case scn_t_number:
-// 		{
-// 			break;
-// 		}
-// 		case scn_t_white:
-// 		{
-// 			high--;
-// 			state = scn_t_init;
-// 			break;
-// 		}
-// 		case scn_t_braces:
-// 		{
-// 			break;
-// 		}
-// 		case scn_t_lexeme:
-// 		{
-// 			break;
-// 		}
-// 		}
-// 		high++;
-// 	}
-
-// 	free(source);
-// 	return true;
-// }
+	// free(source);
+	return NULL;
+}
 
 Token_ptr scn_get_token(Scanner_ptr scanner);
 Token_ptr scn_previous(Scanner_ptr scanner);
-
 
 /**
  * @brief Ziskani dalsiho tokenu
@@ -375,7 +261,8 @@ Token_ptr scn_previous(Scanner_ptr scanner);
  * @param scanner Ukazatel na strukturu reprezentujici scanner
  * @return Ukazatel na strukturu reprezentujici token
  */
-Token_ptr scn_next(Scanner_ptr scanner){
+Token_ptr scn_next(Scanner_ptr scanner)
+{
 	Token_ptr token = scanner->list->activeElement->ptr;
 	tok_dll_next(scanner->list);
 	return token;
