@@ -72,6 +72,7 @@ struct Scan_node
 	// conditions that are checked in order to determine given character matches the node
 	Scan_path **children;
 	size_t count;
+	scn_state_t state;
 };
 
 struct Scan_path
@@ -97,67 +98,6 @@ char *scn_open_file(Scanner_ptr scanner);
 
 typedef Scan_node *Scan_node_ptr;
 // extern Scan_path sca_paths[];
-
-Scan_node sca_init;
-
-/// init accessible
-extern Scan_node sca_underscore;
-extern Scan_node sca_alpha;
-
-extern Scan_node sca_qm;
-extern Scan_node sca_bro;
-extern Scan_node sca_brc;
-
-extern Scan_node sca_at;
-extern Scan_node sca_atid;
-
-extern Scan_node sca_dt;
-extern Scan_node sca_dtus;
-extern Scan_node sca_fn;
-
-extern Scan_node sca_int;
-extern Scan_node sca_int2;
-extern Scan_node sca_intdt;
-extern Scan_node sca_intexp;
-extern Scan_node sca_dec;
-extern Scan_node sca_dec2;
-
-Scan_node sca_s1;
-extern Scan_node sca_s2;
-extern Scan_node sca_s3;
-extern Scan_node sca_s3;
-extern Scan_node sca_s_max1;
-extern Scan_node sca_s_max2;
-Scan_node sca_s5;
-Scan_node sca_str;
-
-extern Scan_node sca_backslash;
-extern Scan_node sca_ml1;
-extern Scan_node sca_ml2;
-extern Scan_node sca_ml3;
-extern Scan_node sca_ml_max1;
-extern Scan_node sca_ml_max2;
-extern Scan_node sca_ml5;
-extern Scan_node sca_ml6;
-extern Scan_node sca_ml_str;
-
-extern Scan_node sca_eof;
-extern Scan_node sca_curlybrace_close;
-extern Scan_node sca_curlybrace_open;
-extern Scan_node sca_parenthese_open;
-extern Scan_node sca_parenthese_close;
-extern Scan_node sca_semicolon;
-extern Scan_node sca_slash;
-extern Scan_node sca_vertical;
-extern Scan_node sca_colon;
-extern Scan_node sca_exclamation;
-extern Scan_node sca_greater;
-extern Scan_node sca_equal;
-extern Scan_node sca_less;
-extern Scan_node sca_asterisk;
-extern Scan_node sca_minus;
-extern Scan_node sca_plus;
-extern Scan_node sca_hashtag;
 
 void sca_assign_children(Scan_node_ptr node, int argc, ...);
 void sca_free(Scan_node_ptr node);

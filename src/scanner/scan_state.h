@@ -3,14 +3,64 @@
 
 typedef enum
 {
-	scn_t_init,		//
-	scn_t_string,	// anything between " and "
-	scn_t_comment,	// anything between // and \n
-	scn_t_operator, // +, -, *, /, =, ==, !=, >, <, >=, <=, &&, ||
-	scn_t_number,	// 1, 2e-9, 1.1, 1.1e-9 -42
-	scn_t_white,	// space, tab, \n, \r
-	scn_t_braces,	// {, }, (, ), [, ], ., ;, |
-	scn_t_lexeme,	// any literal symbol not enclosed in quotes and comment, after scan it is determined whether it is a keyword or not
+	sca_s_init,
+
+	sca_s_underscore,
+	sca_s_alpha,
+
+	sca_s_qm,
+	sca_s_bro,
+	sca_s_brc,
+
+	sca_s_at,
+	sca_s_atid,
+
+	sca_s_dt,
+	sca_s_dtus,
+	sca_s_fn,
+
+	sca_s_int,
+	sca_s_int2,
+	sca_s_intdt,
+	sca_s_intexp,
+	sca_s_dec,
+	sca_s_dec2,
+
+	sca_s_s1,
+	sca_s_s2,
+	sca_s_s3,
+	sca_s_s_max1,
+	sca_s_s_max2,
+	sca_s_s5,
+	sca_s_str,
+
+	sca_s_backslash,
+	sca_s_ml1,
+	sca_s_ml2,
+	sca_s_ml3,
+	sca_s_ml_max1,
+	sca_s_ml_max2,
+	sca_s_ml5,
+	sca_s_ml6,
+	sca_s_ml_str,
+
+	sca_s_eof,
+	sca_s_curlybrace_close,
+	sca_s_curlybrace_open,
+	sca_s_parenthese_open,
+	sca_s_parenthese_close,
+	sca_s_semicolon,
+	sca_s_slash,
+	sca_s_vertical,
+	sca_s_colon,
+	sca_s_exclamation,
+	sca_s_greater,
+	sca_s_equal,
+	sca_s_less,
+	sca_s_asterisk,
+	sca_s_minus,
+	sca_s_plus,
+	sca_s_hashtag
 } scn_state_t;
 
 #endif

@@ -33,19 +33,68 @@ SCA_MATCH_DECL(minus, '-')
 SCA_MATCH_DECL(plus, '+')
 SCA_MATCH_DECL(hashtag, '#')
 SCA_GREATER_DECL(text, 34)
+SCA_GREATER_DECL(comments, 31) // for comments
 
-// Scan_node sca_underscore {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_alpha {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_qm {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_bro {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_at {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_dt {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_int {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_backslash {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_curlybrace_open {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_curlybrace_close {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_parenthese_open {.children = {SCA_PATH(sca_init, )}};
-// Scan_node sca_vertical {.children = {SCA_PATH(sca_init, )}};
+// initial node for all tokens
+Scan_node sca_init = {.state = sca_s_init, .children = NULL, .count = 0};
+
+Scan_node sca_underscore = {.state = sca_s_underscore, .children = NULL, .count = 0};
+Scan_node sca_alpha = {.state = sca_s_alpha, .children = NULL, .count = 0};
+
+Scan_node sca_qm = {.state = sca_s_qm, .children = NULL, .count = 0};
+Scan_node sca_bro = {.state = sca_s_bro, .children = NULL, .count = 0};
+Scan_node sca_brc = {.state = sca_s_brc, .children = NULL, .count = 0};
+
+Scan_node sca_at = {.state = sca_s_at, .children = NULL, .count = 0};
+Scan_node sca_atid = {.state = sca_s_atid, .children = NULL, .count = 0};
+
+Scan_node sca_dt = {.state = sca_s_dt, .children = NULL, .count = 0};
+Scan_node sca_dtus = {.state = sca_s_dtus, .children = NULL, .count = 0};
+Scan_node sca_fn = {.state = sca_s_fn, .children = NULL, .count = 0};
+
+Scan_node sca_int = {.state = sca_s_int, .children = NULL, .count = 0};
+Scan_node sca_int2 = {.state = sca_s_int2, .children = NULL, .count = 0};
+Scan_node sca_intdt = {.state = sca_s_intdt, .children = NULL, .count = 0};
+Scan_node sca_intexp = {.state = sca_s_intexp, .children = NULL, .count = 0};
+Scan_node sca_dec = {.state = sca_s_dec, .children = NULL, .count = 0};
+Scan_node sca_dec2 = {.state = sca_s_dec2, .children = NULL, .count = 0};
+
+Scan_node sca_s1 = {.state = sca_s_s1, .children = NULL, .count = 0};
+Scan_node sca_s2 = {.state = sca_s_s2, .children = NULL, .count = 0};
+Scan_node sca_s3 = {.state = sca_s_s3, .children = NULL, .count = 0};
+Scan_node sca_s_max1 = {.state = sca_s_s_max1, .children = NULL, .count = 0};
+Scan_node sca_s_max2 = {.state = sca_s_s_max2, .children = NULL, .count = 0};
+Scan_node sca_s5 = {.state = sca_s_s5, .children = NULL, .count = 0};
+Scan_node sca_str = {.state = sca_s_str, .children = NULL, .count = 0};
+
+Scan_node sca_backslash = {.state = sca_s_backslash, .children = NULL, .count = 0};
+Scan_node sca_ml1 = {.state = sca_s_ml1, .children = NULL, .count = 0};
+Scan_node sca_ml2 = {.state = sca_s_ml2, .children = NULL, .count = 0};
+Scan_node sca_ml3 = {.state = sca_s_ml3, .children = NULL, .count = 0};
+Scan_node sca_ml_max1 = {.state = sca_s_ml_max1, .children = NULL, .count = 0};
+Scan_node sca_ml_max2 = {.state = sca_s_ml_max2, .children = NULL, .count = 0};
+Scan_node sca_ml5 = {.state = sca_s_ml5, .children = NULL, .count = 0};
+Scan_node sca_ml6 = {.state = sca_s_ml6, .children = NULL, .count = 0};
+Scan_node sca_ml_str = {.state = sca_s_ml_str, .children = NULL, .count = 0};
+
+Scan_node sca_eof = {.state = sca_s_eof, .children = NULL, .count = 0};
+Scan_node sca_curlybrace_close = {.state = sca_s_curlybrace_close, .children = NULL, .count = 0};
+Scan_node sca_curlybrace_open = {.state = sca_s_curlybrace_open, .children = NULL, .count = 0};
+Scan_node sca_parenthese_open = {.state = sca_s_parenthese_open, .children = NULL, .count = 0};
+Scan_node sca_parenthese_close = {.state = sca_s_parenthese_close, .children = NULL, .count = 0};
+Scan_node sca_semicolon = {.state = sca_s_semicolon, .children = NULL, .count = 0};
+Scan_node sca_slash = {.state = sca_s_slash, .children = NULL, .count = 0};
+Scan_node sca_vertical = {.state = sca_s_vertical, .children = NULL, .count = 0};
+Scan_node sca_colon = {.state = sca_s_colon, .children = NULL, .count = 0};
+Scan_node sca_exclamation = {.state = sca_s_exclamation, .children = NULL, .count = 0};
+Scan_node sca_greater = {.state = sca_s_greater, .children = NULL, .count = 0};
+Scan_node sca_equal = {.state = sca_s_equal, .children = NULL, .count = 0};
+Scan_node sca_less = {.state = sca_s_less, .children = NULL, .count = 0};
+Scan_node sca_asterisk = {.state = sca_s_asterisk, .children = NULL, .count = 0};
+Scan_node sca_minus = {.state = sca_s_minus, .children = NULL, .count = 0};
+Scan_node sca_plus = {.state = sca_s_plus, .children = NULL, .count = 0};
+Scan_node sca_hashtag = {.state = sca_s_hashtag, .children = NULL, .count = 0};
+
 
 SCA_PATH_DEF(sca_init, sca_init)
 SCA_PATH_DEF(sca_init, sca_s1)
@@ -67,11 +116,6 @@ SCA_PATH_DEF(sca_s1, sca_s5, SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
 SCA_PATH_DEF(sca_s5, sca_s5, SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
 SCA_PATH_DEF(sca_s1, sca_str, SCA_MATCH(quote))
 SCA_PATH_DEF(sca_s5, sca_str, SCA_MATCH(quote))
-
-Scan_node sca_init = {.children = {&SCA_PATH(sca_init, sca_s1), &SCA_PATH(sca_init, sca_s1)}};
-Scan_node sca_s5 = {.children = {&SCA_PATH(sca_s5, sca_s5)}};
-Scan_node sca_str = {.children = {&SCA_PATH(sca_s5, sca_s5)}};
-Scan_node sca_s1 = {.children = {&SCA_PATH(sca_s1, sca_s5)}};
 
 Scan_path sca_paths[] = {
 
@@ -106,10 +150,8 @@ void sca_free(Scan_node_ptr node)
 	for (size_t i = 0; i < node->count; i++)
 	{
 		SCA_PATH_DEINIT((*node->children[i]))
-		free(node->children[i]);
 	}
 	free(node->children);
-	free(node);
 }
 
 Scanner_ptr scn_init(char *filename)
@@ -149,12 +191,10 @@ Scanner_ptr scn_init(char *filename)
 
 void scn_free(Scanner_ptr scanner)
 {
-	SCA_PATH_DEINIT(SCA_PATH(sca_init, sca_init))
-	SCA_PATH_DEINIT(SCA_PATH(sca_init, sca_s1))
-	SCA_PATH_DEINIT(SCA_PATH(sca_s1, sca_s5))
-	SCA_PATH_DEINIT(SCA_PATH(sca_s5, sca_s5))
-	SCA_PATH_DEINIT(SCA_PATH(sca_s5, sca_str))
-	SCA_PATH_DEINIT(SCA_PATH(sca_s1, sca_str))
+	sca_free(&sca_init);
+	sca_free(&sca_s1);
+	sca_free(&sca_s5);
+	sca_free(&sca_str);
 	tok_dll_dispose(scanner->list);
 	free(scanner->file_name);
 	free(scanner);
@@ -170,7 +210,7 @@ void scn_free(Scanner_ptr scanner)
  */
 bool sca_p_has_match(Scan_path *path, char c)
 {
-	for (int index = 0; index < path->count; index++)
+	for (size_t index = 0; index < path->count; index++)
 		if ((bool)(path->matches[index])((int)c))
 			return true; // no need to evaluate further, conditions are in an OR relation
 	return false;
