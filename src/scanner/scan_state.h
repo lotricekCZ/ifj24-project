@@ -17,8 +17,6 @@ typedef enum
 	sca_s_atid,
 
 	sca_s_dt,
-	sca_s_dtus,
-	sca_s_fn,
 
 	sca_s_int,
 	sca_s_int2,

@@ -10,12 +10,14 @@
 SCA_MATCH_DECL(underscore, '_')
 SCA_MATCH_DECL(question_mark, '?')
 SCA_MATCH_DECL(brace_open, '[')
+SCA_MATCH_DECL(brace_close, ']')
 SCA_MATCH_DECL(at, '@')
 SCA_MATCH_DECL(dot, '.')
 SCA_MATCH_DECL(comma, ',')
 SCA_MATCH_DECL(quote, '"')
 SCA_MATCH_DECL(backslash, '\\')
 SCA_MATCH_DECL(eof, EOF)
+SCA_MATCH_DECL(end, '\0')
 SCA_MATCH_DECL(curlybrace_close, '}')
 SCA_MATCH_DECL(curlybrace_open, '{')
 SCA_MATCH_DECL(parenthese_open, ')')
@@ -31,6 +33,10 @@ SCA_MATCH_DECL(less, '<')
 SCA_MATCH_DECL(asterisk, '*')
 SCA_MATCH_DECL(minus, '-')
 SCA_MATCH_DECL(plus, '+')
+SCA_MATCH_DECL(u, 'u')
+SCA_MATCH_DECL(x, 'x')
+SCA_MATCH_DECL(E, 'E')
+SCA_MATCH_DECL(e, 'e')
 SCA_MATCH_DECL(hashtag, '#')
 SCA_GREATER_DECL(text, 34)
 SCA_GREATER_DECL(comments, 31) // for comments
@@ -50,8 +56,6 @@ Scan_node sca_at = {.state = sca_s_at, .children = NULL, .count = 0};
 Scan_node sca_atid = {.state = sca_s_atid, .children = NULL, .count = 0};
 
 Scan_node sca_dt = {.state = sca_s_dt, .children = NULL, .count = 0};
-Scan_node sca_dtus = {.state = sca_s_dtus, .children = NULL, .count = 0};
-Scan_node sca_fn = {.state = sca_s_fn, .children = NULL, .count = 0};
 
 Scan_node sca_int = {.state = sca_s_int, .children = NULL, .count = 0};
 Scan_node sca_int2 = {.state = sca_s_int2, .children = NULL, .count = 0};
@@ -102,7 +106,6 @@ Scan_node sca_plus = {.state = sca_s_plus, .children = NULL, .count = 0};
 Scan_node sca_comma = {.state = sca_s_comma, .children = NULL, .count = 0};
 Scan_node sca_hashtag = {.state = sca_s_hashtag, .children = NULL, .count = 0};
 
-
 // init to init
 SCA_PATH_DEF(sca_init, sca_init)
 
@@ -128,10 +131,6 @@ SCA_PATH_DEF(sca_atid, sca_atid)
 
 // init to builtin function paths
 SCA_PATH_DEF(sca_init, sca_dt)
-SCA_PATH_DEF(sca_dt, sca_dtus)
-SCA_PATH_DEF(sca_dt, sca_fn)
-SCA_PATH_DEF(sca_dtus, sca_fn)
-SCA_PATH_DEF(sca_fn, sca_fn)
 
 // init to number paths
 SCA_PATH_DEF(sca_init, sca_int)
@@ -187,6 +186,7 @@ SCA_PATH_DEF(sca_init, sca_semicolon)
 // init to slash paths
 SCA_PATH_DEF(sca_init, sca_slash)
 SCA_PATH_DEF(sca_slash, sca_comment)
+SCA_PATH_DEF(sca_comment, sca_comment)
 
 // init to vertical path
 SCA_PATH_DEF(sca_init, sca_vertical)
@@ -196,7 +196,7 @@ SCA_PATH_DEF(sca_init, sca_colon)
 
 // init to exclamation paths
 SCA_PATH_DEF(sca_init, sca_exclamation)
-SCA_PATH_DEF(sca_init, sca_notequal)
+SCA_PATH_DEF(sca_exclamation, sca_notequal)
 
 // init to greater paths
 SCA_PATH_DEF(sca_init, sca_greater)
@@ -279,20 +279,194 @@ Scanner_ptr scn_init(char *filename)
 		return NULL;
 	}
 	strcpy(scanner->file_name, filename);
+
+	scanner->source = scn_open_file(scanner);
+	if (scanner->source == NULL)
+	{
+		// TODO: throw error err_internal
+		return false;
+	}
+	scanner->source_size = strlen(scanner->source);
+	scanner->source_index = 0;
+	
 	scanner->list = tok_dll_init();
 
-	// scanner graph path config
+	/** scanner graph path config */
+	// init to init
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_init), isspace)
+
+	// init to lexeme identification paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_underscore), SCA_MATCH(underscore))
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_lexeme), isalpha)
+	SCA_PATH_INIT(SCA_PATH(sca_lexeme, sca_lexeme), isalnum, SCA_MATCH(underscore))
+	SCA_PATH_INIT(SCA_PATH(sca_underscore, sca_lexeme), isalnum, SCA_MATCH(underscore))
+
+	// init to optional/string data type paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_qm), SCA_MATCH(question_mark))
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_bro), SCA_MATCH(brace_open))
+	SCA_PATH_INIT(SCA_PATH(sca_qm, sca_bro), SCA_MATCH(brace_open))
+	SCA_PATH_INIT(SCA_PATH(sca_bro, sca_brc), SCA_MATCH(brace_close))
+	SCA_PATH_INIT(SCA_PATH(sca_brc, sca_opt_str_lexeme), SCA_MATCH(u))
+	SCA_PATH_INIT(SCA_PATH(sca_qm, sca_opt_str_lexeme), isalnum)
+	SCA_PATH_INIT(SCA_PATH(sca_opt_str_lexeme, sca_opt_str_lexeme), isalnum)
+
+	// init to import and as keywords
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_at), SCA_MATCH(at))
+	SCA_PATH_INIT(SCA_PATH(sca_at, sca_atid), isalpha)
+	SCA_PATH_INIT(SCA_PATH(sca_atid, sca_atid), isalpha)
+
+	// init to builtin function paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_dt), SCA_MATCH(dot))
+
+	// init to number paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_int), isdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_int, sca_int2), isdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_int, sca_intdt), SCA_MATCH(dot))
+	SCA_PATH_INIT(SCA_PATH(sca_int, sca_intexp), SCA_MATCH(e), SCA_MATCH(E))
+
+	SCA_PATH_INIT(SCA_PATH(sca_int2, sca_int2), isdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_int2, sca_intdt), SCA_MATCH(dot))
+	SCA_PATH_INIT(SCA_PATH(sca_int2, sca_intexp), SCA_MATCH(e), SCA_MATCH(E))
+	SCA_PATH_INIT(SCA_PATH(sca_intexp, sca_dec), isdigit)
+
+	SCA_PATH_INIT(SCA_PATH(sca_dec, sca_dec), isdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_intdt, sca_dec2), isdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_dec2, sca_dec2), isdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_dec2, sca_intexp), SCA_MATCH(e), SCA_MATCH(E))
+
+	// init to string paths
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_s1), SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_s2), SCA_MATCH(backslash))
+	SCA_PATH_INIT(SCA_PATH(sca_s2, sca_s3), SCA_MATCH(x))
+
+	SCA_PATH_INIT(SCA_PATH(sca_s3, sca_s_max1), isxdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_s_max1, sca_s_max2), isxdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_s_max2, sca_s2), SCA_MATCH(backslash))
+	SCA_PATH_INIT(SCA_PATH(sca_s_max2, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+
 	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
-	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_str), SCA_MATCH(quote))
+	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_s2), SCA_MATCH(backslash))
+	SCA_PATH_INIT(SCA_PATH(sca_s2, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
 	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_str), SCA_MATCH(quote))
 
+	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_str), SCA_MATCH(quote))
+	SCA_PATH_INIT(SCA_PATH(sca_s_max2, sca_str), SCA_MATCH(quote))
+
+	// init to multiline paths (reserved for future implementation))
+
+	// init to eof
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_eof), SCA_MATCH(eof), SCA_MATCH(end))
+
+	// init to curly brace paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_curlybrace_close), SCA_MATCH(curlybrace_close))
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_curlybrace_open), SCA_MATCH(curlybrace_open))
+
+	// init to parenthese paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_parenthese_close), SCA_MATCH(parenthese_close))
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_parenthese_open), SCA_MATCH(parenthese_open))
+
+	// init to semicolon paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_semicolon), SCA_MATCH(semicolon))
+
+	// init to slash paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_slash), SCA_MATCH(slash))
+	SCA_PATH_INIT(SCA_PATH(sca_slash, sca_comment), SCA_MATCH(slash))
+	SCA_PATH_INIT(SCA_PATH(sca_comment, sca_comment), SCA_GREATER(comments))
+
+	// init to vertical path
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_vertical), SCA_MATCH(vertical))
+
+	// init to colon paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_colon), SCA_MATCH(colon))
+
+	// init to exclamation paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_exclamation), SCA_MATCH(exclamation))
+	SCA_PATH_INIT(SCA_PATH(sca_exclamation, sca_notequal), SCA_MATCH(equal))
+
+	// init to greater paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_greater), SCA_MATCH(greater))
+	SCA_PATH_INIT(SCA_PATH(sca_greater, sca_greaterequal), SCA_MATCH(equal))
+
+	// init to equal paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_assign), SCA_MATCH(equal))
+	SCA_PATH_INIT(SCA_PATH(sca_assign, sca_equal), SCA_MATCH(equal))
+
+	// init to less paths
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_less), SCA_MATCH(less))
+	SCA_PATH_INIT(SCA_PATH(sca_less, sca_lessequal), SCA_MATCH(equal))
+
+	// init to asterisk path
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_asterisk), SCA_MATCH(asterisk))
+
+	// init to plus path
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_plus), SCA_MATCH(plus))
+
+	// init to minus path
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_minus), SCA_MATCH(minus))
+
+	// init to comma path
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_comma), SCA_MATCH(comma))
+
+	// init to hashtag path
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_hashtag), SCA_MATCH(hashtag))
+
+	/** scanner graph node config */
 	// scanner graph node config
-	sca_assign_children(&sca_init, 2, &SCA_PATH(sca_init, sca_init), &SCA_PATH(sca_init, sca_s1));
-	sca_assign_children(&sca_s1, 2, &SCA_PATH(sca_s1, sca_s5), &SCA_PATH(sca_s1, sca_str));
-	sca_assign_children(&sca_s5, 2, &SCA_PATH(sca_s5, sca_s5), &SCA_PATH(sca_s5, sca_str));
+	sca_assign_children(&sca_init, 27 /* 28 TODO: with multiline */, &SCA_PATH(sca_init, sca_init),
+						&SCA_PATH(sca_init, sca_underscore), &SCA_PATH(sca_init, sca_lexeme), &SCA_PATH(sca_init, sca_qm),
+						&SCA_PATH(sca_init, sca_bro), &SCA_PATH(sca_init, sca_at), &SCA_PATH(sca_init, sca_dt),
+						&SCA_PATH(sca_init, sca_int), &SCA_PATH(sca_init, sca_s1), /* &SCA_PATH(sca_init, TODO: MULTILINE),*/
+						&SCA_PATH(sca_init, sca_comma), &SCA_PATH(sca_init, sca_eof), &SCA_PATH(sca_init, sca_curlybrace_open),
+						&SCA_PATH(sca_init, sca_curlybrace_close), &SCA_PATH(sca_init, sca_parenthese_open), &SCA_PATH(sca_init, sca_parenthese_close),
+						&SCA_PATH(sca_init, sca_semicolon), &SCA_PATH(sca_init, sca_slash), &SCA_PATH(sca_init, sca_vertical),
+						&SCA_PATH(sca_init, sca_colon), &SCA_PATH(sca_init, sca_exclamation), &SCA_PATH(sca_init, sca_greater),
+						&SCA_PATH(sca_init, sca_assign), &SCA_PATH(sca_init, sca_less), &SCA_PATH(sca_init, sca_asterisk),
+						&SCA_PATH(sca_init, sca_minus), &SCA_PATH(sca_init, sca_plus), &SCA_PATH(sca_init, sca_hashtag));
+
+	sca_assign_children(&sca_underscore, 1, &SCA_PATH(sca_underscore, sca_lexeme));
+	sca_assign_children(&sca_lexeme, 1, &SCA_PATH(sca_lexeme, sca_lexeme));
+	sca_assign_children(&sca_opt_str_lexeme, 1, &SCA_PATH(sca_opt_str_lexeme, sca_opt_str_lexeme));
+
+	sca_assign_children(&sca_qm, 2, &SCA_PATH(sca_qm, sca_opt_str_lexeme), &SCA_PATH(sca_qm, sca_bro));
+	sca_assign_children(&sca_bro, 1, &SCA_PATH(sca_bro, sca_brc));
+	sca_assign_children(&sca_brc, 1, &SCA_PATH(sca_brc, sca_opt_str_lexeme));
+
+	sca_assign_children(&sca_at, 1, &SCA_PATH(sca_at, sca_atid));
+	sca_assign_children(&sca_atid, 1, &SCA_PATH(sca_atid, sca_atid));
+
+	sca_assign_children(&sca_int, 3, &SCA_PATH(sca_int, sca_intdt), &SCA_PATH(sca_int, sca_int2), &SCA_PATH(sca_int, sca_intexp));
+	sca_assign_children(&sca_int2, 3, &SCA_PATH(sca_int2, sca_intdt), &SCA_PATH(sca_int2, sca_int2), &SCA_PATH(sca_int2, sca_intexp));
+	sca_assign_children(&sca_intdt, 1, &SCA_PATH(sca_intdt, sca_dec2));
+	sca_assign_children(&sca_intexp, 1, &SCA_PATH(sca_intexp, sca_dec));
+	sca_assign_children(&sca_dec, 1, &SCA_PATH(sca_dec, sca_dec));
+	sca_assign_children(&sca_dec2, 2, &SCA_PATH(sca_dec2, sca_dec2), &SCA_PATH(sca_dec2, sca_intexp));
+
+	sca_assign_children(&sca_s1, 3, &SCA_PATH(sca_s1, sca_s5), &SCA_PATH(sca_s1, sca_s2), &SCA_PATH(sca_s1, sca_str));
+	sca_assign_children(&sca_s2, 2, &SCA_PATH(sca_s2, sca_s3), &SCA_PATH(sca_s2, sca_s5));
+	sca_assign_children(&sca_s3, 1, &SCA_PATH(sca_s3, sca_s_max1));
+	sca_assign_children(&sca_s_max1, 1, &SCA_PATH(sca_s_max1, sca_s_max2));
+	sca_assign_children(&sca_s_max2, 3, &SCA_PATH(sca_s_max2, sca_s5), &SCA_PATH(sca_s_max2, sca_s2), &SCA_PATH(sca_s_max2, sca_str));
+	sca_assign_children(&sca_s5, 3, &SCA_PATH(sca_s5, sca_s5), &SCA_PATH(sca_s5, sca_s2), &SCA_PATH(sca_s5, sca_str));
+
+	// TODO: Multiline string
+	// sca_assign_children(&sca_backslash);
+	// sca_assign_children(&sca_ml1);
+	// sca_assign_children(&sca_ml2);
+	// sca_assign_children(&sca_ml3);
+	// sca_assign_children(&sca_ml_max1);
+	// sca_assign_children(&sca_ml_max2);
+	// sca_assign_children(&sca_ml5);
+	// sca_assign_children(&sca_ml6);
+	// sca_assign_children(&sca_ml_str);
+
+	sca_assign_children(&sca_slash, 1, &SCA_PATH(sca_slash, sca_comment));
+	sca_assign_children(&sca_comment, 1, &SCA_PATH(sca_comment, sca_comment));
+	sca_assign_children(&sca_exclamation, 1, &SCA_PATH(sca_exclamation, sca_notequal));
+	sca_assign_children(&sca_greater, 1, &SCA_PATH(sca_greater, sca_greaterequal));
+	sca_assign_children(&sca_assign, 1, &SCA_PATH(sca_assign, sca_equal));
+	sca_assign_children(&sca_less, 1, &SCA_PATH(sca_less, sca_lessequal));
+	// sca_assign_children(&sca_hashtag);
 
 	return scanner;
 }
@@ -300,11 +474,40 @@ Scanner_ptr scn_init(char *filename)
 void scn_free(Scanner_ptr scanner)
 {
 	sca_free(&sca_init);
+	sca_free(&sca_underscore);
+	sca_free(&sca_lexeme);
+	sca_free(&sca_opt_str_lexeme);
+
+	sca_free(&sca_qm);
+	sca_free(&sca_bro);
+	sca_free(&sca_brc);
+
+	sca_free(&sca_at);
+	sca_free(&sca_atid);
+
+	sca_free(&sca_int);
+	sca_free(&sca_int2);
+	sca_free(&sca_intdt);
+	sca_free(&sca_intexp);
+	sca_free(&sca_dec);
+	sca_free(&sca_dec2);
+
 	sca_free(&sca_s1);
+	sca_free(&sca_s2);
+	sca_free(&sca_s3);
+	sca_free(&sca_s_max1);
+	sca_free(&sca_s_max2);
 	sca_free(&sca_s5);
-	sca_free(&sca_str);
+
+	sca_free(&sca_slash);
+	sca_free(&sca_comment);
+	sca_free(&sca_exclamation);
+	sca_free(&sca_greater);
+	sca_free(&sca_assign);
+	sca_free(&sca_less);
 	tok_dll_dispose(scanner->list);
 	free(scanner->file_name);
+	free(scanner->source);
 	free(scanner);
 }
 /**
@@ -357,44 +560,41 @@ Scan_path *sca_n_has_match(Scan_node *node, char c)
 }
 Token_ptr scn_scan(Scanner_ptr scanner)
 {
-	char *source = "\"Hello World\" how is it going"; // scn_open_file(scanner);
-	if (source == NULL)
-	{
-		// TODO: throw error err_internal
-		return false;
-	}
-	size_t source_size = strlen(source);
-	printf("%s\n", source);
+	// printf("%s\n", scanner->source);
 
 	// scn_state_t state = scn_t_init;
 	Token_ptr token;
 
-	size_t low = 0;
-	size_t high = 0;
+	size_t high = scanner->source_index;
 	Scan_node *node = &sca_init;
 	bool has_match = true;
 	while (has_match)
 	{
-		Scan_path *path = high < source_size ? sca_n_has_match(node, source[high]) : NULL;
+		Scan_path *path = high <= scanner->source_size ? sca_n_has_match(node, scanner->source[high]) : NULL;
 		if (path != NULL)
 		{
 			node = path->to;
 			high++;
+			if (path->to == path->from && path->to == &sca_init)
+			{
+				scanner->source_index = high;
+			}
 		}
 		else
 		{
 			// TODO: capture token type (probably should be in node data)
-			char *token_text = (char *)malloc(sizeof(char) * (high - low + 1));
-			memcpy(token_text, source + low, high - low);
-			token_text[high - low] = '\0';
+			char *token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1));
+			memcpy(token_text, scanner->source + scanner->source_index, high - scanner->source_index);
+			token_text[high - scanner->source_index] = '\0';
 			printf("Token: %s\n", token_text);
-			low = high;
+			Token_ptr token = tok_init((node->state != sca_s_eof)? tok_t_init: tok_t_eof);
+			tok_set_attribute(token, token_text);
+			scanner->source_index = high;
 			has_match = false;
 			free(token_text);
+			return token;
 		}
 	}
-
-	// free(source);
 	return NULL;
 }
 

@@ -53,6 +53,9 @@ typedef struct _Scanner
 {
 	char *file_name;
 	tok_dllist *list;
+	char *source;
+	size_t source_index;
+	size_t source_size;
 } Scanner;
 
 typedef struct _Scanner *Scanner_ptr;
