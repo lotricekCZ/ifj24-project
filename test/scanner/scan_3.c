@@ -1,8 +1,8 @@
 #include "../../src/scanner/scanner.h"
 
-int main()
+int main(int argc, char **argv)
 {
-	Scanner_ptr scanner = scn_init("./test/scanner/test0.zig");
+	Scanner_ptr scanner = scn_init(argv[1]);
 	size_t i = 0;
 	Token_ptr element = NULL;
 	do {

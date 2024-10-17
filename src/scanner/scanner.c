@@ -20,8 +20,8 @@ SCA_MATCH_DECL(eof, EOF)
 SCA_MATCH_DECL(end, '\0')
 SCA_MATCH_DECL(curlybrace_close, '}')
 SCA_MATCH_DECL(curlybrace_open, '{')
-SCA_MATCH_DECL(parenthese_open, ')')
-SCA_MATCH_DECL(parenthese_close, '(')
+SCA_MATCH_DECL(parenthese_open, '(')
+SCA_MATCH_DECL(parenthese_close, ')')
 SCA_MATCH_DECL(semicolon, ';')
 SCA_MATCH_DECL(slash, '/')
 SCA_MATCH_DECL(vertical, '|')
@@ -583,12 +583,15 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 		else
 		{
 			// TODO: capture token type (probably should be in node data)
-			char *token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1));
-			memcpy(token_text, scanner->source + scanner->source_index, high - scanner->source_index);
-			token_text[high - scanner->source_index] = '\0';
-			printf("Token: %s\n", token_text);
-			Token_ptr token = tok_init((node->state != sca_s_eof)? tok_t_init: tok_t_eof);
-			tok_set_attribute(token, token_text);
+			int offset = (node->state == sca_s_str) * 1 + (node->state == sca_s_comment || node->state == sca_s_ml_str) * 2;
+			char *token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2 ));
+			memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
+			token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
+			token_type type = scn_get_tok_type(node->state, token_text);
+			printf("Token: %2d | %s\n", (int)type, token_text);
+			Token_ptr token = tok_init(type);
+			if(type == tok_t_str || type == tok_t_int || type == tok_t_flt || type == tok_t_doc)
+				tok_set_attribute(token, token_text);
 			scanner->source_index = high;
 			has_match = false;
 			free(token_text);

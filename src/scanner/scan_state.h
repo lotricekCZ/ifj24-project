@@ -1,6 +1,8 @@
 #ifndef SCAN_STATE_H
 #define SCAN_STATE_H
 
+#include "../utils/token_types.h"
+
 typedef enum
 {
 	sca_s_init,
@@ -68,5 +70,16 @@ typedef enum
 	sca_s_hashtag,
 
 } scn_state_t;
+
+typedef struct
+{
+	scn_state_t state;
+	token_type tok_type;
+} State_type_pair;
+
+token_type scn_get_tok_type(scn_state_t state, char *lexeme);
+token_type scn_get_keyword(scn_state_t state);
+
+extern State_type_pair sca_tr_table[]; // translation table
 
 #endif

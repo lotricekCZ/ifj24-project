@@ -18,7 +18,7 @@
 #include <stdarg.h>
 #include "../utils/token.h"
 #include "../utils/token_dll.h"
-#include "../utils/keywords.h"
+#include "../utils/token_types.h"
 #include "scan_state.h"
 
 #define SCA_MATCH_DECL(name, a) \
