@@ -41,6 +41,7 @@ typedef enum _token_type
 	tok_t_flt,		// DOUBLE or floating point value
 	tok_t_int,		// INT or integer value
 	tok_t_str,		// STRING or anything enclosed in quotes
+	tok_t_mstr,		// MULTILINE STRING
 	tok_t_lbr,		// [, left brace
 	tok_t_rbr,		// ], right brace
 	tok_t_lcbr,		// {, left curly brace

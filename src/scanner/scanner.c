@@ -168,6 +168,20 @@ SCA_PATH_DEF(sca_s5, sca_str)
 SCA_PATH_DEF(sca_s_max2, sca_str)
 
 // init to multiline paths (reserved for future implementation)
+SCA_PATH_DEF(sca_init, sca_backslash)
+SCA_PATH_DEF(sca_backslash, sca_ml1)
+SCA_PATH_DEF(sca_ml1, sca_ml5)
+SCA_PATH_DEF(sca_ml1, sca_ml2)
+
+SCA_PATH_DEF(sca_ml2, sca_ml3)
+SCA_PATH_DEF(sca_ml3, sca_ml_max1)
+SCA_PATH_DEF(sca_ml_max1, sca_ml_max2)
+SCA_PATH_DEF(sca_ml_max2, sca_ml2)
+
+SCA_PATH_DEF(sca_ml_max2, sca_ml5)
+SCA_PATH_DEF(sca_ml5, sca_ml5)
+SCA_PATH_DEF(sca_ml5, sca_ml2)
+SCA_PATH_DEF(sca_ml2, sca_ml5)
 
 // init to eof
 SCA_PATH_DEF(sca_init, sca_eof)
@@ -230,11 +244,12 @@ Scan_path sca_paths[] = {
 };
 
 /**
- * @brief Assigns children to a Scan_node.
- * @details This function uses a varargs list to assign children to a Scan_node.
- * The first argument is the size of the array, and the rest of the arguments are
- * pointers to Scan_path structures.
- * @param node The Scan_node to assign children to.
+ * @brief dosadi cesty k Scan_node.
+ * @details Tato funkce pouziva seznam variabilnich argumentu k pripojeni synu
+ * ke Scan_node.
+ * @param node Scan_node, ke ktere mame pripojit deti.
+ * @param argc Pocet argumentu.
+ * @param ...
  */
 void sca_assign_children(Scan_node_ptr node, int argc, ...)
 {
@@ -248,9 +263,11 @@ void sca_assign_children(Scan_node_ptr node, int argc, ...)
 }
 
 /**
- * @brief Frees memory allocated for a Scan_node and all its children.
- * @details Calls SCA_PATH_DEINIT on each child and then frees the memory allocated for children array and the node itself.
- * @param node The Scan_node to free.
+ * @brief Uvolni pamet, kterou mel uzel skeneru.
+ * @details Funkce projde vsechny cesty, ktere z uzlu vedou, uvolni
+ * pamet, kterou mely. Pak uvolni pamet, kterou mel na cesty
+ *
+ * @param node Uzel, jehoz cesty se maji uvolnit.
  */
 void sca_free(Scan_node_ptr node)
 {
@@ -262,6 +279,12 @@ void sca_free(Scan_node_ptr node)
 	free(node->children);
 }
 
+/**
+ * @brief Vytvori scanner z konfiguracního souboru.
+ * @details Vytvori strukturu Scanner a inicializuje ji s obsahem souboru filename.
+ * @param filename Cesta k souboru, ze ktereho chceme cist.
+ * @return Struktura Scanner, nebo NULL, pokud doslo k chybe.
+ */
 Scanner_ptr scn_init(char *filename)
 {
 	// scanner setup
@@ -288,7 +311,7 @@ Scanner_ptr scn_init(char *filename)
 	}
 	scanner->source_size = strlen(scanner->source);
 	scanner->source_index = 0;
-	
+
 	scanner->list = tok_dll_init();
 
 	/** scanner graph path config */
@@ -354,6 +377,20 @@ Scanner_ptr scn_init(char *filename)
 	SCA_PATH_INIT(SCA_PATH(sca_s_max2, sca_str), SCA_MATCH(quote))
 
 	// init to multiline paths (reserved for future implementation))
+	SCA_PATH_INIT(SCA_PATH(sca_init, sca_backslash), SCA_MATCH(backslash))
+	SCA_PATH_INIT(SCA_PATH(sca_backslash, sca_ml1), SCA_MATCH(backslash))
+	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml2), SCA_MATCH(backslash))
+
+	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml3), SCA_MATCH(x))
+	SCA_PATH_INIT(SCA_PATH(sca_ml3, sca_ml_max1), isxdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_ml_max1, sca_ml_max2), isxdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml2), SCA_MATCH(backslash))
+
+	SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml2), SCA_GREATER(backslash))
+	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
 
 	// init to eof
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_eof), SCA_MATCH(eof), SCA_MATCH(end))
@@ -413,10 +450,10 @@ Scanner_ptr scn_init(char *filename)
 
 	/** scanner graph node config */
 	// scanner graph node config
-	sca_assign_children(&sca_init, 27 /* 28 TODO: with multiline */, &SCA_PATH(sca_init, sca_init),
+	sca_assign_children(&sca_init, 28, &SCA_PATH(sca_init, sca_init),
 						&SCA_PATH(sca_init, sca_underscore), &SCA_PATH(sca_init, sca_lexeme), &SCA_PATH(sca_init, sca_qm),
 						&SCA_PATH(sca_init, sca_bro), &SCA_PATH(sca_init, sca_at), &SCA_PATH(sca_init, sca_dt),
-						&SCA_PATH(sca_init, sca_int), &SCA_PATH(sca_init, sca_s1), /* &SCA_PATH(sca_init, TODO: MULTILINE),*/
+						&SCA_PATH(sca_init, sca_int), &SCA_PATH(sca_init, sca_s1), &SCA_PATH(sca_init, sca_backslash),
 						&SCA_PATH(sca_init, sca_comma), &SCA_PATH(sca_init, sca_eof), &SCA_PATH(sca_init, sca_curlybrace_open),
 						&SCA_PATH(sca_init, sca_curlybrace_close), &SCA_PATH(sca_init, sca_parenthese_open), &SCA_PATH(sca_init, sca_parenthese_close),
 						&SCA_PATH(sca_init, sca_semicolon), &SCA_PATH(sca_init, sca_slash), &SCA_PATH(sca_init, sca_vertical),
@@ -450,15 +487,13 @@ Scanner_ptr scn_init(char *filename)
 	sca_assign_children(&sca_s5, 3, &SCA_PATH(sca_s5, sca_s5), &SCA_PATH(sca_s5, sca_s2), &SCA_PATH(sca_s5, sca_str));
 
 	// TODO: Multiline string
-	// sca_assign_children(&sca_backslash);
-	// sca_assign_children(&sca_ml1);
-	// sca_assign_children(&sca_ml2);
-	// sca_assign_children(&sca_ml3);
-	// sca_assign_children(&sca_ml_max1);
-	// sca_assign_children(&sca_ml_max2);
-	// sca_assign_children(&sca_ml5);
-	// sca_assign_children(&sca_ml6);
-	// sca_assign_children(&sca_ml_str);
+	sca_assign_children(&sca_backslash, 1, &SCA_PATH(sca_backslash, sca_ml1));
+	sca_assign_children(&sca_ml1, 2, &SCA_PATH(sca_ml1, sca_ml5), &SCA_PATH(sca_ml1, sca_ml2));
+	sca_assign_children(&sca_ml2, 2, &SCA_PATH(sca_ml2, sca_ml3), &SCA_PATH(sca_ml2, sca_ml5));
+	sca_assign_children(&sca_ml3, 1, &SCA_PATH(sca_ml3, sca_ml_max1));
+	sca_assign_children(&sca_ml_max1, 1, &SCA_PATH(sca_ml_max1, sca_ml_max2));
+	sca_assign_children(&sca_ml_max2, 1, &SCA_PATH(sca_ml_max2, sca_ml5));
+	sca_assign_children(&sca_ml5, 2, &SCA_PATH(sca_ml5, sca_ml5), &SCA_PATH(sca_ml5, sca_ml2));
 
 	sca_assign_children(&sca_slash, 1, &SCA_PATH(sca_slash, sca_comment));
 	sca_assign_children(&sca_comment, 1, &SCA_PATH(sca_comment, sca_comment));
@@ -471,6 +506,15 @@ Scanner_ptr scn_init(char *filename)
 	return scanner;
 }
 
+/**
+ * @brief Uvolní paměť, která byla alokována pro scanner.
+ *
+ * Tato funkce uvolní paměť, která byla alokována pro scanner a jeho vnitřní
+ * proměnné. Protože scanner používá dynamicky alokovanou paměť, je nutné
+ * tuto funkci volat před koncem programu, aby se zabránilo úniku paměti.
+ *
+ * @param scanner Ukazatel na scanner, jehož paměť má být uvolněna.
+ */
 void scn_free(Scanner_ptr scanner)
 {
 	sca_free(&sca_init);
@@ -499,12 +543,21 @@ void scn_free(Scanner_ptr scanner)
 	sca_free(&sca_s_max2);
 	sca_free(&sca_s5);
 
+	sca_free(&sca_backslash);
+	sca_free(&sca_ml1);
+	sca_free(&sca_ml2);
+	sca_free(&sca_ml3);
+	sca_free(&sca_ml_max1);
+	sca_free(&sca_ml_max2);
+	sca_free(&sca_ml5);
+
 	sca_free(&sca_slash);
 	sca_free(&sca_comment);
 	sca_free(&sca_exclamation);
 	sca_free(&sca_greater);
 	sca_free(&sca_assign);
 	sca_free(&sca_less);
+
 	tok_dll_dispose(scanner->list);
 	free(scanner->file_name);
 	free(scanner->source);
@@ -558,6 +611,16 @@ Scan_path *sca_n_has_match(Scan_node *node, char c)
 	return NULL;
 #endif
 }
+
+/**
+ * @brief Vrati token, ktery je na danem indexu v zdrojovem textu.
+ * @details Funkce projde grafem skeneru a nalezne token, ktery je
+ * na danem indexu v zdrojovem textu. Pokud je nalezen token, vraci
+ * se ukazatel na strukturu, ktera reprezentuje tento token.
+ * Pokud token neexistuje, vraci se NULL.
+ * @param scanner Struktura, ktera reprezentuje scanner.
+ * @returns Ukazatel na strukturu, ktera reprezentuje token, nebo NULL, pokud token neexistuje.
+ */
 Token_ptr scn_scan(Scanner_ptr scanner)
 {
 	// printf("%s\n", scanner->source);
@@ -584,13 +647,12 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 		{
 			// TODO: capture token type (probably should be in node data)
 			int offset = (node->state == sca_s_str) * 1 + (node->state == sca_s_comment || node->state == sca_s_ml_str) * 2;
-			char *token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2 ));
+			char *token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
 			memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
 			token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
 			token_type type = scn_get_tok_type(node->state, token_text);
-			printf("Token: %2d | %s\n", (int)type, token_text);
 			Token_ptr token = tok_init(type);
-			if(type == tok_t_str || type == tok_t_int || type == tok_t_flt || type == tok_t_doc)
+			if (type == tok_t_str || type == tok_t_mstr || type == tok_t_int || type == tok_t_flt || type == tok_t_doc)
 				tok_set_attribute(token, token_text);
 			scanner->source_index = high;
 			has_match = false;
