@@ -25,6 +25,8 @@ Keyword keywords[] = {
     {tok_t_import, "@import"},
     {tok_t_as, "@as"},
     {tok_t_for, "for"},
+    {tok_t_break, "break"},
+    {tok_t_continue, "continue"},
     {tok_t_bool, "bool"},
     {tok_t_or, "or"},
     {tok_t_and, "and"},

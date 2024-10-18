@@ -23,6 +23,7 @@ typedef enum
 	sca_s_int,
 	sca_s_intdt,
 	sca_s_intexp,
+	sca_s_intexpsign,
 	sca_s_dec,
 	sca_s_dec2,
 

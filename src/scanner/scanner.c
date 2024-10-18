@@ -41,6 +41,16 @@ SCA_MATCH_DECL(hashtag, '#')
 SCA_GREATER_DECL(text, 34)
 SCA_GREATER_DECL(comments, 31) // for comments
 
+/**
+ * @brief Podmínka pro řetězce. Kontroluje, zda znak c je tisknutelný a není zpětným lomítkem.
+ *
+ * @param c Znak, který má být zkontrolován.
+ * @return Vrací nenulovou hodnotu, pokud je znak tisknutelný a není zpětným lomítkem či uvozovkou, jinak vrací 0.
+ */
+int sca_string(int c)
+{
+	return c != '\\' && c != '"' && isprint(c);
+}
 // initial node for all tokens
 Scan_node sca_init = {.state = sca_s_init, .children = NULL, .count = 0};
 
@@ -59,6 +69,7 @@ Scan_node sca_dt = {.state = sca_s_dt, .children = NULL, .count = 0};
 
 Scan_node sca_int = {.state = sca_s_int, .children = NULL, .count = 0};
 Scan_node sca_intdt = {.state = sca_s_intdt, .children = NULL, .count = 0};
+Scan_node sca_intexpsign = {.state = sca_s_intexpsign, .children = NULL, .count = 0};
 Scan_node sca_intexp = {.state = sca_s_intexp, .children = NULL, .count = 0};
 Scan_node sca_dec = {.state = sca_s_dec, .children = NULL, .count = 0};
 Scan_node sca_dec2 = {.state = sca_s_dec2, .children = NULL, .count = 0};
@@ -137,12 +148,13 @@ SCA_PATH_DEF(sca_int, sca_int)
 SCA_PATH_DEF(sca_int, sca_intexp)
 SCA_PATH_DEF(sca_int, sca_intdt)
 
-SCA_PATH_DEF(sca_dt, sca_dec)
 SCA_PATH_DEF(sca_intdt, sca_dec)
 SCA_PATH_DEF(sca_dec, sca_dec)
 SCA_PATH_DEF(sca_dec, sca_intexp)
 
 SCA_PATH_DEF(sca_intexp, sca_dec2)
+SCA_PATH_DEF(sca_intexp, sca_intexpsign)
+SCA_PATH_DEF(sca_intexpsign, sca_dec2)
 SCA_PATH_DEF(sca_dec2, sca_dec2)
 
 // init to string paths
@@ -345,28 +357,29 @@ Scanner_ptr scn_init(char *filename)
 	SCA_PATH_INIT(SCA_PATH(sca_int, sca_intexp), SCA_MATCH(e), SCA_MATCH(E))
 	SCA_PATH_INIT(SCA_PATH(sca_int, sca_intdt), SCA_MATCH(dot))
 
-	SCA_PATH_INIT(SCA_PATH(sca_dt, sca_dec), isdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_intdt, sca_dec), isdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_dec, sca_dec), isdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_dec, sca_intexp), SCA_MATCH(e), SCA_MATCH(E))
+	SCA_PATH_INIT(SCA_PATH(sca_intexp, sca_dec2), isdigit)
 
-	SCA_PATH_INIT(SCA_PATH(sca_intexp, sca_dec2), isdigit, SCA_MATCH(plus), SCA_MATCH(minus))
+	SCA_PATH_INIT(SCA_PATH(sca_intexp, sca_intexpsign), SCA_MATCH(plus), SCA_MATCH(minus))
+	SCA_PATH_INIT(SCA_PATH(sca_intexpsign, sca_dec2), isdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_dec2, sca_dec2), isdigit)
 
 	// init to string paths
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_s1), SCA_MATCH(quote))
-	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_s5), sca_string)
 	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_s2), SCA_MATCH(backslash))
 	SCA_PATH_INIT(SCA_PATH(sca_s2, sca_s3), SCA_MATCH(x))
 
 	SCA_PATH_INIT(SCA_PATH(sca_s3, sca_s_max1), isxdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_s_max1, sca_s_max2), isxdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_s_max2, sca_s2), SCA_MATCH(backslash))
-	SCA_PATH_INIT(SCA_PATH(sca_s_max2, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_s_max2, sca_s5), sca_string)
 
-	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_s5), sca_string)
 	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_s2), SCA_MATCH(backslash))
-	SCA_PATH_INIT(SCA_PATH(sca_s2, sca_s5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_s2, sca_s5), sca_string)
 	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_str), SCA_MATCH(quote))
 
 	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_str), SCA_MATCH(quote))
@@ -375,7 +388,7 @@ Scanner_ptr scn_init(char *filename)
 	// init to multiline paths (reserved for future implementation))
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_backslash), SCA_MATCH(backslash))
 	SCA_PATH_INIT(SCA_PATH(sca_backslash, sca_ml1), SCA_MATCH(backslash))
-	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml5), sca_string, SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml2), SCA_MATCH(backslash))
 
 	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml3), SCA_MATCH(x))
@@ -383,10 +396,10 @@ Scanner_ptr scn_init(char *filename)
 	SCA_PATH_INIT(SCA_PATH(sca_ml_max1, sca_ml_max2), isxdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml2), SCA_MATCH(backslash))
 
-	SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
-	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml5), sca_string, SCA_MATCH(quote))
+	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml5), sca_string, SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml2), SCA_GREATER(backslash))
-	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml5), SCA_GREATER(text), SCA_MATCH(exclamation), isblank)
+	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml5), sca_string, SCA_MATCH(quote))
 
 	// init to eof
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_eof), SCA_MATCH(eof), SCA_MATCH(end))
@@ -468,15 +481,15 @@ Scanner_ptr scn_init(char *filename)
 	sca_assign_children(&sca_at, 1, &SCA_PATH(sca_at, sca_atid));
 	sca_assign_children(&sca_atid, 1, &SCA_PATH(sca_atid, sca_atid));
 	// numbers
-	// dot-to decimal path
-	sca_assign_children(&sca_dt, 1, &SCA_PATH(sca_dt, sca_dec));
 
 	sca_assign_children(&sca_int, 3, &SCA_PATH(sca_int, sca_intdt), &SCA_PATH(sca_int, sca_int), &SCA_PATH(sca_int, sca_intexp));
 	sca_assign_children(&sca_intdt, 1, &SCA_PATH(sca_intdt, sca_dec));
-	sca_assign_children(&sca_intexp, 1, &SCA_PATH(sca_intexp, sca_dec2));
+	sca_assign_children(&sca_intexp, 2, &SCA_PATH(sca_intexp, sca_dec2), &SCA_PATH(sca_intexp, sca_intexpsign));
+	sca_assign_children(&sca_intexpsign, 1, &SCA_PATH(sca_intexpsign, sca_dec2));
 	sca_assign_children(&sca_dec, 2, &SCA_PATH(sca_dec, sca_dec), &SCA_PATH(sca_dec, sca_intexp));
 	sca_assign_children(&sca_dec2, 1, &SCA_PATH(sca_dec2, sca_dec2));
 
+	// strings
 	sca_assign_children(&sca_s1, 3, &SCA_PATH(sca_s1, sca_s5), &SCA_PATH(sca_s1, sca_s2), &SCA_PATH(sca_s1, sca_str));
 	sca_assign_children(&sca_s2, 2, &SCA_PATH(sca_s2, sca_s3), &SCA_PATH(sca_s2, sca_s5));
 	sca_assign_children(&sca_s3, 1, &SCA_PATH(sca_s3, sca_s_max1));
@@ -484,7 +497,7 @@ Scanner_ptr scn_init(char *filename)
 	sca_assign_children(&sca_s_max2, 3, &SCA_PATH(sca_s_max2, sca_s5), &SCA_PATH(sca_s_max2, sca_s2), &SCA_PATH(sca_s_max2, sca_str));
 	sca_assign_children(&sca_s5, 3, &SCA_PATH(sca_s5, sca_s5), &SCA_PATH(sca_s5, sca_s2), &SCA_PATH(sca_s5, sca_str));
 
-	// TODO: Multiline string
+	// Multiline string
 	sca_assign_children(&sca_backslash, 1, &SCA_PATH(sca_backslash, sca_ml1));
 	sca_assign_children(&sca_ml1, 2, &SCA_PATH(sca_ml1, sca_ml5), &SCA_PATH(sca_ml1, sca_ml2));
 	sca_assign_children(&sca_ml2, 2, &SCA_PATH(sca_ml2, sca_ml3), &SCA_PATH(sca_ml2, sca_ml5));
@@ -531,6 +544,7 @@ void scn_free(Scanner_ptr scanner)
 	sca_free(&sca_int);
 	sca_free(&sca_intdt);
 	sca_free(&sca_intexp);
+	sca_free(&sca_intexpsign);
 	sca_free(&sca_dec);
 	sca_free(&sca_dec2);
 
@@ -588,26 +602,12 @@ bool sca_p_has_match(Scan_path *path, char c)
  */
 Scan_path *sca_n_has_match(Scan_node *node, char c)
 {
-	Scan_path *result = NULL;
 	for (int index = 0; index < node->count; index++)
 		if (sca_p_has_match(node->children[index], c))
 		{
-#ifdef DEBUG
-			if (result != NULL)
-			{
-				fprintf(stderr, "Multiple matches found for character '%c', such behaviour is not NONDETERMINISTIC\n", c);
-				return NULL;
-			}
-			result = node->children[index];
-#else
 			return node->children[index];
-#endif
 		}
-#ifdef DEBUG
-	return result;
-#else
 	return NULL;
-#endif
 }
 
 /**
@@ -621,10 +621,6 @@ Scan_path *sca_n_has_match(Scan_node *node, char c)
  */
 Token_ptr scn_scan(Scanner_ptr scanner)
 {
-	// printf("%s\n", scanner->source);
-
-	// scn_state_t state = scn_t_init;
-
 	size_t high = scanner->source_index;
 	Scan_node *node = &sca_init;
 	bool has_match = true;
@@ -650,24 +646,27 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				continue;
 			}
 			int offset = (node->state == sca_s_str) * 1 + (node->state == sca_s_comment || node->state == sca_s_ml_str) * 2;
-			char *token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
-			memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
-			token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
-			token_type type = scn_get_tok_type(node->state, token_text);
+			char *token_text;
+			token_type type = tok_t_eof;
+			if (scanner->source_size != scanner->source_index)
+			{
+				token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
+				memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
+				token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
+				type = scn_get_tok_type(node->state, token_text);
+			}
 			Token_ptr token = tok_init(type);
-			if (type == tok_t_str || type == tok_t_mstr || type == tok_t_int || type == tok_t_flt || type == tok_t_doc)
+			if (type == tok_t_str || type == tok_t_mstr || type == tok_t_int || type == tok_t_flt || type == tok_t_sym || type == tok_t_error)
 				tok_set_attribute(token, token_text);
 			scanner->source_index = high;
 			has_match = false;
-			free(token_text);
+			if (type != tok_t_eof)
+				free(token_text);
 			return token;
 		}
 	}
 	return NULL;
 }
-
-Token_ptr scn_get_token(Scanner_ptr scanner);
-Token_ptr scn_previous(Scanner_ptr scanner);
 
 /**
  * @brief Ziskani dalsiho tokenu

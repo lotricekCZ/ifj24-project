@@ -72,8 +72,24 @@ set_property (TEST "dll-string-valgrind"
 # test covering DLL with custom structure
 add_test(NAME "dll-token" COMMAND test_dll_4)
 set_property (TEST "dll-token"
-              PROPERTY PASS_REGULAR_EXPRESSION ".*const else fn if i32 while f64 null pub return u8 void while.*")
+              PROPERTY PASS_REGULAR_EXPRESSION ".*const else fn if i32 while f64 null pub return \\[\\]u8 void while.*")
 
 add_test(NAME "dll-token-valgrind" COMMAND valgrind ./test_dll_4)
 set_property (TEST "dll-token-valgrind"
 			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+
+
+
+# scanner tests
+foreach(test "float_bad" "float" "strings_bad" "strings" "keywords" "full" "ints")
+	execute_process(
+		COMMAND
+		./test_scan_3 "../test/scanner/atomic_expressions/${test}.txt"
+		OUTPUT_FILE
+			"${test}.out"
+		)	
+	add_test(NAME "scanner-${test}" COMMAND cmake -E compare_files "../test/scanner/atomic_expressions/${test}.test" "${test}.out")
+	add_test(NAME "scanner-${test}-valgrind" COMMAND valgrind ./test_scan_3 "../test/scanner/atomic_expressions/${test}.txt")
+	set_property (TEST "scanner-${test}-valgrind"
+			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+endforeach()

@@ -32,6 +32,8 @@ typedef enum _token_type
 	tok_t_void,	 	// void
 	tok_t_while, 	// while	
 	tok_t_for, 		// for (extension)
+	tok_t_break, 	// break (extension)
+	tok_t_continue,	// continue (extension)
 	tok_t_import, 	// @import
 	tok_t_as, 		// @as
 	tok_t_fnbui, 	// builtin fn
@@ -50,9 +52,9 @@ typedef enum _token_type
 	tok_t_rpa,		// ), right parenthese
 	tok_t_ass,		// =, assignment operator
 	tok_t_plus, 	// +, plus operator
-	tok_t_minus,
-	tok_t_times,
-	tok_t_divide,
+	tok_t_minus,	// -, minus operator
+	tok_t_times, 	// *, times operator
+	tok_t_divide, 	// /, divide operator
 
 	tok_t_not, 		// !, not
 	tok_t_neq, 		// !=, not equal
