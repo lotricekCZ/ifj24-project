@@ -3,7 +3,7 @@
  */
 
 #include <stdio.h>
-#include "utils/keywords.h"
+#include "utils/token_types.h"
 
 int main(int argc, char *argv[])
 {

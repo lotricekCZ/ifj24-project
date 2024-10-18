@@ -1,6 +1,6 @@
 #ifndef TOKEN_H
 #define TOKEN_H
-#include "keywords.h"
+#include "token_types.h"
 
 /**
  * @struct _Token

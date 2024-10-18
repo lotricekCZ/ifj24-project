@@ -1,8 +1,8 @@
 #include "../../src/scanner/scanner.h"
 
-int main()
+int main(int argc, char **argv)
 {
-	Scanner_ptr scanner = scn_init("./test/scanner/test_com_str.zig");
+		Scanner_ptr scanner = scn_init("./test/scanner/test0.zig");
 	/*
 	test/scanner/test0.zig program in tokens
 
@@ -178,11 +178,15 @@ int main()
 	}
 	tok_dll_first(scanner->list);
 	size_t i = 0;
-	while (scanner->list->activeElement != NULL)
-	{
-		Token_ptr element = scn_next(scanner);
-		printf("%4d | %14s |\t%s\n", i++, kw_get_lexeme(element->type) != NULL ? kw_get_lexeme(element->type) : "", element->attribute != NULL ? element->attribute : "");
-	}
+	Token_ptr element = NULL;
+	do {
+		if(element != NULL)
+			tok_free(element);
+		element = scn_scan(scanner);
+		Token_ptr element2 = scn_next(scanner);
+		printf("%4d | %2d |%14s |\t%s\n\n", i++, element2->type, kw_get_lexeme(element2->type) != NULL ? kw_get_lexeme(element2->type) : "", element2->attribute != NULL ? element->attribute : "");
+	} while (element->type != tok_t_eof);
+	tok_free(element);
 	scn_free(scanner);
 	return 0;
 }
