@@ -58,7 +58,6 @@ Scan_node sca_atid = {.state = sca_s_atid, .children = NULL, .count = 0};
 Scan_node sca_dt = {.state = sca_s_dt, .children = NULL, .count = 0};
 
 Scan_node sca_int = {.state = sca_s_int, .children = NULL, .count = 0};
-Scan_node sca_int2 = {.state = sca_s_int2, .children = NULL, .count = 0};
 Scan_node sca_intdt = {.state = sca_s_intdt, .children = NULL, .count = 0};
 Scan_node sca_intexp = {.state = sca_s_intexp, .children = NULL, .count = 0};
 Scan_node sca_dec = {.state = sca_s_dec, .children = NULL, .count = 0};
@@ -134,19 +133,17 @@ SCA_PATH_DEF(sca_init, sca_dt)
 
 // init to number paths
 SCA_PATH_DEF(sca_init, sca_int)
-SCA_PATH_DEF(sca_int, sca_int2)
-SCA_PATH_DEF(sca_int, sca_intdt)
+SCA_PATH_DEF(sca_int, sca_int)
 SCA_PATH_DEF(sca_int, sca_intexp)
+SCA_PATH_DEF(sca_int, sca_intdt)
 
-SCA_PATH_DEF(sca_int2, sca_int2)
-SCA_PATH_DEF(sca_int2, sca_intdt)
-SCA_PATH_DEF(sca_int2, sca_intexp)
-SCA_PATH_DEF(sca_intexp, sca_dec)
-
+SCA_PATH_DEF(sca_dt, sca_dec)
+SCA_PATH_DEF(sca_intdt, sca_dec)
 SCA_PATH_DEF(sca_dec, sca_dec)
-SCA_PATH_DEF(sca_intdt, sca_dec2)
+SCA_PATH_DEF(sca_dec, sca_intexp)
+
+SCA_PATH_DEF(sca_intexp, sca_dec2)
 SCA_PATH_DEF(sca_dec2, sca_dec2)
-SCA_PATH_DEF(sca_dec2, sca_intexp)
 
 // init to string paths
 SCA_PATH_DEF(sca_init, sca_s1)
@@ -342,20 +339,19 @@ Scanner_ptr scn_init(char *filename)
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_dt), SCA_MATCH(dot))
 
 	// init to number paths
+
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_int), isdigit)
-	SCA_PATH_INIT(SCA_PATH(sca_int, sca_int2), isdigit)
-	SCA_PATH_INIT(SCA_PATH(sca_int, sca_intdt), SCA_MATCH(dot))
+	SCA_PATH_INIT(SCA_PATH(sca_int, sca_int), isdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_int, sca_intexp), SCA_MATCH(e), SCA_MATCH(E))
+	SCA_PATH_INIT(SCA_PATH(sca_int, sca_intdt), SCA_MATCH(dot))
 
-	SCA_PATH_INIT(SCA_PATH(sca_int2, sca_int2), isdigit)
-	SCA_PATH_INIT(SCA_PATH(sca_int2, sca_intdt), SCA_MATCH(dot))
-	SCA_PATH_INIT(SCA_PATH(sca_int2, sca_intexp), SCA_MATCH(e), SCA_MATCH(E))
-	SCA_PATH_INIT(SCA_PATH(sca_intexp, sca_dec), isdigit)
-
+	SCA_PATH_INIT(SCA_PATH(sca_dt, sca_dec), isdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_intdt, sca_dec), isdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_dec, sca_dec), isdigit)
-	SCA_PATH_INIT(SCA_PATH(sca_intdt, sca_dec2), isdigit)
+	SCA_PATH_INIT(SCA_PATH(sca_dec, sca_intexp), SCA_MATCH(e), SCA_MATCH(E))
+
+	SCA_PATH_INIT(SCA_PATH(sca_intexp, sca_dec2), isdigit, SCA_MATCH(plus), SCA_MATCH(minus))
 	SCA_PATH_INIT(SCA_PATH(sca_dec2, sca_dec2), isdigit)
-	SCA_PATH_INIT(SCA_PATH(sca_dec2, sca_intexp), SCA_MATCH(e), SCA_MATCH(E))
 
 	// init to string paths
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_s1), SCA_MATCH(quote))
@@ -471,13 +467,15 @@ Scanner_ptr scn_init(char *filename)
 
 	sca_assign_children(&sca_at, 1, &SCA_PATH(sca_at, sca_atid));
 	sca_assign_children(&sca_atid, 1, &SCA_PATH(sca_atid, sca_atid));
+	// numbers
+	// dot-to decimal path
+	sca_assign_children(&sca_dt, 1, &SCA_PATH(sca_dt, sca_dec));
 
-	sca_assign_children(&sca_int, 3, &SCA_PATH(sca_int, sca_intdt), &SCA_PATH(sca_int, sca_int2), &SCA_PATH(sca_int, sca_intexp));
-	sca_assign_children(&sca_int2, 3, &SCA_PATH(sca_int2, sca_intdt), &SCA_PATH(sca_int2, sca_int2), &SCA_PATH(sca_int2, sca_intexp));
-	sca_assign_children(&sca_intdt, 1, &SCA_PATH(sca_intdt, sca_dec2));
-	sca_assign_children(&sca_intexp, 1, &SCA_PATH(sca_intexp, sca_dec));
-	sca_assign_children(&sca_dec, 1, &SCA_PATH(sca_dec, sca_dec));
-	sca_assign_children(&sca_dec2, 2, &SCA_PATH(sca_dec2, sca_dec2), &SCA_PATH(sca_dec2, sca_intexp));
+	sca_assign_children(&sca_int, 3, &SCA_PATH(sca_int, sca_intdt), &SCA_PATH(sca_int, sca_int), &SCA_PATH(sca_int, sca_intexp));
+	sca_assign_children(&sca_intdt, 1, &SCA_PATH(sca_intdt, sca_dec));
+	sca_assign_children(&sca_intexp, 1, &SCA_PATH(sca_intexp, sca_dec2));
+	sca_assign_children(&sca_dec, 2, &SCA_PATH(sca_dec, sca_dec), &SCA_PATH(sca_dec, sca_intexp));
+	sca_assign_children(&sca_dec2, 1, &SCA_PATH(sca_dec2, sca_dec2));
 
 	sca_assign_children(&sca_s1, 3, &SCA_PATH(sca_s1, sca_s5), &SCA_PATH(sca_s1, sca_s2), &SCA_PATH(sca_s1, sca_str));
 	sca_assign_children(&sca_s2, 2, &SCA_PATH(sca_s2, sca_s3), &SCA_PATH(sca_s2, sca_s5));
@@ -492,7 +490,7 @@ Scanner_ptr scn_init(char *filename)
 	sca_assign_children(&sca_ml2, 2, &SCA_PATH(sca_ml2, sca_ml3), &SCA_PATH(sca_ml2, sca_ml5));
 	sca_assign_children(&sca_ml3, 1, &SCA_PATH(sca_ml3, sca_ml_max1));
 	sca_assign_children(&sca_ml_max1, 1, &SCA_PATH(sca_ml_max1, sca_ml_max2));
-	sca_assign_children(&sca_ml_max2, 1, &SCA_PATH(sca_ml_max2, sca_ml5));
+	sca_assign_children(&sca_ml_max2, 2, &SCA_PATH(sca_ml_max2, sca_ml2), &SCA_PATH(sca_ml_max2, sca_ml5));
 	sca_assign_children(&sca_ml5, 2, &SCA_PATH(sca_ml5, sca_ml5), &SCA_PATH(sca_ml5, sca_ml2));
 
 	sca_assign_children(&sca_slash, 1, &SCA_PATH(sca_slash, sca_comment));
@@ -529,8 +527,8 @@ void scn_free(Scanner_ptr scanner)
 	sca_free(&sca_at);
 	sca_free(&sca_atid);
 
+	sca_free(&sca_dt);
 	sca_free(&sca_int);
-	sca_free(&sca_int2);
 	sca_free(&sca_intdt);
 	sca_free(&sca_intexp);
 	sca_free(&sca_dec);
@@ -626,14 +624,13 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 	// printf("%s\n", scanner->source);
 
 	// scn_state_t state = scn_t_init;
-	Token_ptr token;
 
 	size_t high = scanner->source_index;
 	Scan_node *node = &sca_init;
 	bool has_match = true;
 	while (has_match)
 	{
-		Scan_path *path = high <= scanner->source_size ? sca_n_has_match(node, scanner->source[high]) : NULL;
+		Scan_path *path = high < scanner->source_size ? sca_n_has_match(node, scanner->source[high]) : NULL;
 		if (path != NULL)
 		{
 			node = path->to;
@@ -646,6 +643,12 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 		else
 		{
 			// TODO: capture token type (probably should be in node data)
+			if (node->state == sca_s_comment)
+			{
+				scanner->source_index = high;
+				node = &sca_init; // restart scanning, comment omitted
+				continue;
+			}
 			int offset = (node->state == sca_s_str) * 1 + (node->state == sca_s_comment || node->state == sca_s_ml_str) * 2;
 			char *token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
 			memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);

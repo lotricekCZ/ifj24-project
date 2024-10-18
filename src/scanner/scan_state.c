@@ -12,7 +12,6 @@ State_type_pair sca_translation_table[] =
 		{sca_s_dt, tok_t_dot},
 
 		{sca_s_int, tok_t_int},
-		{sca_s_int2, tok_t_int},
 		{sca_s_dec, tok_t_flt},
 		{sca_s_dec2, tok_t_flt},
 
