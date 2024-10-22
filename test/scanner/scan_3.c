@@ -2,6 +2,12 @@
 
 int main(int argc, char **argv)
 {
+	if (argc != 2)
+	{
+		printf("ERROR: Please fill in file to compile\nUsage: %s <file>\n", argv[0]);
+		return 1;
+	}
+	
 	Scanner_ptr scanner = scn_init(argv[1]);
 	size_t i = 0;
 	Token_ptr element = NULL;

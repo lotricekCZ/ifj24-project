@@ -2,6 +2,7 @@
 
 int main()
 {
+	printf("This test relies on file test_com_str.zig, please make sure\nyou are launching this from the project root and not ./build/ for example\n");
 	Scanner_ptr scanner = scn_init("./test/scanner/test_com_str.zig");
 	/*
 	test/scanner/test0.zig program in tokens
