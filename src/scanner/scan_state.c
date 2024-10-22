@@ -73,7 +73,3 @@ token_type scn_get_tok_type(scn_state_t state, char *lexeme)
 	// error-worthy: ?[]i32, ?[ ]u8 and states that do not have a translation
 	return tok_t_error;
 }
-
-token_type scn_get_keyword(scn_state_t state)
-{
-}

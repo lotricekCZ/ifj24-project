@@ -2,7 +2,8 @@
 
 int main(int argc, char **argv)
 {
-		Scanner_ptr scanner = scn_init("./test/scanner/test0.zig");
+	printf("This test relies on file test0.zig, please make sure\nyou are launching this from the project root and not ./build/ for example\n");
+	Scanner_ptr scanner = scn_init("./test/scanner/test0.zig");
 	/*
 	test/scanner/test0.zig program in tokens
 
@@ -148,18 +149,14 @@ int main(int argc, char **argv)
 
 	tok_set_attribute(token[27], "r");
 
-
-
 	tok_set_attribute(token[32], "foo");
 	tok_set_attribute(token[34], "par");
 
 	tok_set_attribute(token[41], "ret");
 	tok_set_attribute(token[43], "bar");
 	tok_set_attribute(token[45], "par");
-	
+
 	tok_set_attribute(token[49], "ret");
-
-
 
 	tok_set_attribute(token[54], "main");
 
@@ -179,8 +176,9 @@ int main(int argc, char **argv)
 	tok_dll_first(scanner->list);
 	size_t i = 0;
 	Token_ptr element = NULL;
-	do {
-		if(element != NULL)
+	do
+	{
+		if (element != NULL)
 			tok_free(element);
 		element = scn_scan(scanner);
 		Token_ptr element2 = scn_next(scanner);
