@@ -9,14 +9,10 @@ set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(TEST ${CMAKE_CURRENT_SOURCE_DIR}/test)
 set(UTILS ${SRC}/utils)
 set(SCANNER ${SRC}/scanner)
-set(PARSER ${SRC}/parser)  # Add this line
-
-include_directories(${SCANNER})  # Add this line
-include_directories(${SRC})  # Add this line
+set(PARSER ${SRC}/parser)
 
 add_executable(ifj2024 
     ${SRC}/main.c
-    ${PARSER}/parser.c  # Add this line
 )
 
 add_library(errors SHARED ${UTILS}/errors.c)
@@ -26,9 +22,11 @@ add_library(dll SHARED ${UTILS}/dll.c)
 add_library(scan_state SHARED ${SCANNER}/scan_state.c)
 add_library(scanner SHARED ${SCANNER}/scanner.c)
 add_library(token_dll SHARED ${UTILS}/token_dll.c)
+add_library(parser SHARED ${PARSER}/parser.c)
 
 target_link_libraries(scanner token scan_state keyword token_dll)
-target_link_libraries(ifj2024 errors token scanner)
+target_link_libraries(scanner parser)
+target_link_libraries(ifj2024 errors token scanner parser)
 enable_testing()
 
 # # tests
