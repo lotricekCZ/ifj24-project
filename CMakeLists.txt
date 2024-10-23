@@ -11,10 +11,13 @@ set(UTILS ${SRC}/utils)
 set(SCANNER ${SRC}/scanner)
 set(PARSER ${SRC}/parser)
 
+# Add executable
 add_executable(ifj2024 
     ${SRC}/main.c
+    ${PARSER}/parser.c  # Include the parser source file
 )
 
+# Add libraries
 add_library(errors SHARED ${UTILS}/errors.c)
 add_library(token SHARED ${UTILS}/token.c)
 add_library(keyword SHARED ${UTILS}/token_types.c)
@@ -24,9 +27,12 @@ add_library(scanner SHARED ${SCANNER}/scanner.c)
 add_library(token_dll SHARED ${UTILS}/token_dll.c)
 add_library(parser SHARED ${PARSER}/parser.c)
 
+# Link libraries
 target_link_libraries(scanner token scan_state keyword token_dll)
 target_link_libraries(scanner parser)
 target_link_libraries(ifj2024 errors token scanner parser)
+
+# Enable testing
 enable_testing()
 
 # # tests
