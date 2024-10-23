@@ -90,6 +90,7 @@ typedef struct _Keyword
 } Keyword;
 
 char* kw_get_lexeme(token_type type);
+char* tok_type_to_str(token_type type);
 token_type kw_get_type(char *lexeme);
 extern Keyword keywords[];
 #endif // KEYWORDS_H
