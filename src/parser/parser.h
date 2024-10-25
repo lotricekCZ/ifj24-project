@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xondre16; Jozef Ondrejička
+ */
+
 #ifndef PARSER_H
 #define PARSER_H
 
