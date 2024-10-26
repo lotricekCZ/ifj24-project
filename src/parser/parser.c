@@ -29,7 +29,7 @@ void expect_type(token_type type) {
     printf("Exoect_type\n");
     if (current_token->type != type) {
         fprintf(stderr, "Syntax error: Expected %s, got %s\n", tok_type_to_str(type), tok_type_to_str(current_token->type));
-        exit(1); // Replace with better error handling if needed
+        exit(2); // Replace with better error handling if needed
     }
 }
 
@@ -37,11 +37,11 @@ void expect_attribute(const char* attr) {
     printf("Expect_attribute\n");
     if (current_token->attribute == NULL) {
         fprintf(stderr, "Syntax error: Expected %s, but current token has no attribute\n", attr);
-        exit(1); // Replace with better error handling if needed
+        exit(2); // Replace with better error handling if needed
     }
     if (strcmp(current_token->attribute, attr) != 0) {
         fprintf(stderr, "Syntax error: Expected %s, got %s\n", attr, current_token->attribute);
-        exit(1); // Replace with better error handling if needed
+        exit(2); // Replace with better error handling if needed
     }
 }
 
@@ -59,8 +59,11 @@ void expect_attribute(const char* attr) {
 // Grammar: <program> → <prolog> <function_declaration>
 int program() {
     printf("<program>\n");
+
     prolog();
-    //function_declaration();
+    
+    // function_declaration();
+    
     return 0;
 }
 
@@ -109,24 +112,55 @@ int prolog() {
     print_token();
     expect_type(tok_t_semicolon);
 
-    printf("Vamooos!\n");
+    printf("Vamooos");
+
     return 0;
 }
 
 // // Grammar: <function_declaration> → "pub" "fn" <ID> "(" <parameter> ")" <return_type> "{" <statement> "}" <function_declaration_next>
 // int function_declaration() {
-//     expect(tok_t_pub);  // "pub"
-//     expect(tok_t_fn);  // "fn"
-//     expect(tok_t_sym);  // <ID>
-//     expect(tok_t_lpa);  // "("
-//     parameter();  // <parameter>
-//     expect(tok_t_rpa);  // ")"
-//     // Assuming a function for return_type parsing exists
-//     // return_type();
-//     expect(tok_t_lcbr);  // "{"
-//     statement();  // <statement>
-//     expect(tok_t_rcbr);  // "}"
-//     function_declaration_next();  // <function_declaration_next>
+//     printf("<function_declaration>");
+//     // Funkce main nemá definován žádný parametr ani návratovou hodnotu, jinak chyba 4.
+
+//     // // "pub"     
+//     // next_token();
+//     // print_token();
+//     // expect_type(tok_t_pub);  
+
+//     // // "fn"
+//     // next_token();
+//     // print_token();
+//     // expect_type(tok_t_fn);
+
+//     // // <ID>
+//     // next_token();
+//     // print_token();
+//     // expect_type(tok_t_sym); 
+//     // // vlozenie do TS
+
+//     // // "("
+//     // next_token();
+//     // print_token();
+//     // expect_type(tok_t_lpa);  
+
+//     // // ")"
+//     // next_token();
+//     // print_token();
+//     // expect_type(tok_t_rpa);
+
+
+
+// //     parameter();  // <parameter>
+// //     expect(tok_t_rpa);  // ")"
+// //     // Assuming a function for return_type parsing exists
+// //     // return_type();
+// //     expect(tok_t_lcbr);  // "{"
+// //     statement();  // <statement>
+// //     expect(tok_t_rcbr);  // "}"
+// //     function_declaration_next();  // <function_declaration_next>
+
+//     printf("Vamooos!\n");
+
 //     return 0;
 // }
 
@@ -228,6 +262,7 @@ void parse() {
     // Start parsing from the <program> non-terminal.
     program();
 
+    
     // Free the scanner.
     scn_free(scanner);
 }
