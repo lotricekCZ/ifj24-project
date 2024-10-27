@@ -35,7 +35,7 @@
  * Funkce nic nedela, je zde z duvodu, aby v pripade, kdy
  * element nema zadnou specialni deiniciacni funkci mohl byt vlozen do makra.
  */
-static void nothing() { // Lotricek netusim co si myslel touto funkciou, ale robi to bordel pri preklade
+static void nothing() { 
 	
 }
 #endif
