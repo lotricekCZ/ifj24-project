@@ -834,7 +834,7 @@ void parse() {
     printf("No nazdar!\n");
 
     // Initialize the scanner with the source code file.
-    scanner = scn_init("test/scanner/test2.zig");
+    scanner = scn_init("test/scanner/constructions.zig");
     if (scanner == NULL) {
         fprintf(stderr, "Failed to initialize scanner.\n");
         return;
