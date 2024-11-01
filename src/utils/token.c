@@ -17,6 +17,21 @@ Token_ptr tok_init(token_type type)
     new_lex->attribute = NULL;
     return new_lex;
 }
+/**
+ * @brief Inicializace lexemu
+ *
+ * Funkce inicializuje strukturu reprezentujici lexem.
+ * @return ukazatel na inicializovanou strukturu
+ */
+Token_ptr tok_init_no_type()
+{
+    return tok_init(tok_t_init);
+}
+
+void tok_init_no_ret(Token_ptr* tok)
+{
+    *tok = tok_init(tok_t_init);
+}
 
 /**
  * @brief Uvolni pamet, kterou zabira token

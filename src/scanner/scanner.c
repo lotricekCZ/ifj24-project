@@ -38,11 +38,12 @@ SCA_MATCH_DECL(x, 'x')
 SCA_MATCH_DECL(E, 'E')
 SCA_MATCH_DECL(e, 'e')
 SCA_MATCH_DECL(hashtag, '#')
+SCA_MATCH_DECL(newline, '\n')
 SCA_GREATER_DECL(text, 34)
 SCA_GREATER_DECL(comments, 31) // for comments
 
 /**
- * @brief Podmínka pro řetězce. Kontroluje, zda znak c je tisknutelný a není zpětným lomítkem.
+ * @brief Podmínka pro řetězce. Kontroluje, zda znak c je tisknutelný a není zpětným lomítkem či uvozovkou.
  *
  * @param c Znak, který má být zkontrolován.
  * @return Vrací nenulovou hodnotu, pokud je znak tisknutelný a není zpětným lomítkem či uvozovkou, jinak vrací 0.
@@ -89,7 +90,6 @@ Scan_node sca_ml3 = {.state = sca_s_ml3, .children = NULL, .count = 0};
 Scan_node sca_ml_max1 = {.state = sca_s_ml_max1, .children = NULL, .count = 0};
 Scan_node sca_ml_max2 = {.state = sca_s_ml_max2, .children = NULL, .count = 0};
 Scan_node sca_ml5 = {.state = sca_s_ml5, .children = NULL, .count = 0};
-Scan_node sca_ml6 = {.state = sca_s_ml6, .children = NULL, .count = 0};
 Scan_node sca_ml_str = {.state = sca_s_ml_str, .children = NULL, .count = 0};
 
 Scan_node sca_eof = {.state = sca_s_eof, .children = NULL, .count = 0};
@@ -179,18 +179,25 @@ SCA_PATH_DEF(sca_s_max2, sca_str)
 // init to multiline paths (reserved for future implementation)
 SCA_PATH_DEF(sca_init, sca_backslash)
 SCA_PATH_DEF(sca_backslash, sca_ml1)
+SCA_PATH_DEF(sca_ml1, sca_ml_str)
 SCA_PATH_DEF(sca_ml1, sca_ml5)
-SCA_PATH_DEF(sca_ml1, sca_ml2)
 
+SCA_PATH_DEF(sca_ml1, sca_ml2)
 SCA_PATH_DEF(sca_ml2, sca_ml3)
+SCA_PATH_DEF(sca_ml2, sca_ml5)
 SCA_PATH_DEF(sca_ml3, sca_ml_max1)
+
 SCA_PATH_DEF(sca_ml_max1, sca_ml_max2)
 SCA_PATH_DEF(sca_ml_max2, sca_ml2)
-
 SCA_PATH_DEF(sca_ml_max2, sca_ml5)
+SCA_PATH_DEF(sca_ml_max2, sca_ml_str)
+
 SCA_PATH_DEF(sca_ml5, sca_ml5)
 SCA_PATH_DEF(sca_ml5, sca_ml2)
-SCA_PATH_DEF(sca_ml2, sca_ml5)
+SCA_PATH_DEF(sca_ml5, sca_ml_str)
+SCA_PATH_DEF(sca_ml_str, sca_ml_str)
+
+SCA_PATH_DEF(sca_ml_str, sca_backslash)
 
 // init to eof
 SCA_PATH_DEF(sca_init, sca_eof)
@@ -385,22 +392,40 @@ Scanner_ptr scn_init(char *filename)
 	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_str), SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_s_max2, sca_str), SCA_MATCH(quote))
 
-	// init to multiline paths (reserved for future implementation))
+	// init to multiline paths (reserved for future implementation)) OLD
+	// SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml5), sca_string, SCA_MATCH(quote))
+	// SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml2), SCA_MATCH(backslash))
+
+	// SCA_PATH_INIT(SCA_PATH(sca_ml3, sca_ml_max1), isxdigit)
+	// SCA_PATH_INIT(SCA_PATH(sca_ml_max1, sca_ml_max2), isxdigit)
+	// SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml2), SCA_MATCH(backslash))
+
+	// SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml5), sca_string, SCA_MATCH(quote))
+	// SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml5), sca_string, SCA_MATCH(quote))
+	// SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml2), SCA_GREATER(backslash))
+	// SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml5), sca_string, SCA_MATCH(quote))
+	// init to multiline paths (reserved for future implementation) NEW
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_backslash), SCA_MATCH(backslash))
 	SCA_PATH_INIT(SCA_PATH(sca_backslash, sca_ml1), SCA_MATCH(backslash))
 	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml5), sca_string, SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml2), SCA_MATCH(backslash))
 
+	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml_str), SCA_MATCH(backslash))
 	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml3), SCA_MATCH(x))
+	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml5), sca_string, SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_ml3, sca_ml_max1), isxdigit)
+
 	SCA_PATH_INIT(SCA_PATH(sca_ml_max1, sca_ml_max2), isxdigit)
 	SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml2), SCA_MATCH(backslash))
-
 	SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml5), sca_string, SCA_MATCH(quote))
-	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml5), sca_string, SCA_MATCH(quote))
-	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml2), SCA_GREATER(backslash))
-	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml5), sca_string, SCA_MATCH(quote))
+	SCA_PATH_INIT(SCA_PATH(sca_ml_max2, sca_ml_str), SCA_MATCH(newline))
 
+	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml5), sca_string, SCA_MATCH(quote))
+	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml2), SCA_MATCH(backslash))
+	SCA_PATH_INIT(SCA_PATH(sca_ml5, sca_ml_str), SCA_MATCH(newline))
+	SCA_PATH_INIT(SCA_PATH(sca_ml_str, sca_ml_str), isblank)
+
+	SCA_PATH_INIT(SCA_PATH(sca_ml_str, sca_backslash), SCA_MATCH(backslash))
 	// init to eof
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_eof), SCA_MATCH(eof), SCA_MATCH(end))
 
@@ -499,12 +524,13 @@ Scanner_ptr scn_init(char *filename)
 
 	// Multiline string
 	sca_assign_children(&sca_backslash, 1, &SCA_PATH(sca_backslash, sca_ml1));
-	sca_assign_children(&sca_ml1, 2, &SCA_PATH(sca_ml1, sca_ml5), &SCA_PATH(sca_ml1, sca_ml2));
+	sca_assign_children(&sca_ml1, 3, &SCA_PATH(sca_ml1, sca_ml5), &SCA_PATH(sca_ml1, sca_ml2), &SCA_PATH(sca_ml1, sca_ml_str));
 	sca_assign_children(&sca_ml2, 2, &SCA_PATH(sca_ml2, sca_ml3), &SCA_PATH(sca_ml2, sca_ml5));
 	sca_assign_children(&sca_ml3, 1, &SCA_PATH(sca_ml3, sca_ml_max1));
 	sca_assign_children(&sca_ml_max1, 1, &SCA_PATH(sca_ml_max1, sca_ml_max2));
-	sca_assign_children(&sca_ml_max2, 2, &SCA_PATH(sca_ml_max2, sca_ml2), &SCA_PATH(sca_ml_max2, sca_ml5));
-	sca_assign_children(&sca_ml5, 2, &SCA_PATH(sca_ml5, sca_ml5), &SCA_PATH(sca_ml5, sca_ml2));
+	sca_assign_children(&sca_ml_max2, 3, &SCA_PATH(sca_ml_max2, sca_ml2), &SCA_PATH(sca_ml_max2, sca_ml5), &SCA_PATH(sca_ml_max2, sca_ml_str));
+	sca_assign_children(&sca_ml5, 3, &SCA_PATH(sca_ml5, sca_ml5), &SCA_PATH(sca_ml5, sca_ml2), &SCA_PATH(sca_ml5, sca_ml_str));
+	sca_assign_children(&sca_ml_str, 2, &SCA_PATH(sca_ml_str, sca_ml_str), &SCA_PATH(sca_ml_str, sca_backslash));
 
 	sca_assign_children(&sca_slash, 1, &SCA_PATH(sca_slash, sca_comment));
 	sca_assign_children(&sca_comment, 1, &SCA_PATH(sca_comment, sca_comment));
@@ -562,6 +588,7 @@ void scn_free(Scanner_ptr scanner)
 	sca_free(&sca_ml_max1);
 	sca_free(&sca_ml_max2);
 	sca_free(&sca_ml5);
+	sca_free(&sca_ml_str);
 
 	sca_free(&sca_slash);
 	sca_free(&sca_comment);
@@ -609,6 +636,42 @@ Scan_path *sca_n_has_match(Scan_node *node, char c)
 		}
 	return NULL;
 }
+char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
+{
+	// assert(index >= scanner->source_index); // TODO: replace with something a bit safer, this is A MACRO
+
+	char *result = malloc(sizeof(char) * (index - scanner->source_index + 1));
+	if (result == NULL)
+	{
+		// TODO: handle error
+		return NULL;
+	}
+	memset(result, 0, index - scanner->source_index + 1);
+
+	for (size_t i = scanner->source_index; i < index;)
+	{
+		char *startline = strchr(scanner->source + i, '\\'); // first ocurence of backslash
+		if (startline != NULL && startline[1] == '\\')
+		{
+			char *endline = strchr(startline + 1, '\n');
+			if (endline == NULL)
+			{				  // means there is no ENDLINE => error
+				free(result); // TODO: handle error properly
+				return NULL;
+			}
+			size_t len = endline - startline;
+			memcpy(result + strlen(result), startline + 2 + (startline[2] == ' '), len - 2 - (startline[2] == ' '));
+			result[strlen(result)] = '\n';
+			i += len + 1;
+		}
+		else
+		{
+			break;
+		}
+	}
+	result = realloc(result, strlen(result) + 1);
+	return result;
+}
 
 /**
  * @brief Vrati token, ktery je na danem indexu v zdrojovem textu.
@@ -645,14 +708,21 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				node = &sca_init; // restart scanning, comment omitted
 				continue;
 			}
-			int offset = (node->state == sca_s_str) * 1 + (node->state == sca_s_comment || node->state == sca_s_ml_str) * 2;
+			int offset = (node->state == sca_s_str) * 1;
 			char *token_text;
 			token_type type = tok_t_eof;
 			if (scanner->source_size != scanner->source_index)
-			{
-				token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
-				memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
-				token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
+				{
+					if (node->state != sca_s_ml_str)
+				{
+					token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
+					memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
+					token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
+					}
+					else
+					{
+						token_text = scn_parse_multiline(scanner, high);
+					}
 				type = scn_get_tok_type(node->state, token_text);
 			}
 			Token_ptr token = tok_init(type);
@@ -680,6 +750,8 @@ Token_ptr scn_next(Scanner_ptr scanner)
 {
 	Token_ptr token = scanner->list->activeElement->ptr;
 	tok_dll_next(scanner->list);
+	if (token->type == tok_t_eof || token->type == tok_t_error)
+		tok_dll_first(scanner->list);
 	return token;
 }
 

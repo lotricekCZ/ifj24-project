@@ -74,53 +74,56 @@
  * @param index Pozice, na kterou se ma prvek vlozit.
  * @param data Hodnota prvku, ktery se ma vlozit.
  */
-#define DLL_INSERT(name, prefix, element, copy, deallocate)                                   \
-	void prefix##_dll_insert(prefix##_dllist *dll, size_t index, element data)                \
-	{                                                                                         \
-		prefix##_dll_element_ptr newElement = malloc(sizeof(struct _##prefix##_dll_element)); \
-		if (newElement == NULL)                                                               \
-		{                                                                                     \
-			return;                                                                           \
-		}                                                                                     \
-		newElement->ptr = malloc(sizeof(element));                                            \
-		if (newElement->ptr == NULL)                                                          \
-		{                                                                                     \
-			return;                                                                           \
-		}                                                                                     \
-		if (copy != nothing)                                                                  \
-			copy(newElement->ptr, data);                                                     \
-		else                                                                                  \
-			*newElement->ptr = data;                                                          \
-		if (index == 0)                                                                       \
-		{                                                                                     \
-			newElement->previous = NULL;                                                      \
-			newElement->next = dll->firstElement;                                             \
-			if (dll->firstElement != NULL)                                                    \
-			{                                                                                 \
-				dll->firstElement->previous = newElement;                                     \
-			}                                                                                 \
-			else                                                                              \
-			{                                                                                 \
-				dll->lastElement = newElement;                                                \
-			}                                                                                 \
-			dll->firstElement = newElement;                                                   \
-		}                                                                                     \
-		else                                                                                  \
-		{                                                                                     \
-			prefix##_dll_element_ptr temp = prefix##_dll_at(dll, index - 1);                  \
-			newElement->previous = temp;                                                      \
-			newElement->next = temp->next;                                                    \
-			if (temp->next != NULL)                                                           \
-			{                                                                                 \
-				temp->next->previous = newElement;                                            \
-			}                                                                                 \
-			else                                                                              \
-			{                                                                                 \
-				dll->lastElement = newElement;                                                \
-			}                                                                                 \
-			temp->next = newElement;                                                          \
-		}                                                                                     \
-		dll->currentLength++;                                                                 \
+#define DLL_INSERT(name, prefix, element, copy, init, deallocate)                              \
+	void prefix##_dll_insert(prefix##_dllist *dll, size_t index, element data)                 \
+	{                                                                                          \
+		prefix##_dll_element_ptr new_element = malloc(sizeof(struct _##prefix##_dll_element)); \
+		if (new_element == NULL)                                                               \
+		{                                                                                      \
+			return;                                                                            \
+		}                                                                                      \
+		if (init == nothing)                                                                   \
+			new_element->ptr = malloc(sizeof(element));                                        \
+		else                                                                                   \
+			init(&new_element->ptr);                                                           \
+		if (new_element->ptr == NULL)                                                          \
+		{                                                                                      \
+			return;                                                                            \
+		}                                                                                      \
+		if (copy != nothing)                                                                   \
+			copy(new_element->ptr, data);                                                      \
+		else                                                                                   \
+			*new_element->ptr = data;                                                          \
+		if (index == 0)                                                                        \
+		{                                                                                      \
+			new_element->previous = NULL;                                                      \
+			new_element->next = dll->firstElement;                                             \
+			if (dll->firstElement != NULL)                                                     \
+			{                                                                                  \
+				dll->firstElement->previous = new_element;                                     \
+			}                                                                                  \
+			else                                                                               \
+			{                                                                                  \
+				dll->lastElement = new_element;                                                \
+			}                                                                                  \
+			dll->firstElement = new_element;                                                   \
+		}                                                                                      \
+		else                                                                                   \
+		{                                                                                      \
+			prefix##_dll_element_ptr temp = prefix##_dll_at(dll, index - 1);                   \
+			new_element->previous = temp;                                                      \
+			new_element->next = temp->next;                                                    \
+			if (temp->next != NULL)                                                            \
+			{                                                                                  \
+				temp->next->previous = new_element;                                            \
+			}                                                                                  \
+			else                                                                               \
+			{                                                                                  \
+				dll->lastElement = new_element;                                                \
+			}                                                                                  \
+			temp->next = new_element;                                                          \
+		}                                                                                      \
+		dll->currentLength++;                                                                  \
 	}
 /**
  * @brief Odstrani prvek na pozici index
@@ -259,18 +262,18 @@
 		dll->activeElement = dll->activeElement->next;               \
 		return dll->activeElement;                                   \
 	}
-#define DLL(name, prefix, element, copy, deallocate)    \
-	DLL_INIT(name, prefix, element, deallocate)         \
-	DLL_INSERT(name, prefix, element, copy, deallocate) \
-	DLL_DELETE(name, prefix, element, deallocate)       \
-	DLL_PUSH_BACK(name, prefix, element, deallocate)    \
-	DLL_PUSH_FRONT(name, prefix, element, deallocate)   \
-	DLL_POP_BACK(name, prefix, element, deallocate)     \
-	DLL_POP_FRONT(name, prefix, element, deallocate)    \
-	DLL_AT(name, prefix, element, deallocate)           \
-	DLL_NEXT(name, prefix, element, deallocate)         \
-	DLL_DISPOSE(name, prefix, element, deallocate)      \
-	DLL_CLEAR(name, prefix, element, deallocate)        \
+#define DLL(name, prefix, element, copy, init, deallocate)    \
+	DLL_INIT(name, prefix, element, deallocate)               \
+	DLL_INSERT(name, prefix, element, copy, init, deallocate) \
+	DLL_DELETE(name, prefix, element, deallocate)             \
+	DLL_PUSH_BACK(name, prefix, element, deallocate)          \
+	DLL_PUSH_FRONT(name, prefix, element, deallocate)         \
+	DLL_POP_BACK(name, prefix, element, deallocate)           \
+	DLL_POP_FRONT(name, prefix, element, deallocate)          \
+	DLL_AT(name, prefix, element, deallocate)                 \
+	DLL_NEXT(name, prefix, element, deallocate)               \
+	DLL_DISPOSE(name, prefix, element, deallocate)            \
+	DLL_CLEAR(name, prefix, element, deallocate)              \
 	DLL_FIRST(name, prefix, element, deallocate)
 
 #endif
