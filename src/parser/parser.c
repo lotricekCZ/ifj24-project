@@ -3,9 +3,9 @@
  */
 
 // TO-DO:
-// 1) expression (bottom-up) - výrazy by mali byť spracované pomocou precedenčnej syntaktickej analýzy
-// 2) built-in funkcie
-// 3) assignment -> declaration
+// 1) built-in funkcie
+// 2) semantika
+// 3) Iplement second parser
 
 #include <stdio.h>
 #include <string.h>
@@ -15,13 +15,203 @@
 #include "../utils/token.h"
 #include "../utils/token_types.h"
 
+// Stack structure
+#define MAX 100
+
 /* 
  * Global variables
  */
 Token_ptr current_token = NULL;
+Token_ptr stored_token = NULL;
 Scanner_ptr scanner = NULL;
 token_type fn_ret_type;
 bool ifj_flag = false;
+int statement_index = 1;
+
+/*
+ * Structure for stack
+ */
+typedef struct {
+    char items[MAX];
+    int top;
+} Stack;
+/*
+ * Precedence table
+ */
+char precedence_table[17][17] = {
+//     +    -    *    /    ==   !=   <    >    <=   >=  and   or   !    (    )    id   $
+    { '>', '>', '<', '<', '<', '<', '<', '<', '<', '<', '>', '>', '<', '<', '>', '<', '>' }, // +
+    { '>', '>', '<', '<', '<', '<', '<', '<', '<', '<', '>', '>', '<', '<', '>', '<', '>' }, // -
+    { '>', '>', '>', '>', '<', '<', '<', '<', '<', '<', '>', '>', '<', '<', '>', '<', '>' }, // *
+    { '>', '>', '>', '>', '<', '<', '<', '<', '<', '<', '>', '>', '<', '<', '>', '<', '>' }, // /
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // ==
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // !=
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // <
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // >
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // <=
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // >=
+    { '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '>', '<', '<', '>', '<', '>' }, // and
+    { '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '>', '<', '>' }, // or
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', ' ', '<', '>', '<', '>' }, // !
+    { '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '=', '<', ' ' }, // (
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', ' ', '>', '>', '>' }, // )
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', ' ', '>' }, // id
+    { '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', ' ', '<', ' ' }  // $
+};
+/* 
+ * Function to get the precedence index of the operator
+ */
+int get_precedence_index(token_type type) {
+    switch (type) {
+        case tok_t_plus: return 0;
+        case tok_t_minus: return 1;
+        case tok_t_times: return 2;
+        case tok_t_divide: return 3;
+        case tok_t_eq: return 4;
+        case tok_t_neq: return 5;
+        case tok_t_lt: return 6;
+        case tok_t_gt: return 7;
+        case tok_t_leq: return 8;
+        case tok_t_geq: return 9;
+        case tok_t_and: return 10;
+        case tok_t_or: return 11;
+        case tok_t_not: return 12;
+        case tok_t_lpa: return 13;
+        case tok_t_rpa: return 14;
+        case tok_t_sym: return 15;
+        case tok_t_eof: return 16;
+        default: return -1;
+    }
+}
+/* 
+ * Function to get the precedence of the operator
+ */
+int getPrecedence(token_type stackTop, token_type input) {
+    return precedence_table[get_precedence_index(stackTop)][get_precedence_index(input)];
+}
+/* 
+ * Function for empty stack
+ */
+int isEmpty(Stack *stack) {
+    return stack->top == -1;
+}
+/* 
+ * Function to push operator to stack
+ */
+void push(Stack *stack, token_type value) {
+    if (stack->top == MAX - 1) {
+        printf("Stack overflow\n");
+        return;
+    }
+    stack->items[++stack->top] = value;
+}
+/* 
+ * Function to pop operator from stack
+ */
+token_type pop(Stack *stack) {
+    if (isEmpty(stack)) {
+        printf("Stack underflow\n");
+        return tok_t_eof;
+    }
+    return stack->items[stack->top--];
+}
+/* 
+ * Function to peek the top of the stack
+ */
+token_type peek(Stack *stack) {
+    if (isEmpty(stack)) {
+        return tok_t_eof;
+    }
+    return stack->items[stack->top];
+}
+/* 
+ * Function to print postfix and stack
+ */
+void print_postfix_and_stack(char *postfix, int postfix_index, Stack *stack) {
+    printf("Postfix: ");
+    for (int i = 0; i < postfix_index; i++) {
+        printf("%c ", postfix[i]);
+    }
+    printf("\nStack: ");
+    for (int i = 0; i <= stack->top; i++) {
+        printf("%s ", tok_type_to_str(stack->items[i]));
+    }
+    printf("\n");
+}
+/* 
+ * Function to print postfix expression
+ */
+void print_postfix(token_type *postfix, int postfix_index) {
+    printf("Postfix expression: ");
+    for (int i = 0; i < postfix_index; i++) {
+        printf("%s ", tok_type_to_str(postfix[i]));
+    }
+    printf("\n");
+}
+/* 
+ * Function to parse the expression
+ */
+void parse_expression(Token_ptr stored_token) {
+    Stack stack;
+    stack.top = -1;
+
+    token_type postfix[MAX];
+    int postfix_index = 0;
+
+    printf("-------------------------\n");
+    printf("Expression parsing:\n");
+
+    bool first_iteration = true;
+    int paren_count = 0;  // Na sledovanie počtu otvorených zátvoriek
+
+    while (current_token->type != tok_t_semicolon) {
+        token_type token_type_to_use = first_iteration ? stored_token->type : current_token->type;
+
+        // TO-DO: Implement functions for precedence parsing
+
+        // Ak je to pravá zátvorka
+        if (token_type_to_use == tok_t_rpa) {
+            paren_count--;
+            // Ak máme 0 zátvoriek, skončíme spracovanie
+            if (paren_count <= 0) {
+                break;  // Končíme spracovanie podmienky
+            }
+            // Inak pokračujeme v spracovaní výrazu
+            while (!isEmpty(&stack) && peek(&stack) != tok_t_lpa) {
+                postfix[postfix_index++] = pop(&stack);
+            }
+            pop(&stack); // Discard the left parenthesis
+        } 
+        // Ak je to ľavá zátvorka, zvýšime počet zátvoriek 
+        else if (token_type_to_use == tok_t_lpa) { 
+            paren_count++;
+            push(&stack, tok_t_lpa);
+        } 
+        // Operand handling (čísla, symboly, premenné)
+        else if (token_type_to_use == tok_t_int || token_type_to_use == tok_t_flt || token_type_to_use == tok_t_sym) {
+            postfix[postfix_index++] = token_type_to_use;
+        } 
+        // Operator handling
+        else {
+            while (!isEmpty(&stack) && getPrecedence(peek(&stack), token_type_to_use) != '<') {
+                postfix[postfix_index++] = pop(&stack);
+            }
+            push(&stack, token_type_to_use);
+        }
+
+        if (first_iteration) {
+            first_iteration = false;
+        } else {
+            next_token();
+        }
+    }
+
+    // Pop remaining operators
+    while (!isEmpty(&stack)) {
+        postfix[postfix_index++] = pop(&stack);
+    }
+    print_postfix(postfix, postfix_index);
+}
 /* 
  * Function to print the type and attribute of the current token
  */
@@ -43,7 +233,7 @@ void next_token() {
 void expect_type(token_type type) {
     printf("Expect_type: %s\n", tok_type_to_str(type));
     if (current_token->type != type) {
-        fprintf(stderr, "Syntax error: Expected %s, got %s\n", tok_type_to_str(type), tok_type_to_str(current_token->type));
+        fprintf(stderr, "Syntax error1: Expected %s, got %s\n", tok_type_to_str(type), tok_type_to_str(current_token->type));
         exit(2); // Syntax error
     }
 }
@@ -53,15 +243,14 @@ void expect_type(token_type type) {
 void expect_attribute(const char* attr) {
     printf("Expect_attribute: %s\n", attr);
     if (current_token->attribute == NULL) {
-        fprintf(stderr, "Syntax error: Expected %s, but current token has no attribute\n", attr);
+        fprintf(stderr, "Syntax error2: Expected %s, but current token has no attribute\n", attr);
         exit(2); // Syntax error
     }
     if (strcmp(current_token->attribute, attr) != 0) {
-        fprintf(stderr, "Syntax error: Expected %s, got %s\n", attr, current_token->attribute);
+        fprintf(stderr, "Syntax error3: Expected %s, got %s\n", attr, current_token->attribute);
         exit(2); // Syntax error
     }
 }
-
 
 /************** Grammar functions ************** 
  *  Function to parse the <program> non-terminal
@@ -69,11 +258,10 @@ void expect_attribute(const char* attr) {
 int program() {
     printf("-------------------------\n");
     printf("<program>\n");
+    printf("-------------------------\n");
 
     prolog();
-    printf("-------------------------\n");
-    
-    function_declaration();
+    function();
     
     return 0;
 }
@@ -81,17 +269,18 @@ int program() {
  *  Grammar: <prolog> → "const" <ID> "=" "@import" "(" <STR> ")" ";"
  */
 int prolog() {
+    printf("-------------------------\n");
     printf("<prolog>\n");
+    printf("-------------------------\n");
 
     // "const"
     print_token();
     expect_type(tok_t_const);  
 
-    // "ifj"
+    // "ID"
     next_token();
     print_token();
     expect_type(tok_t_sym); 
-    expect_attribute("ifj");
 
     // "="
     next_token();
@@ -108,11 +297,10 @@ int prolog() {
     print_token();
     expect_type(tok_t_lpa);  
 
-    // "ifj24.zig"
+    // "STRING"
     next_token();
     print_token();
-    expect_type(tok_t_str);  
-    expect_attribute("ifj24.zig");
+    expect_type(tok_t_str);
 
     // ")"
     next_token();
@@ -127,12 +315,12 @@ int prolog() {
     return 0;
 }
 /* 
- *  Grammar: <function_declaration> → "pub" "fn" <ID> "(" <parameter> ")" <return_type> "{" <statement> "}" <function_declaration_next>
+ *  Grammar: <function> → "pub" "fn" <ID> "(" <parameter> ")" <return_type> "{" <statement> "}" <function_next>
  */
-int function_declaration() {
+int function() {
     printf("-------------------------\n");
-    printf("<function_declaration>\n");
-    // Funkce main nemá definován žádný parametr ani návratovou hodnotu, jinak chyba 4.
+    printf("<function>\n");
+    printf("-------------------------\n");
 
     next_token();
     print_token(); // "pub"
@@ -143,9 +331,8 @@ int function_declaration() {
     expect_type(tok_t_fn);
 
     next_token();
-    print_token(); // <ID>
+    print_token(); // "ID"
     expect_type(tok_t_sym); 
-    // vlozenie do TS
 
     next_token();
     print_token(); // "("
@@ -153,15 +340,13 @@ int function_declaration() {
 
     next_token();
     print_token();
-
     parameter();
-
 
     // ")"
     expect_type(tok_t_rpa);
     next_token();
     
-    // For ONE function ONE return type, maybe ADD more
+    // Return type
     switch (current_token->type) {
     case tok_t_i32:
     case tok_t_f64:
@@ -181,31 +366,37 @@ int function_declaration() {
 
     next_token();
     print_token();
-
-    // <statement>
-    statement();
+    body();
 
     // "}"
     expect_type(tok_t_rcbr);
-    next_token();
+    // next_token();
 
-    // <function_declaration_next>
-    function_declaration_next();  
+    function_next();
 
+    printf("-------------------------\n");
+    printf("<function> DONE\n");
+    printf("-------------------------\n");
     return 0;
 }
 /*
- * Grammar: <function_declaration_next> → ε | <function_declaration>
+ * Grammar: <function_next> → EOF | <function>
  */
-int function_declaration_next() {
+int function_next() {
     printf("-------------------------\n");
-    printf("<function_declaration_next>\n");
-    if (current_token->type == tok_t_pub) {
-        function_declaration();
+    printf("<function_next>\n");
+    printf("-------------------------\n");
+    print_token();  
+    if (current_token->type != tok_t_eof) {
+        function();
+    } else {
+        expect_type(tok_t_eof);
     }
-    // Else, epsilon production, do nothing
-    print_token();
-    expect_type(tok_t_eof);
+
+    printf("-------------------------\n");
+    printf("<function_next> DONE\n");
+    printf("-------------------------\n");
+
     return 0;
 }
 /*
@@ -214,7 +405,9 @@ int function_declaration_next() {
 int parameter() {
     printf("-------------------------\n");
     printf("<parameter>\n");
-    bool params = false;
+    printf("-------------------------\n");
+
+    print_token();
     if (current_token->type == tok_t_sym) {
         next_token();
         print_token();
@@ -222,28 +415,18 @@ int parameter() {
 
         next_token();
         print_token();
-        if (current_token->type == tok_t_i32 || current_token->type == tok_t_f64 || current_token->type == tok_t_u8) {
+        if (current_token->type == tok_t_i32 || current_token->type == tok_t_f64 || current_token->type == tok_t_u8 || current_token->type == tok_t_bool || current_token->type == tok_t_i32_opt || current_token->type == tok_t_f64_opt || current_token->type == tok_t_u8_opt) {
             next_token();
             print_token();
-            // param counter
-            params = true;
+            parameter_next();
         } else {
             fprintf(stderr, "Syntax error: Expected type, got %s\n", tok_type_to_str(current_token->type));
             exit(2); // Syntax error
         }
     }
-
-    if (current_token->type == tok_t_com && params) {
-        next_token();
-        print_token();
-
-        // <parameter_next>
-        parameter_next();
-        params = false;
-    }
-
-    // Else, epsilon production, do nothing
-    // Fucntion without parameters
+    printf("-------------------------\n");
+    printf("<parameter> DONE\n");
+    printf("-------------------------\n");
     return 0;
 }
 /*
@@ -252,578 +435,446 @@ int parameter() {
 int parameter_next() {
     printf("-------------------------\n");
     printf("<parameter_next>\n");
-    if (current_token->type == tok_t_sym) {
+    printf("-------------------------\n");
+
+    print_token();
+    if (current_token->type == tok_t_com) {
+        next_token();
+        print_token();
         parameter();
     }
-
-    // Else, epsilon production, do nothing
+    printf("<parameter_next> DONE\n");
     return 0;
 }
 /*
- * Grammar: <statement> → <assignment> | <declaration> | <fn_call_statement> | ...
+ * Grammar: <body> → ɛ | <statement> <body>
+ */
+int body() {
+    printf("-------------------------\n");
+    printf("<body>\n");
+    printf("-------------------------\n");
+
+    while (current_token->type != tok_t_rcbr) {
+        statement();
+    }
+    printf("<body> DONE\n");
+    return 0;
+}
+/*
+ * Grammar: <statement> → <id_statement> | <declaration> | <if_statement> | <while_statement> | <for_statement> | <return_statement> | <break_statement> | <continue_statement>
  */
 int statement() {
     printf("-------------------------\n");
-    printf("<statement>\n");
-    switch (current_token->type)
-    {
-    case tok_t_sym: // <assignment> || <fn_call_statement>
+    printf("<statement(%d)>\n", statement_index++);
+    printf("-------------------------\n");
+
+    print_token();
+    switch (current_token->type) {
+    case tok_t_sym:
         printf("tok_t_sym\n");
-        ifj_flag = false;
-        if (strcmp(current_token->attribute, "ifj") == 0){
-            ifj_flag = true;
-        }
+        next_token();
+        print_token();
+        id_statement();
+        expect_type(tok_t_semicolon);
+        next_token();
+        break;
+    case tok_t_const:
+    case tok_t_var:
+        printf("tok_t_const || tok_t_var \n");
+        next_token();
+        print_token(); // ID
+
+        expect_type(tok_t_sym);
+        next_token();
+        print_token(); // : | =
+
+        // <definition>
+        if (current_token->type == tok_t_colon) {
+            next_token();
+            print_token(); // <type>
+
+            if (current_token->type == tok_t_i32 || current_token->type == tok_t_f64 || current_token->type == tok_t_u8 || current_token->type == tok_t_bool || current_token->type == tok_t_i32_opt || current_token->type == tok_t_f64_opt || current_token->type == tok_t_u8_opt) {
+                next_token();
+                print_token(); // =
+                // TS
+            } else {
+                fprintf(stderr, "Syntax error\n");
+                exit(2);
+            }
+        } // end of <definition>
+
+        expect_type(tok_t_ass);
+        next_token();
+
+        // <value> 
+        value();
+
+        expect_type(tok_t_semicolon);
+        next_token();
+        print_token();
+        break;
+    case tok_t_if:
+        printf("tok_t_if\n");
+        next_token();
+        print_token(); // (
+
+        expect_type(tok_t_lpa);
+        next_token();
+        print_token(); 
+
+        value();
+
+        print_token();
+        printf("Meowwww\n");
+        expect_type(tok_t_rpa);
         next_token();
         print_token();
 
-        if (current_token->type == tok_t_ass)
-        {
-            assignment();
-            printf("<assignment> DONE\n");
-        } else if (current_token->type == tok_t_lpa || current_token->type == tok_t_dot)
-        {
-            fn_call_statement(ifj_flag);
-            printf("<fn_call_statement> DONE\n");
-        } else 
-        {
-            fprintf(stderr, "Syntax error: Expected type, got %s\n", tok_type_to_str(current_token->type));
-            exit(2); // Replace with better error handling if needed
-        }
-        next_token();
-        print_token();
+        not_null_value();
+        then();
+        else_then();
 
-        statement_next();
         break;
-    case tok_t_const: // <declaration> const
-        printf("tok_t_const\n");
-        declaration();
-        printf("<declaration> DONE\n");
-
+    case tok_t_while:
+        printf("tok_t_while\n");
         next_token();
         print_token();
-
-        statement_next();
-        break;
-    case tok_t_var: // <declaration> var
-        printf("tok_t_var\n");
-        declaration();
-        printf("<declaration> DONE\n");
-
+        expect_type(tok_t_lpa);
         next_token();
         print_token();
-        
-        statement_next();
-        break;
-    case tok_t_if: // <if_statement>
-        if_statement();
-        printf("<if_statement> DONE\n");
-        
+        value();
+        expect_type(tok_t_rpa);
         next_token();
         print_token();
-        
-        statement_next();
+        not_null_value();
+        then();
+        else_then();
         break;
-    case tok_t_while: // <while_statement>
-        while_statement();
-        printf("<while_statement> DONE\n");
-        
+    case tok_t_for:
+        printf("tok_t_for\n");
         next_token();
         print_token();
-        
-        statement_next();
-        break;
-    case tok_t_for: // <for_statement>
-        for_statement();
-        printf("<for_statement> DONE\n");
-        
+        expect_type(tok_t_lpa);
         next_token();
         print_token();
-        
-        statement_next();
+        expect_type(tok_t_sym);
+        next_token();
+        print_token();
+        id_continue();
+        expect_type(tok_t_rpa);
+        next_token();
+        print_token();
+        expect_type(tok_t_alias);
+        next_token();
+        print_token();
+        expect_type(tok_t_sym);
+        next_token();
+        print_token();
+        expect_type(tok_t_alias);
+        next_token();
+        print_token();
+        then();
         break;
-    case tok_t_return: // <return_statement>
-        return_statement();
-        printf("<return_statement> DONE\n");
-        
-        // Do not call statement_next() after return
+    case tok_t_return:
+        printf("tok_t_return\n");
+        next_token();
+        print_token();
+        return_value();
+        expect_type(tok_t_semicolon);
+        next_token();
         break;
-    case tok_t_break: // <break_statement>
-        break_statement();
-        printf("<break_statement> DONE\n");
-        
-        // Do not call statement_next() after break
+    case tok_t_break:
+        printf("tok_t_break\n");
+        next_token();
+        print_token();
+        expect_type(tok_t_semicolon);
+        next_token();
         break;
-    case tok_t_continue: // <continue_statement>
-        continue_statement();
-        printf("<continue_statement> DONE\n");
-        
-        // Do not call statement_next() after continue
+    case tok_t_continue:
+        printf("tok_t_continue\n");
+        next_token();
+        print_token();
+        expect_type(tok_t_semicolon);
+        next_token();
         break;
-    default: // Syntax error
+    default:
         fprintf(stderr, "Syntax error: Expected statement, got %s\n", tok_type_to_str(current_token->type));
-        exit(2); 
-        break;
+        exit(2);
     }
 
-    // Add other conditions for fn_call_statement, if_statement, while_statement, etc.
-    printf("All statements DONE\n");
+    printf("-------------------------\n");
+    printf("<statement> DONE\n");
+    printf("-------------------------\n");
+
+    return 0;
+}
+int id_statement() {
+    printf("-------------------------\n");
+    printf("<id_statement>\n");
+    printf("-------------------------\n");
+
+    if (current_token->type == tok_t_ass) {
+        next_token();
+        print_token();
+        value();
+    } else {
+        call();
+    }
+
+    printf("-------------------------\n");
+    printf("<id_statement> DONE\n");
+    printf("-------------------------\n");
+
     return 0;
 }
 /*
- * Grammar: <statement_next> → ɛ | <statement>
+ * Grammar: <value> → <expression> | <literal> | <ID>
  */
-int statement_next() {
+int value() {
     printf("-------------------------\n");
-    printf("<statement_next>\n");
+    printf("<value>\n");
+    printf("-------------------------\n");
 
-    // If the next token can start a statement, call statement().
-    if (current_token->type != tok_t_rcbr && current_token->type != tok_t_eof) {
+    print_token();
+
+    // Store the current token into a single variable
+    if (stored_token == NULL) {
+        stored_token = malloc(sizeof(Token));
+        if (stored_token == NULL) {
+            fprintf(stderr, "Memory allocation error\n");
+            exit(1);
+        }
+    }
+
+    // Copy current_token into stored_token
+    stored_token->type = current_token->type;
+    if (current_token->attribute != NULL) {
+        stored_token->attribute = strdup(current_token->attribute); // Duplicate the attribute string
+    } else {
+        stored_token->attribute = NULL;
+    }
+
+    // Print stored_token type and attribute
+    printf("Stored token type: %s\n", tok_type_to_str(stored_token->type));
+    printf("Stored token attribute: %s\n", stored_token->attribute ? stored_token->attribute : "(null)");
+
+    next_token();
+    print_token();
+
+    // test for expression 
+    if (current_token->type != tok_t_rpa && current_token->type != tok_t_semicolon){
+        // parse_expression
+        printf("Expressiiooon bitch\n");
+        parse_expression(stored_token);
+    } else {
+        printf("No expression\n");
+        printf("Stored token type: %s\n", tok_type_to_str(stored_token->type));
+        printf("Stored token attribute: %s\n", stored_token->attribute ? stored_token->attribute : "(null)");
+        switch (stored_token->type) {
+            case tok_t_null:
+            case tok_t_int:
+            case tok_t_flt:
+            case tok_t_bool:
+                print_token(); // ;
+                // TS
+                break;
+            case tok_t_as:
+                print_token();
+                expect_type(tok_t_lpa);
+                next_token();
+                print_token();
+                expect_type(tok_t_i32);
+                next_token();
+                print_token();
+                expect_type(tok_t_com);
+                next_token();
+                print_token();
+                expect_type(tok_t_sym);
+                next_token();
+                print_token();
+                expect_type(tok_t_rpa);
+                next_token();
+                print_token();
+                break;
+            case tok_t_sym:
+                printf("Meow\n");
+                if (strcmp(stored_token->attribute, "true") == 0 || strcmp(stored_token->attribute, "false") == 0) {
+                    print_token(); // ;
+                } else { // ID
+                    // TS
+                }
+                break;
+            default:
+                fprintf(stderr, "Syntax error: Expected value, got %s\n", tok_type_to_str(current_token->type));
+                exit(2);
+        }
+    }
+
+    printf("-------------------------\n");
+    printf("<value> DONE\n");
+    printf("-------------------------\n");
+
+    return 0;
+}
+/*
+ * Grammar: <not_null_value> → <ID> <id_continue> | <STRING> | <value>
+ */
+int not_null_value() {
+    printf("-------------------------\n");
+    printf("<not_null_value>\n");
+    printf("-------------------------\n");
+
+    if (current_token->type == tok_t_alias) {
+        next_token();
+        print_token(); // ID
+
+        expect_type(tok_t_sym);
+        next_token();
+        print_token(); // |
+
+        expect_type(tok_t_alias);
+        next_token();
+        print_token(); 
+    }
+    printf("-------------------------\n");
+    printf("<not_null_value> DONE\n");
+    printf("-------------------------\n");
+
+    return 0;
+}
+int then() {
+    printf("-------------------------\n");
+    printf("<then>\n");
+    printf("-------------------------\n");
+
+    if (current_token->type == tok_t_lcbr) {
+        next_token();
+        print_token();
+        body();
+        expect_type(tok_t_rcbr);
+        next_token();
+        print_token();
+    } else {
         statement();
-    } // Else, epsilon production, do nothing.
-    
-    return 0;
-}
-/*
- * Grammar: <assignment> → <ID> <equals_to> ";" <statement_next>
- */
-int assignment() {
-    printf("-------------------------\n");
-    printf("<assignment>\n");
-    // assign premennej, expression, funkcie(s returnom), ...
-
-    // test na to, ci je uz deklarovana premenna
-    // ak hej, tak asi rovno <declaration>
-
-
-    return 0;
-}
-/*
- * Grammar: <declaration> → <prefix> <ID> : <ID_type> <equals_to> ";" <statement_next>
- */
-int declaration() {
-    // Handle 'var' or 'const' prefix
-    printf("-------------------------\n");
-    printf("<declaration>\n");
-    if (current_token->type == tok_t_var) { // <prefix> var
-        next_token();  
-        print_token();
-        expect_type(tok_t_sym);  // <ID>
-
-        next_token();  
-        print_token();
-
-        if (current_token->type == tok_t_ass){
-            printf("Ass exp\n");
-            // expression
-
-            // zde implementuj
-
-        } else if (current_token->type == tok_t_colon)
-        {
-            printf(": type\n");
-            next_token();  
-            print_token();
-
-            if (current_token->type == tok_t_i32 || current_token->type == tok_t_f64 || current_token->type == tok_t_u8) {
-                next_token();  
-                print_token();
-                if (current_token->type == tok_t_ass)
-                {
-                    printf(": type = \n");
-                    // expression
-                } else if (current_token->type == tok_t_semicolon)
-                {
-                    printf(": type; \n");
-                    // TS
-                } else
-                {
-                    fprintf(stderr, "Syntax error: Expected type, got %s\n", tok_type_to_str(current_token->type));
-                    exit(2); // Syntax error
-                }
-            } else {
-                fprintf(stderr, "Syntax error: Expected type, got %s\n", tok_type_to_str(current_token->type));
-                exit(2); // Syntax error
-            }
-        }
-    } else if (current_token->type == tok_t_const) { // <prefix> const
-        next_token();  
-        print_token();
-        expect_type(tok_t_sym);  // <ID>
-
-        next_token();  
-        print_token();
-
-        if (current_token->type == tok_t_ass){
-            printf("Ass exp\n");
-            // expression
-        } else if (current_token->type == tok_t_colon)
-        {
-            printf(": type\n");
-            next_token();  
-            print_token();
-
-            if (current_token->type == tok_t_i32 || current_token->type == tok_t_f64 || current_token->type == tok_t_u8) {
-                next_token();  
-                print_token();
-                if (current_token->type == tok_t_ass)
-                {
-                    printf(": type = \n");
-                    // expression
-                } else if (current_token->type == tok_t_semicolon)
-                {
-                    printf(": type; \n");
-                    // TS
-                } else
-                {
-                    fprintf(stderr, "Syntax error: Expected type, got %s\n", tok_type_to_str(current_token->type));
-                    exit(2); // Syntax error
-                }
-            } else {
-                fprintf(stderr, "Syntax error: Expected type, got %s\n", tok_type_to_str(current_token->type));
-                exit(2); // Syntax error
-            }
-        }
-    } else {
-        fprintf(stderr, "Syntax error: Expected 'var' or 'const', got %s\n", tok_type_to_str(current_token->type));
-        exit(2); // Syntax error
     }
+    printf("-------------------------\n");
+    printf("<then> DONE\n");
+    printf("-------------------------\n");
 
     return 0;
 }
 /*
- * Grammar: <fn_call_statement> → <ID> "(" <fn_call_params> ")" ";"
+ * Grammar: <else_then> → ɛ | "else" <then>
  */
-int fn_call_statement(bool ifj_flag) {
+int else_then() {
     printf("-------------------------\n");
-    printf("<fn_call_statement>\n");
-    
-    if (ifj_flag) {
-        expect_type(tok_t_dot);
-        next_token();
-        print_token();
-
-        // TO-DO: Each function differently
-        if (strcmp(current_token->attribute, "readstr") == 0) {
-            printf("readstr\n");
-            // implement readstr
-        } else if (strcmp(current_token->attribute, "readi32") == 0) {
-            printf("readi32\n");
-            // implement readi32
-        } else if (strcmp(current_token->attribute, "readf64") == 0) {
-            printf("readf64\n");
-            // implement readf64
-        } else if (strcmp(current_token->attribute, "write") == 0) {
-            printf("write\n");
-            // implement write
-        } else if (strcmp(current_token->attribute, "i2f") == 0) {
-            printf("i2f\n");
-            // implement i2f
-        } else if (strcmp(current_token->attribute, "f2i") == 0) {
-            printf("f2i\n");
-            // implement f2i
-        } else if (strcmp(current_token->attribute, "string") == 0) {
-            printf("string\n");
-            // implement string
-        } else if (strcmp(current_token->attribute, "length") == 0) {
-            printf("length\n");
-            // implement length
-        } else if (strcmp(current_token->attribute, "concat") == 0) {
-            printf("concat\n");
-            // implement concat
-        } else if (strcmp(current_token->attribute, "substring") == 0) {
-            printf("substring\n");
-            // implement substring
-        } else if (strcmp(current_token->attribute, "strcmp") == 0) {
-            printf("strcmp\n");
-            // implement strcmp
-        } else if (strcmp(current_token->attribute, "ord") == 0) {
-            printf("ord\n");
-            // implement ord
-        } else if (strcmp(current_token->attribute, "chr") == 0) {
-            printf("chr\n");
-            // implement chr
-        } else {
-            fprintf(stderr, "Syntax error: Wrong built-in function syntax\n");
-            exit(2); // Replace with better error handling if needed
-        }
-    } else {
-        printf("Non-ifj. function\n");
-    }
-
-    // provizorne prechadzanie... fix potom
-    next_token();
-    print_token();
-
-    next_token();
-    print_token();
-
-    next_token();
-    print_token();
-
-    next_token();
-    print_token();
-
-    return 0;
-}
-/*
- * Grammar: <if_statement> → "if" <expression> "{" <statement> "}" <else_statement>
- *          | "if" <nullable_expression> "|" <non_null_id> "|" "{" <statement> "}" <else_statement>
- */
-int if_statement() {
+    printf("<else_then>\n");
     printf("-------------------------\n");
-    printf("<if_statement>\n");
 
-    next_token();
-    print_token();
-    expect_type(tok_t_lpa); // "("
-
-    next_token();
-    print_token();
-
-    // Handle expression or nullable_expression
-    // expression();
-
-    next_token();
-    print_token();
-    expect_type(tok_t_rpa); // ")"
-
-    next_token();
-    print_token();
-
-
-    if (current_token->type == tok_t_alias) { // "|"
-        // Handle nullable_expression
-        next_token();
-        print_token();
-        expect_type(tok_t_sym); // non_null_id
-
-        next_token();
-        print_token();
-        expect_type(tok_t_alias); // "|"
-
-        next_token();
-        print_token();
-    }
-
-    expect_type(tok_t_lcbr); // "{"
-
-    next_token();
-    print_token();
-
-    // <statement>
-    statement();
-
-    // "}"
-    expect_type(tok_t_rcbr);
-    next_token();
-
-    // <else_statement>
     if (current_token->type == tok_t_else) {
         next_token();
         print_token();
-        expect_type(tok_t_lcbr); // "{"
-
-        next_token();
-        print_token();
-
-        // <statement>
-        statement();
-
-        // "}"
-        expect_type(tok_t_rcbr);
-        next_token();
+        then();
     }
 
     return 0;
 }
 /*
- * Grammar: <while_statement> → "while" <expression> "{" <statement> "}"
- *          | "while" <nullable_expression> "|" <non_null_id> "|" "{" <statement> "}"
+ * Grammar: <id_continue> → "." <ID> <call> | "(" <call_params> ")"
  */
-int while_statement() {
+int id_continue() {
     printf("-------------------------\n");
-    printf("<while_statement>\n");
-
-    next_token();
-    print_token();
-    expect_type(tok_t_lpa); // "("
-
-    next_token();
+    printf("<id_continue>\n");
+    printf("-------------------------\n");
     print_token();
 
-    // Handle expression or nullable_expression
-    // expression();
-
-    next_token();
-    print_token();
-    expect_type(tok_t_rpa); // ")"
-
-    next_token();
-    print_token();
-
-    if (current_token->type == tok_t_alias) { // "|"
-        // Handle nullable_expression
-        next_token();
-        print_token();
-        expect_type(tok_t_sym); // non_null_id
-
-        next_token();
-        print_token();
-        expect_type(tok_t_alias); // "|"
-
-        next_token();
-        print_token();
+    if (current_token->type == tok_t_dot || current_token->type == tok_t_lpa) {
+        call();
     }
 
-    expect_type(tok_t_lcbr); // "{"
-
-    next_token();
-    print_token();
-
-    // <statement>
-    statement();
-
-    // "}"
-    expect_type(tok_t_rcbr);
-    next_token();
-
     return 0;
 }
 /*
- * Grammar: <for_statement> → "for" <expression> "|" <id> "|" "{" <statement> "}"
+ * Grammar: <return_value> → ɛ | <value>
  */
-int for_statement() {
+int return_value() {
     printf("-------------------------\n");
-    printf("<for_statement>\n");
-
-    next_token();
-    print_token();
-    expect_type(tok_t_lpa); // "("
-
-    next_token();
-    print_token();
-
-    // Handle expression
-    // expression();
-
-    next_token();
-    print_token();
-    expect_type(tok_t_rpa); // ")"
-
-    next_token();
-    print_token();
-    expect_type(tok_t_alias); // "|"
-
-    next_token();
-    print_token();
-    expect_type(tok_t_sym); // id
-
-    next_token();
-    print_token();
-    expect_type(tok_t_alias); // "|"
-
-    next_token();
-    print_token();
-    expect_type(tok_t_lcbr); // "{"
-
-    next_token();
-    print_token();
-
-    // <statement>
-    statement();
-
-    // "}"
-    expect_type(tok_t_rcbr);
-    next_token();
-
-    return 0;
-}
-/*
- * Grammar: <return_statement> → "return" <expression> ";" | "return" ";"
- */
-int return_statement() {
-    printf("-------------------------\n");
-    printf("<return_statement>\n");
-
-    next_token();
-    print_token();
+    printf("<return_value>\n");
 
     if (current_token->type != tok_t_semicolon) {
-        // Handle expression
-        // expression();
-
-        // Check if the expression type matches the function return type
-        if (current_token->type != fn_ret_type) {
-            fprintf(stderr, "Semantic error: Return type mismatch\n");
-            exit(4); // Semantic error - wrong return type
-        }
-
-        next_token();
-        print_token();
-    } else if (fn_ret_type != tok_t_void) {
-        fprintf(stderr, "Semantic error: Missing return expression in non-void function\n");
-        exit(6); // Semantic error - missing return expression
+        value();
     }
-
-    expect_type(tok_t_semicolon); // ";"
-    next_token();
 
     return 0;
 }
 /*
- * Grammar: <break_statement> → "break" ";" | "break" <label> ";"
+ * Grammar: <call> → "." <ID> <call_params> | "(" <call_params> ")"
  */
-int break_statement() {
+int call() {
     printf("-------------------------\n");
-    printf("<break_statement>\n");
+    printf("<call>\n");
 
+    if (current_token->type == tok_t_dot) {
+        next_token();
+        print_token();
+        expect_type(tok_t_sym);
+        next_token();
+        print_token();
+    }
+
+    expect_type(tok_t_lpa);
+    next_token();
+    print_token();
+    call_params();
+    expect_type(tok_t_rpa);
     next_token();
     print_token();
 
-    if (current_token->type == tok_t_sym) {
-        // Handle labeled break
-        char* label = current_token->attribute;
-        next_token();
-        print_token();
-        expect_type(tok_t_semicolon); // ";"
-        printf("Break with label: %s\n", label);
-        // Implement logic to handle labeled break
-    } else {
-        // Handle unlabeled break
-        expect_type(tok_t_semicolon); // ";"
-        printf("Break without label\n");
-        // Implement logic to handle unlabeled break
-    }
-
-    next_token();
     return 0;
 }
 /*
- * Grammar: <continue_statement> → "continue" ";" | "continue" <label> ";"
+ * Grammar: <call_params> → ɛ | <call_value> <call_params_next>
  */
-int continue_statement() {
+int call_params() {
     printf("-------------------------\n");
-    printf("<continue_statement>\n");
+    printf("<call_params>\n");
 
-    next_token();
-    print_token();
-
-    if (current_token->type == tok_t_sym) {
-        // Handle labeled continue
-        char* label = current_token->attribute;
-        next_token();
-        print_token();
-        expect_type(tok_t_semicolon); // ";"
-        printf("Continue with label: %s\n", label);
-        // Implement logic to handle labeled continue
-    } else {
-        // Handle unlabeled continue
-        expect_type(tok_t_semicolon); // ";"
-        printf("Continue without label\n");
-        // Implement logic to handle unlabeled continue
+    if (current_token->type != tok_t_rpa) {
+        call_value();
+        call_params_next();
     }
 
-    next_token();
+    return 0;
+}
+/*
+ * Grammar: <call_value> → <value> | <ID> <call_params> | <STRING> <call_params>
+ */
+int call_value() {
+    printf("-------------------------\n");
+    printf("<call_value>\n");
+
+    if (current_token->type == tok_t_str) {
+        next_token();
+        print_token();
+    } else {
+        value();
+    }
+
+    return 0;
+}
+/*
+ * Grammar: <call_params_next> → ɛ | "," <call_params>
+ */
+int call_params_next() {
+    printf("-------------------------\n");
+    printf("<call_params_next>\n");
+
+    if (current_token->type == tok_t_com) {
+        next_token();
+        print_token();
+        call_params();
+    }
+
     return 0;
 }
 
@@ -839,6 +890,8 @@ void parse() {
         fprintf(stderr, "Failed to initialize scanner.\n");
         return;
     }
+
+    // TO-DO: Iplement second parser
 
     // Get the first token.
     next_token();
