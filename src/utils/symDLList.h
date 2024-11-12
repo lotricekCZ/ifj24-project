@@ -56,11 +56,10 @@ void DLL_Last(DLList *list);
  *
  * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
  * @param symtable Ukazatel na strukturu symtable, kterou chceme vložit
- * @param err Ukazatel na hodnotu, kam se uloží chybový kód
  *
  * @return Vrací true, pokud se operace podařila, jinak false
  */
-bool DLL_Insert_last(DLList *list, symtable_t *symtable, int *err);
+bool DLL_Insert_last(DLList *list, symtable_t *symtable);
 
 /**
  * Vrátí první prvek seznamu, nebo NULL, pokud je seznam prázdný.
@@ -92,11 +91,10 @@ symtable_t * DLL_GetCurrent(DLList *list);
  * Pokud byl seznam list prázdný, nic se neděje.
  *
  * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
- * @param err Ukazatel na proměnnou, kam se má uložit případná chybová hodnota
  *
  * @returns true, pokud se vše podařilo, jinak false
  */
-bool DLL_Delete_last(DLList *list, int *err);
+bool DLL_Delete_last(DLList *list);
 
 /**
  * Posune aktivitu na následující prvek seznamu list.
@@ -128,10 +126,9 @@ bool DLL_isActive(DLList *list);
  * Pokud se při mazání jednotlivých symtable vyskytne chyba, vrací se false.
  *
  * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
- * @param err Ukazatel na proměnnou, kam se ukládá případný chybový kód
  * @return true, pokud došlo k úspěšnému zrušení všech prvků, false jinak
  */
-bool DLL_Destroy(DLList *list, int *err);
+bool DLL_Destroy(DLList *list);
 
 /**
  * Nastaví aktivnímu prvku seznamu symtable
