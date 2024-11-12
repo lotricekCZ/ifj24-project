@@ -15,6 +15,7 @@ extern Token_ptr current_token;
 extern Scanner_ptr scanner;
 extern token_type fn_ret_type;
 extern bool ifj_flag;
+extern bool first_parse_done;
 extern int statement_index;
 
 // Function declarations
@@ -40,10 +41,10 @@ int then();
 int else_then();
 int id_continue();
 int return_value();
-int call();
-int call_params();
-int call_value();
-int call_params_next();
+void call();
+void call_params();
+void call_value();
+void call_params_next();
 
 // Precedence parsing
 extern char precedence_table[17][17];
@@ -57,5 +58,6 @@ char get_precedence_relation(token_type stack_top, token_type current);
 void parse_expression(Token_ptr stored_token);
 
 void parse();
+int parse_fn_first();
 
 #endif // PARSER_H

@@ -26,6 +26,7 @@ Token_ptr stored_token = NULL;
 Scanner_ptr scanner = NULL;
 token_type fn_ret_type;
 bool ifj_flag = false;
+bool first_parse_done = false;
 int statement_index = 1;
 
 /*
@@ -322,9 +323,11 @@ int function() {
     printf("<function>\n");
     printf("-------------------------\n");
 
-    next_token();
-    print_token(); // "pub"
-    expect_type(tok_t_pub);  
+    if (first_parse_done){
+        next_token();
+        print_token(); // "pub"
+        expect_type(tok_t_pub);  
+    }
 
     next_token();
     print_token(); // "fn"
@@ -334,14 +337,22 @@ int function() {
     print_token(); // "ID"
     expect_type(tok_t_sym); 
 
+    // Parsing first time: Add function to TS
+    if (!first_parse_done)
+    {
+        // TS add function
+    }
+
+
     next_token();
     print_token(); // "("
     expect_type(tok_t_lpa);  
 
     next_token();
     print_token();
-    parameter();
 
+    parameter();
+    
     // ")"
     expect_type(tok_t_rpa);
     next_token();
@@ -366,13 +377,34 @@ int function() {
 
     next_token();
     print_token();
-    body();
+
+    // Parsing second time: Parse function body
+    if (first_parse_done) {
+        body();
+    } else {
+        // Handle nested braces
+        int brace_count = 1; // We already encountered one '{'
+
+        while (brace_count > 0) {
+            next_token();
+            print_token();
+
+            if (current_token->type == tok_t_lcbr) {
+                brace_count++;
+            } else if (current_token->type == tok_t_rcbr) {
+                brace_count--;
+            }
+        }
+    }
 
     // "}"
     expect_type(tok_t_rcbr);
-    // next_token();
 
-    function_next();
+    // Next function or EOF
+    if (first_parse_done) {
+        next_token();
+        function_next();
+    }
 
     printf("-------------------------\n");
     printf("<function> DONE\n");
@@ -644,6 +676,11 @@ int value() {
             fprintf(stderr, "Memory allocation error\n");
             exit(1);
         }
+    } else {
+        // Free the previous attribute if it exists
+        if (stored_token->attribute != NULL) {
+            free(stored_token->attribute);
+        }
     }
 
     // Copy current_token into stored_token
@@ -810,7 +847,7 @@ int return_value() {
 /*
  * Grammar: <call> → "." <ID> <call_params> | "(" <call_params> ")"
  */
-int call() {
+void call() {
     printf("-------------------------\n");
     printf("<call>\n");
 
@@ -829,13 +866,11 @@ int call() {
     expect_type(tok_t_rpa);
     next_token();
     print_token();
-
-    return 0;
 }
 /*
  * Grammar: <call_params> → ɛ | <call_value> <call_params_next>
  */
-int call_params() {
+void call_params() {
     printf("-------------------------\n");
     printf("<call_params>\n");
 
@@ -843,13 +878,11 @@ int call_params() {
         call_value();
         call_params_next();
     }
-
-    return 0;
 }
 /*
  * Grammar: <call_value> → <value> | <ID> <call_params> | <STRING> <call_params>
  */
-int call_value() {
+void call_value() {
     printf("-------------------------\n");
     printf("<call_value>\n");
 
@@ -859,13 +892,11 @@ int call_value() {
     } else {
         value();
     }
-
-    return 0;
 }
 /*
  * Grammar: <call_params_next> → ɛ | "," <call_params>
  */
-int call_params_next() {
+void call_params_next() {
     printf("-------------------------\n");
     printf("<call_params_next>\n");
 
@@ -874,31 +905,54 @@ int call_params_next() {
         print_token();
         call_params();
     }
+}
+/*
+ * Function to parse code for the first time
+ */
+int parse_fn_first() {
+
+    printf("Nazdar sefe!\n");
+
+    // Iterate through program
+    while (current_token->type != tok_t_eof) {
+        if (current_token->type == tok_t_pub) {
+            // in <function> add to TS
+            function();
+        }
+        next_token();
+        print_token();
+    }
+
+    printf("First parse done!\n");
+
+    // set next token for second parse
+    next_token();
 
     return 0;
 }
-
 /******** End of grammar functions ******** 
  * Function to parse the source code
  */
 void parse() {
     printf("No nazdar!\n");
 
-    // Initialize the scanner with the source code file.
-    scanner = scn_init("test/scanner/constructions.zig");
-    if (scanner == NULL) {
-        fprintf(stderr, "Failed to initialize scanner.\n");
-        return;
-    }
-
-    // TO-DO: Iplement second parser
-
     // Get the first token.
     next_token();
 
-    // Start parsing from the <program> non-terminal.
+    // Parse the source code for the first time.
+    parse_fn_first();
+
+    // Set the first_parse_done flag to true.
+    first_parse_done = true;
+
+    // Start parsing second time from the <program> non-terminal.
     program();
-    
-    // Free the scanner.
-    scn_free(scanner);
+
+    // Free the stored_token
+    if (stored_token != NULL) {
+        if (stored_token->attribute != NULL) {
+            free(stored_token->attribute);
+        }
+        free(stored_token);
+    }
 }
