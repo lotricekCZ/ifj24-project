@@ -23,10 +23,9 @@ unsigned int getHash(char *str)
     return hash % SYMTABLE_SIZE;
 }
 
-bool symtable_init(symtable_t *symtable, int *err)
-{
-    if (symtable == NULL)
-    {
+
+bool symtable_init(symtable_t *symtable){
+    if(symtable == NULL){
         // vnitřní chyba
         return false;
     }
@@ -38,11 +37,9 @@ bool symtable_init(symtable_t *symtable, int *err)
     return true;
 }
 
-data_t *symtable_get_item(symtable_t *symtable, char *name, int *err)
-{
-    if (symtable == NULL || name == NULL)
-    {
-        // vnitřní chyba
+data_t *symtable_get_item(symtable_t *symtable, char *name){
+    if(symtable == NULL || name == NULL){
+        //vnitřní chyba
         return NULL;
     }
 
@@ -59,16 +56,13 @@ data_t *symtable_get_item(symtable_t *symtable, char *name, int *err)
     return NULL;
 }
 
-data_t *symtable_insert(symtable_t *symtable, char *name, int *err)
-{
-    if (symtable == NULL || name == NULL)
-    {
-        // vnitřní chyba
+data_t *symtable_insert(symtable_t *symtable, char *name){
+    if(symtable == NULL || name == NULL){
+        //vnitřní chyba
         return NULL;
     }
-    if (symtable_get_item(symtable, name, err) != NULL)
-    {
-        // jmeno jiz existuje
+    if(symtable_get_item(symtable, name) != NULL){
+        //jmeno jiz existuje
         return NULL;
     }
 
@@ -140,10 +134,8 @@ data_t *symtable_insert(symtable_t *symtable, char *name, int *err)
     return &new_item->data;
 }
 
-bool symtable_insert_params(data_t *data, int type, int *err)
-{
-    if (data == NULL)
-    {
+bool symtable_insert_params(data_t *data, int type){
+    if(data == NULL){
         return false;
     }
 
@@ -180,20 +172,20 @@ bool symtable_insert_params(data_t *data, int type, int *err)
     {
         result = DymString_Insert_Char(data->parameters, 'b');
     }
-
-    if (!result)
-    {
-        // vnitřní chyba
+    else if(type == DATA_TYPE_UND){
+        result = DymString_Insert_Char(data->parameters, 'q'); // pro ifj.write, kde může být víc typů v 1 parametru
+    }
+    
+    if(!result){
+        //vnitřní chyba
         return false;
     }
     return true;
 }
 
-bool symtable_destroy(symtable_t *symtable, int *err)
-{
-    if (symtable == NULL)
-    {
-        // vnitřní chyba
+bool symtable_destroy(symtable_t *symtable){
+    if(symtable == NULL){
+        //vnitřní chyba
         return false;
     }
 
@@ -222,7 +214,186 @@ bool symtable_destroy(symtable_t *symtable, int *err)
     return true;
 }
 
-bool symtable_insert_builtin(symtable_t *symtable, int *err)
-{
+
+bool symtable_insert_builtin(symtable_t *symtable){
+    bool internal_err = true;
+    data_t * data;
+
+    //ifj.readstr() ?[]u8
+    data = symtable_insert(symtable, "ifj.readstr");
+    if(data == NULL)
+        return false;
+
+    data->canNull = true;
+    data->type = DATA_TYPE_U8;
+    data->used = true;
+    data->init = true;
+    
+    //ifj.readi32() ?i32
+    data = symtable_insert(symtable, "ifj.readi32");
+    if(data == NULL)
+        return false;
+
+    data->canNull = true;
+    data->type = DATA_TYPE_INT;
+    data->used = true;
+    data->init = true;
+
+    //ifj.readf64() ?f64
+    data = symtable_insert(symtable, "ifj.readf64");
+    if(data == NULL)
+        return false;
+
+    data->canNull = true;
+    data->type = DATA_TYPE_DOUBLE;
+    data->used = true;
+    data->init = true;
+
+    //ifj.write(term) void
+    data = symtable_insert(symtable, "ifj.write");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_VOID;
+    internal_err = symtable_insert_params(data, DATA_TYPE_UND);
+    data->used = true;
+    data->init = true;
+
+    if(!internal_err)
+        return false;
+
+    //ifj.i2f(term: i32) f64
+    data = symtable_insert(symtable, "ifj.i2f");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_DOUBLE;
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    data->used = true;
+    data->init = true;
+
+    if(!internal_err)
+        return false;
+
+    //ifj.f2i(term: f64) i32
+    data = symtable_insert(symtable, "ifj.f2i");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_INT;
+    internal_err = symtable_insert_params(data, DATA_TYPE_DOUBLE);
+    data->used = true;
+    data->init = true;
+
+    if(!internal_err)
+        return false;
+
+    //ifj.string(term) []u8
+    data = symtable_insert(symtable, "ifj.string");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_U8;
+    internal_err = symtable_insert_params(data, DATA_TYPE_STRING);
+    data->used = true;
+    data->init = true;
+
+    if(!internal_err)
+        return false;
+
+    //ifj.length(s: []u8) i32
+    data = symtable_insert(symtable, "ifj.length");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_INT;
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    data->used = true;
+    data->init = true;
+
+    if(!internal_err)
+        return false;
+
+    //ifj.concat(s1: []u8, s2: []u8) []u8
+    data = symtable_insert(symtable, "ifj.concat");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_U8;
+    data->used = true;
+    data->init = true;
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    if(!internal_err)
+        return false;
+
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    if(!internal_err)
+        return false;
+
+    //ifj.substring(s: []u8, i: i32, j: i32) ?[]u8
+    data = symtable_insert(symtable, "ifj.substring");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_U8;
+    data->used = true;
+    data->init = true;
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    if(!internal_err)
+        return false;
+
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    if(!internal_err)
+        return false;
+
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    if(!internal_err)
+        return false;
+
+    data->canNull = true;
+
+    //ifj.strcmp(s1: []u8, s2: []u8) i32
+    data = symtable_insert(symtable, "ifj.strcmp");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_INT;
+    data->used = true;
+    data->init = true;
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    if(!internal_err)
+        return false;
+
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    if(!internal_err)
+        return false;
+
+    //ifj.ord(s: []u8, i: i32) i32
+    data = symtable_insert(symtable, "ifj.ord");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_INT;
+    data->used = true;
+    data->init = true;
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    if(!internal_err)
+        return false;
+
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    if(!internal_err)
+        return false;
+
+    //ifj.chr(i: i32) []u8
+    data = symtable_insert(symtable, "ifj.chr");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_U8;
+    data->used = true;
+    data->init = true;
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    if(!internal_err)   
+        return false;
     return true;
 }

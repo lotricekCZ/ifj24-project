@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include "dymString.h"
 
-#define SYMTABLE_SIZE 1009 // velikost symbol table
+#define SYMTABLE_SIZE 4001  // velikost symbol table
 
 /**
  * @enum data type
@@ -59,50 +59,53 @@ typedef symtable_item_t *symtable_t[SYMTABLE_SIZE];
  * @brief Inicializuje symbol table.
  *
  * @param symtable symbol table, které chceme inicializovat
- * @param err chybový kód, do kterého se uloží chyba
  *
  * @return true, pokud byla inicializace úspěšná, false, pokud
  *     k nějaké chybě došlo.
  */
-bool symtable_init(symtable_t *symtable, int *err);
+bool symtable_init(symtable_t *symtable);
 
 /**
  * @brief Najde a vráti polozku v symtable se zadanym jménem.
  *
  * @param symtable tabulka symbolů, ve které chceme hledat
  * @param name  jméno, které chceme najít
- * @param err   chybový kód, do kterého se uloží chyba
  * @return Najde polozku nebo NULL, pokud taková položka neexistuje.
  */
-data_t *symtable_get_item(symtable_t *table, char *name, int *err);
+data_t *symtable_get_item(symtable_t *table, char *name);
 
 /**
  * @brief Vloží nový item do symtable
- * @param[in] symtable Tabulka symbolů
- * @param[in] name Jméno které chceme přidat
- * @param[out] err Kód chyby
+ * @param symtable Tabulka symbolů
+ * @param name Jméno které chceme přidat
  * @return Ukazatel na nový item v symtable, pokud nastala vnitřní chyba, tak NULL
  */
-data_t *symtable_insert(symtable_t *symtable, char *name, int *err);
+data_t *symtable_insert(symtable_t *symtable, char *name);
 
 /**
  * @brief Přidá parametr do řetězce parametrů data_t.
  *
  * @param data data_t, do které chceme přidat parametr
  * @param type typ parametru, který chceme přidat
- * @param err chybový kód, pokud dojde k chybě
  * @return true, pokud se podařilo přidat parametr, jinak false
  */
-bool symtable_insert_params(data_t *data, int type, int *err);
+bool symtable_insert_params(data_t *data, int type);
 
 /**
  * @brief Zruší symbol table a dealokuje všechna alokovaná místa.
- * @param[in] symtable Symbol table k zrušeni.
- * @param[out] err chybový kód.
+ * @param symtable Symbol table k zrušeni.
  * @return true, pokud se podařilo symbol table zrušit, jinak false.
  */
-bool symtable_destroy(symtable_t *symtable, int *err);
+bool symtable_destroy(symtable_t *symtable);
 
-bool symtable_insert_builtin(symtable_t *symtable, int *err);
+/**
+ * @brief Vloží builtin funkce do symbol table.
+ *
+ * Funkce vloží všechny builtin funkce do symbol table a nastaví jejich parametry.
+ *
+ * @param symtable Symbol table, do které chceme vložit builtin funkce
+ * @return true, pokud se podařilo vložit builtin funkce, jinak false
+ */
+bool symtable_insert_builtin(symtable_t *symtable);
 
 #endif
