@@ -8,12 +8,34 @@
  * a funkcionality pro praci s aktivnim prvkem.
  *
  * @author xramas01 Jakub Ramaseuski
+ * @cite xsidlil00 Lukas Sidlik
  */
 #include "dll.h"
 #ifndef DLL_C
 #define DLL_C
+
+#ifdef DLL_TRAD
+
 /**
- * @brief Inicializace dynamicky alokovanho seznamu
+ * @brief Inicializuje seznam
+ *
+ * Funkce inicializuje dvousměrně vázaný seznam. Nastaví všechny ukazatele
+ * na NULL a délku na 0.
+ *
+ * @param dll Ukazatel na strukturu seznamu, který se má inicializovat.
+ */
+#define DLL_INIT(name, prefix, element, deallocate) \
+	void prefix##_dll_init(prefix##_dllist *dll)    \
+	{                                               \
+		dll->firstElement = NULL;                   \
+		dll->activeElement = NULL;                  \
+		dll->lastElement = NULL;                    \
+		dll->currentLength = 0;                     \
+	}
+#else
+
+/**
+ * @brief Inicializace dynamicky alokovaneho seznamu
  *
  * Funkce inicializuje dynamicky alokovany seznam. Vraci ukazatel na
  * strukturu seznamu, nebo NULL, pokud selhalo alokovani pameti.
@@ -33,6 +55,30 @@
 		dll->currentLength = 0;                      \
 		return dll;                                  \
 	}
+#endif
+
+#ifdef DLL_TRAD
+/**
+ * @brief Vymaze vsechny prvky seznamu
+ *
+ * Funkce vymaze vsechny prvky seznamu a uvolni pamet.
+ */
+#define DLL_CLEAR(name, prefix, element, deallocate)           \
+	bool prefix##_dll_clear(prefix##_dllist *dll)              \
+	{                                                          \
+		while (dll->firstElement != NULL)                      \
+		{                                                      \
+			prefix##_dll_element_ptr temp = dll->firstElement; \
+			dll->firstElement = dll->firstElement->next;       \
+			deallocate(temp->ptr);                             \
+			if (deallocate == nothing)                         \
+				free(temp->ptr);                               \
+			free(temp);                                        \
+		}                                                      \
+		return true;                                           \
+	}
+
+#else
 /**
  * @brief Vymaze vsechny prvky seznamu
  *
@@ -51,7 +97,19 @@
 			free(temp);                                        \
 		}                                                      \
 	}
+#endif
 
+#ifdef DLL_TRAD
+#define DLL_DISPOSE(name, prefix, element, deallocate) \
+	bool prefix##_dll_dispose(prefix##_dllist *dll)    \
+	{                                                  \
+		bool cleared = prefix##_dll_clear(dll);        \
+		if (!cleared)                                  \
+			return false;                              \
+		free(dll);                                     \
+		return true;                                   \
+	}
+#else
 /**
  * @brief Uvolni pamet alokovanou pro seznam
  *
@@ -63,6 +121,58 @@
 		prefix##_dll_clear(dll);                       \
 		free(dll);                                     \
 	}
+#endif
+#ifdef DLL_TRAD
+#define DLL_INSERT(name, prefix, element, copy, deallocate)                                   \
+	bool prefix##_dll_insert(prefix##_dllist *dll, size_t index, element data)                \
+	{                                                                                         \
+		prefix##_dll_element_ptr newElement = malloc(sizeof(struct _##prefix##_dll_element)); \
+		if (newElement == NULL)                                                               \
+		{                                                                                     \
+			return false;                                                                     \
+		}                                                                                     \
+		newElement->ptr = malloc(sizeof(element));                                            \
+		if (newElement->ptr == NULL)                                                          \
+		{                                                                                     \
+			return false;                                                                     \
+		}                                                                                     \
+		if (copy != nothing)                                                                  \
+			copy(newElement->ptr, data);                                                      \
+		else                                                                                  \
+			*newElement->ptr = data;                                                          \
+		if (index == 0)                                                                       \
+		{                                                                                     \
+			newElement->previous = NULL;                                                      \
+			newElement->next = dll->firstElement;                                             \
+			if (dll->firstElement != NULL)                                                    \
+			{                                                                                 \
+				dll->firstElement->previous = newElement;                                     \
+			}                                                                                 \
+			else                                                                              \
+			{                                                                                 \
+				dll->lastElement = newElement;                                                \
+			}                                                                                 \
+			dll->firstElement = newElement;                                                   \
+		}                                                                                     \
+		else                                                                                  \
+		{                                                                                     \
+			prefix##_dll_element_ptr temp = prefix##_dll_at(dll, index - 1);                  \
+			newElement->previous = temp;                                                      \
+			newElement->next = temp->next;                                                    \
+			if (temp->next != NULL)                                                           \
+			{                                                                                 \
+				temp->next->previous = newElement;                                            \
+			}                                                                                 \
+			else                                                                              \
+			{                                                                                 \
+				dll->lastElement = newElement;                                                \
+			}                                                                                 \
+			temp->next = newElement;                                                          \
+		}                                                                                     \
+		dll->currentLength++;                                                                 \
+		return true;                                                                          \
+	}
+#else
 /**
  * @brief Vlozeni prvku do seznamu na pozici index
  *
@@ -88,7 +198,7 @@
 			return;                                                                           \
 		}                                                                                     \
 		if (copy != nothing)                                                                  \
-			copy(newElement->ptr, data);                                                     \
+			copy(newElement->ptr, data);                                                      \
 		else                                                                                  \
 			*newElement->ptr = data;                                                          \
 		if (index == 0)                                                                       \
@@ -122,6 +232,40 @@
 		}                                                                                     \
 		dll->currentLength++;                                                                 \
 	}
+#endif
+#ifdef DLL_TRAD
+#define DLL_DELETE(name, prefix, element, deallocate)                \
+	bool prefix##_dll_delete(prefix##_dllist *dll, size_t index)     \
+	{                                                                \
+		prefix##_dll_element_ptr temp = prefix##_dll_at(dll, index); \
+		if (temp == NULL)                                            \
+		{                                                            \
+			return false;                                            \
+		}                                                            \
+		if (temp->previous != NULL)                                  \
+		{                                                            \
+			temp->previous->next = temp->next;                       \
+		}                                                            \
+		else                                                         \
+		{                                                            \
+			dll->firstElement = temp->next;                          \
+		}                                                            \
+		if (temp->next != NULL)                                      \
+		{                                                            \
+			temp->next->previous = temp->previous;                   \
+		}                                                            \
+		else                                                         \
+		{                                                            \
+			dll->lastElement = temp->previous;                       \
+		}                                                            \
+		deallocate(temp->ptr);                                       \
+		if (deallocate == nothing)                                   \
+			free(temp->ptr);                                         \
+		free(temp);                                                  \
+		dll->currentLength--;                                        \
+		return true;                                                 \
+	}
+#else
 /**
  * @brief Odstrani prvek na pozici index
  *
@@ -135,6 +279,10 @@
 	void prefix##_dll_delete(prefix##_dllist *dll, size_t index)     \
 	{                                                                \
 		prefix##_dll_element_ptr temp = prefix##_dll_at(dll, index); \
+		if (temp == NULL)                                            \
+		{                                                            \
+			return;                                                  \
+		}                                                            \
 		if (temp->previous != NULL)                                  \
 		{                                                            \
 			temp->previous->next = temp->next;                       \
@@ -157,6 +305,16 @@
 		free(temp);                                                  \
 		dll->currentLength--;                                        \
 	}
+#endif
+
+#ifdef DLL_TRAD
+#define DLL_PUSH_BACK(name, prefix, element, deallocate)            \
+	bool prefix##_dll_push_back(prefix##_dllist *dll, element data) \
+	{                                                               \
+		return prefix##_dll_insert(dll, dll->currentLength, data);  \
+	}
+#else
+
 /**
  * @brief Prida prvek na konec seznamu
  *
@@ -171,6 +329,8 @@
 		prefix##_dll_insert(dll, dll->currentLength, data);         \
 	}
 
+#endif
+
 /**
  * @brief Nastavi aktivni prvek na prvni prvek v seznamu
  *
@@ -183,6 +343,13 @@
 	{                                                \
 		dll->activeElement = dll->firstElement;      \
 	}
+#ifdef DLL_TRAD
+#define DLL_PUSH_FRONT(name, prefix, element, deallocate)            \
+	bool prefix##_dll_push_front(prefix##_dllist *dll, element data) \
+	{                                                                \
+		return prefix##_dll_insert(dll, 0, data);                    \
+	}
+#else
 /**
  * @brief Prida prvek na zacatek seznamu
  *
@@ -196,18 +363,44 @@
 	{                                                                \
 		prefix##_dll_insert(dll, 0, data);                           \
 	}
+#endif
+#ifdef DLL_TRAD
 /**
- * @brief odstran  posledn  prvek z  seznamu
+ * @brief Odebere posledni prvek ze seznamu
  *
- * Funkce odstran  posledn  prvek z  seznamu.
+ * Funkce odebere posledni prvek ze seznamu. Pokud je seznam prazdny,
+ * vraci false.
  *
- * @param dll Ukazatel na seznam, z  kter ho se ma prvek odebrat.
+ * @param dll Ukazatel na seznam, ze ktereho se ma prvek odebrat.
+ * @return true, pokud se podarilo odebrat prvek, jinak false.
+ */
+#define DLL_POP_BACK(name, prefix, element, deallocate)          \
+	bool prefix##_dll_pop_back(prefix##_dllist *dll)             \
+	{                                                            \
+		return prefix##_dll_delete(dll, dll->currentLength - 1); \
+	}
+#else
+/**
+ * @brief odstran posledni prvek ze seznamu
+ *
+ * Funkce odstrani posledni prvek ze seznamu.
+ *
+ * @param dll Ukazatel na seznam, ze ktereho se ma prvek odebrat.
  */
 #define DLL_POP_BACK(name, prefix, element, deallocate)   \
 	void prefix##_dll_pop_back(prefix##_dllist *dll)      \
 	{                                                     \
 		prefix##_dll_delete(dll, dll->currentLength - 1); \
 	}
+#endif
+
+#ifdef DLL_TRAD
+#define DLL_POP_FRONT(name, prefix, element, deallocate) \
+	bool prefix##_dll_pop_front(prefix##_dllist *dll)    \
+	{                                                    \
+		return prefix##_dll_delete(dll, 0);              \
+	}
+#else
 /**
  * @brief Odstrani prvni prvek z  seznamu
  *
@@ -220,6 +413,7 @@
 	{                                                    \
 		prefix##_dll_delete(dll, 0);                     \
 	}
+#endif
 /**
  * @brief Vrati ukazatel na prvek seznamu na pozici index
  *
@@ -232,6 +426,10 @@
 #define DLL_AT(name, prefix, element, deallocate)                                \
 	prefix##_dll_element_ptr prefix##_dll_at(prefix##_dllist *dll, size_t index) \
 	{                                                                            \
+		if (index >= dll->currentLength)                                         \
+		{                                                                        \
+			return NULL;                                                         \
+		}                                                                        \
 		prefix##_dll_element_ptr temp = dll->firstElement;                       \
 		for (size_t i = 0; i < index; i++)                                       \
 		{                                                                        \
@@ -239,6 +437,16 @@
 		}                                                                        \
 		return temp;                                                             \
 	}
+#ifdef DLL_TRAD
+#define DLL_NEXT(name, prefix, element, deallocate)        \
+	void prefix##_dll_next(prefix##_dllist *dll)           \
+	{                                                      \
+		if (prefix##_dll_is_active(dll))                   \
+		{                                                  \
+			dll->activeElement = dll->activeElement->next; \
+		}                                                  \
+	}
+#else
 /**
  * @brief Vrati dalsi prvek v seznamu a posune aktivni prvek na dalsi pozici
  *
@@ -259,6 +467,48 @@
 		dll->activeElement = dll->activeElement->next;               \
 		return dll->activeElement;                                   \
 	}
+#endif
+#define DLL_LAST(name, prefix, element, deallocate) \
+	void prefix##_dll_last(prefix##_dllist *dll)    \
+	{                                               \
+		dll->activeElement = dll->lastElement;      \
+	}
+#define DLL_IS_ACTIVE(name, prefix, element, deallocate) \
+	bool prefix##_dll_is_active(prefix##_dllist *dll)    \
+	{                                                    \
+		return dll->activeElement != NULL;               \
+	}
+#define DLL_FRONT(name, prefix, element, deallocate)                  \
+	prefix##_dll_element_ptr prefix##_dll_front(prefix##_dllist *dll) \
+	{                                                                 \
+		return dll->firstElement;                                     \
+	}
+#define DLL_BACK(name, prefix, element, deallocate)                  \
+	prefix##_dll_element_ptr prefix##_dll_back(prefix##_dllist *dll) \
+	{                                                                \
+		return dll->lastElement;                                     \
+	}
+#ifdef DLL_TRAD
+#define DLL_PREVIOUS(name, prefix, element, deallocate)        \
+	void prefix##_dll_previous(prefix##_dllist *dll)           \
+	{                                                          \
+		if (prefix##_dll_is_active(dll))                       \
+		{                                                      \
+			dll->activeElement = dll->activeElement->previous; \
+		}                                                      \
+	}
+#else
+#define DLL_PREVIOUS(name, prefix, element, deallocate)                  \
+	prefix##_dll_element_ptr prefix##_dll_previous(prefix##_dllist *dll) \
+	{                                                                    \
+		if (prefix##_dll_is_active(dll))                                 \
+		{                                                                \
+			dll->activeElement = dll->activeElement->previous;           \
+			return dll->activeElement;                                   \
+		}                                                                \
+	}
+#endif
+
 #define DLL(name, prefix, element, copy, deallocate)    \
 	DLL_INIT(name, prefix, element, deallocate)         \
 	DLL_INSERT(name, prefix, element, copy, deallocate) \
@@ -271,6 +521,11 @@
 	DLL_NEXT(name, prefix, element, deallocate)         \
 	DLL_DISPOSE(name, prefix, element, deallocate)      \
 	DLL_CLEAR(name, prefix, element, deallocate)        \
-	DLL_FIRST(name, prefix, element, deallocate)
+	DLL_FIRST(name, prefix, element, deallocate)        \
+	DLL_LAST(name, prefix, element, deallocate)         \
+	DLL_IS_ACTIVE(name, prefix, element, deallocate)    \
+	DLL_FRONT(name, prefix, element, deallocate)        \
+	DLL_BACK(name, prefix, element, deallocate)         \
+	DLL_PREVIOUS(name, prefix, element, deallocate)
 
 #endif

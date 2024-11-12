@@ -3,8 +3,8 @@
  * Vytvořil: Lukáš Šidlík (xsidlil00)
  */
 
-#ifndef DYMSTRING
-#define DYMSTRING
+#ifndef DYMSTRING_H
+#define DYMSTRING_H
 
 #include <stdio.h>
 #include <stdlib.h>

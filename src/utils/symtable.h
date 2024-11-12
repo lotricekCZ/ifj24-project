@@ -15,37 +15,40 @@
 /**
  * @enum data type
  */
-typedef enum{
-    DATA_TYPE_INT,              //integer
-    DATA_TYPE_DOUBLE,           //double
-    DATA_TYPE_U8,               //unsigned char
-    DATA_TYPE_STRING,           //string
-    DATA_TYPE_BOOLEAN,          //boolean
-    DATA_TYPE_VOID,             //void
-    DATA_TYPE_UND               //undefined
-}data_type_t;
+typedef enum
+{
+    DATA_TYPE_INT,     // integer
+    DATA_TYPE_DOUBLE,  // double
+    DATA_TYPE_U8,      // unsigned char
+    DATA_TYPE_STRING,  // string
+    DATA_TYPE_BOOLEAN, // boolean
+    DATA_TYPE_VOID,    // void
+    DATA_TYPE_UND      // undefined
+} data_type_t;
 
 /**
  * @struct data
  */
-typedef struct data_t{
-    data_type_t type;           //datový typ dat
-    DymString *parameters;      //parametry funkce
-    char *id;                   //identifikátor
-    bool init;                  //inicializování
-    bool canNull;               //nullability
-    bool isConst;               //konstanta
-    bool used;                  //použití
-}data_t;
+typedef struct data_t
+{
+    data_type_t type;      // datový typ dat
+    DymString *parameters; // parametry funkce
+    char *id;              // identifikátor
+    bool init;             // inicializování
+    bool canNull;          // nullability
+    bool isConst;          // konstanta
+    bool used;             // použití
+} data_t;
 
 /**
  * @struct symtable polozka
  */
-typedef struct symtable_item_t{
-    char* key;                      //klíč
-    data_t data;                    //data
-    struct symtable_item_t *next;   //ukazatel na dalsí polozku
-}symtable_item_t;
+typedef struct symtable_item_t
+{
+    char *key;                    // klíč
+    data_t data;                  // data
+    struct symtable_item_t *next; // ukazatel na dalsí polozku
+} symtable_item_t;
 
 /**
  * @brief symbol table
