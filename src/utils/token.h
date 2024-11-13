@@ -20,6 +20,8 @@ typedef struct _Token *Token_ptr;
 
 Token_ptr tok_init(token_type type);
 
+Token_ptr tok_init_no_type();
+
 void tok_copy(Token_ptr dst, Token tok);
 
 void tok_free(Token_ptr tok);

@@ -9,6 +9,7 @@ set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(TEST ${CMAKE_CURRENT_SOURCE_DIR}/test)
 set(UTILS ${SRC}/utils)
 set(SCANNER ${SRC}/scanner)
+
 add_executable(ifj2024 src/main.c)
 
 add_library(errors SHARED    	 ${UTILS}/errors.c)
@@ -23,10 +24,13 @@ add_library(sym_dll SHARED 	 	 ${UTILS}/symDLList.c)
 add_library(dym_string SHARED 	 ${UTILS}/dymString.c)
 add_library(symtable SHARED 	 ${UTILS}/symtable.c)
 target_compile_definitions(dll_trad PUBLIC DLL_TRAD)
-target_link_libraries(scanner token scan_state keyword token_dll)
-target_link_libraries(ifj2024 errors token scanner)
-enable_testing()
 
+target_link_libraries(scanner token scan_state keyword token_dll)
+target_link_libraries(scanner parser)
+target_link_libraries(ifj2024 errors token scanner parser)
+
+# Enable testing
+enable_testing()
 
 # tests
 add_executable(test_dll_1 ${TEST}/dll/DLL_test_1.c)

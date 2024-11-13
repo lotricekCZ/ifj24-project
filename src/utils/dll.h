@@ -75,5 +75,6 @@
  */
 void nothing()
 {
+
 }
 #endif

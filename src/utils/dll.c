@@ -184,7 +184,7 @@
  * @param index Pozice, na kterou se ma prvek vlozit.
  * @param data Hodnota prvku, ktery se ma vlozit.
  */
-#define DLL_INSERT(name, prefix, element, copy, deallocate)                                   \
+#define DLL_INSERT(name, prefix, element, copy, init, deallocate)                                   \
 	void prefix##_dll_insert(prefix##_dllist *dll, size_t index, element data)                \
 	{                                                                                         \
 		prefix##_dll_element_ptr newElement = malloc(sizeof(struct _##prefix##_dll_element)); \
@@ -192,7 +192,7 @@
 		{                                                                                     \
 			return;                                                                           \
 		}                                                                                     \
-		newElement->ptr = malloc(sizeof(element));                                            \
+		newElement->ptr = (init == nothing)? malloc(sizeof(element)): init();                                            \
 		if (newElement->ptr == NULL)                                                          \
 		{                                                                                     \
 			return;                                                                           \
@@ -468,6 +468,7 @@
 		return dll->activeElement;                                   \
 	}
 #endif
+
 #define DLL_LAST(name, prefix, element, deallocate) \
 	void prefix##_dll_last(prefix##_dllist *dll)    \
 	{                                               \
@@ -509,9 +510,9 @@
 	}
 #endif
 
-#define DLL(name, prefix, element, copy, deallocate)    \
+#define DLL(name, prefix, element, copy, init, deallocate)    \
 	DLL_INIT(name, prefix, element, deallocate)         \
-	DLL_INSERT(name, prefix, element, copy, deallocate) \
+	DLL_INSERT(name, prefix, element, copy, init, deallocate) \
 	DLL_DELETE(name, prefix, element, deallocate)       \
 	DLL_PUSH_BACK(name, prefix, element, deallocate)    \
 	DLL_PUSH_FRONT(name, prefix, element, deallocate)   \
