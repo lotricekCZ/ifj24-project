@@ -56,6 +56,7 @@ typedef struct _Scanner
 	char *source;
 	size_t source_index;
 	size_t source_size;
+	bool is_scanned;
 } Scanner;
 
 typedef struct _Scanner *Scanner_ptr;

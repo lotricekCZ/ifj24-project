@@ -9,18 +9,27 @@ set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(TEST ${CMAKE_CURRENT_SOURCE_DIR}/test)
 set(UTILS ${SRC}/utils)
 set(SCANNER ${SRC}/scanner)
+
 add_executable(ifj2024 src/main.c)
 
 add_library(errors SHARED    	 ${UTILS}/errors.c)
 add_library(token SHARED    	 ${UTILS}/token.c)
 add_library(keyword SHARED 	 	 ${UTILS}/token_types.c)
 add_library(dll SHARED    	     ${UTILS}/dll.c)
+add_library(dll_trad SHARED    	 ${UTILS}/dll.c)
 add_library(scan_state SHARED	 ${SCANNER}/scan_state.c)
 add_library(scanner SHARED    	 ${SCANNER}/scanner.c)
 add_library(token_dll SHARED 	 ${UTILS}/token_dll.c)
+add_library(sym_dll SHARED 	 	 ${UTILS}/symDLList.c)
+add_library(dym_string SHARED 	 ${UTILS}/dymString.c)
+add_library(symtable SHARED 	 ${UTILS}/symtable.c)
+target_compile_definitions(dll_trad PUBLIC DLL_TRAD)
 
 target_link_libraries(scanner token scan_state keyword token_dll)
-target_link_libraries(ifj2024 errors token scanner)
+target_link_libraries(scanner parser)
+target_link_libraries(ifj2024 errors token scanner parser)
+
+# Enable testing
 enable_testing()
 
 # tests
@@ -28,6 +37,7 @@ add_executable(test_dll_1 ${TEST}/dll/DLL_test_1.c)
 add_executable(test_dll_2 ${TEST}/dll/DLL_test_2.c)
 add_executable(test_dll_3 ${TEST}/dll/DLL_test_3.c)
 add_executable(test_dll_4 ${TEST}/dll/DLL_test_4.c)
+add_executable(test_trad_dll_0 ${TEST}/dll/DLL_trad_test_0.c)
 add_executable(test_scan_1 ${TEST}/scanner/scan_1.c)
 add_executable(test_scan_2 ${TEST}/scanner/scan_2.c)
 add_executable(test_scan_3 ${TEST}/scanner/scan_3.c)
@@ -38,6 +48,7 @@ target_link_libraries(test_scan_1 token dll keyword scanner)
 target_link_libraries(test_scan_2 token dll keyword scanner)
 target_link_libraries(test_scan_3 token dll keyword scanner)
 target_link_libraries(test_scan_4 token dll keyword scanner)
+target_link_libraries(test_trad_dll_0 token dll_trad keyword scanner)
 
 # test covering initialization, push_front and clear in DLL macro
 add_test(NAME "dll-init" COMMAND test_dll_1)
@@ -73,8 +84,18 @@ set_property(TEST "dll-token"
               PROPERTY PASS_REGULAR_EXPRESSION ".*const else fn if i32 while f64 null pub return \\[\\]u8 void while.*")
 
 add_test(NAME "dll-token-valgrind" COMMAND valgrind ./test_dll_4)
-set_property(TEST "dll-token-valgrind"
-              PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+set_property (TEST "dll-token-valgrind"
+			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+
+# test covering traditional DLL with custom structure
+add_test(NAME "dll-trad-token" COMMAND test_trad_dll_0)
+set_property (TEST "dll-trad-token"
+              PROPERTY PASS_REGULAR_EXPRESSION ".*const else fn if i32 while f64 null pub return \\[\\]u8 void while.*")
+
+add_test(NAME "dll-trad-token-valgrind" COMMAND valgrind ./test_trad_dll_0)
+set_property (TEST "dll-trad-token-valgrind"
+			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+
 
 # scanner tests
 foreach(test "float_bad" "float" "strings_bad" "strings" "keywords" "full" "ints")
