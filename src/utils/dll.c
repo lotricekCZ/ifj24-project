@@ -123,7 +123,7 @@
 	}
 #endif
 #ifdef DLL_TRAD
-#define DLL_INSERT(name, prefix, element, copy, deallocate)                                   \
+#define DLL_INSERT(name, prefix, element, copy, init, deallocate)                             \
 	bool prefix##_dll_insert(prefix##_dllist *dll, size_t index, element data)                \
 	{                                                                                         \
 		prefix##_dll_element_ptr newElement = malloc(sizeof(struct _##prefix##_dll_element)); \
@@ -131,7 +131,10 @@
 		{                                                                                     \
 			return false;                                                                     \
 		}                                                                                     \
-		newElement->ptr = malloc(sizeof(element));                                            \
+		if (init == nothing)                                                                  \
+			newElement->ptr = malloc(sizeof(element));                                        \
+		else                                                                                  \
+			init(&newElement->ptr);                                                           \
 		if (newElement->ptr == NULL)                                                          \
 		{                                                                                     \
 			return false;                                                                     \
@@ -184,7 +187,7 @@
  * @param index Pozice, na kterou se ma prvek vlozit.
  * @param data Hodnota prvku, ktery se ma vlozit.
  */
-#define DLL_INSERT(name, prefix, element, copy, init, deallocate)                                   \
+#define DLL_INSERT(name, prefix, element, copy, init, deallocate)                             \
 	void prefix##_dll_insert(prefix##_dllist *dll, size_t index, element data)                \
 	{                                                                                         \
 		prefix##_dll_element_ptr newElement = malloc(sizeof(struct _##prefix##_dll_element)); \
@@ -192,7 +195,10 @@
 		{                                                                                     \
 			return;                                                                           \
 		}                                                                                     \
-		newElement->ptr = (init == nothing)? malloc(sizeof(element)): init();                                            \
+		if (init == nothing)                                                                  \
+			newElement->ptr = malloc(sizeof(element));                                        \
+		else                                                                                  \
+			init(&newElement->ptr);                                                           \
 		if (newElement->ptr == NULL)                                                          \
 		{                                                                                     \
 			return;                                                                           \
@@ -511,22 +517,22 @@
 #endif
 
 #define DLL(name, prefix, element, copy, init, deallocate)    \
-	DLL_INIT(name, prefix, element, deallocate)         \
+	DLL_INIT(name, prefix, element, deallocate)               \
 	DLL_INSERT(name, prefix, element, copy, init, deallocate) \
-	DLL_DELETE(name, prefix, element, deallocate)       \
-	DLL_PUSH_BACK(name, prefix, element, deallocate)    \
-	DLL_PUSH_FRONT(name, prefix, element, deallocate)   \
-	DLL_POP_BACK(name, prefix, element, deallocate)     \
-	DLL_POP_FRONT(name, prefix, element, deallocate)    \
-	DLL_AT(name, prefix, element, deallocate)           \
-	DLL_NEXT(name, prefix, element, deallocate)         \
-	DLL_DISPOSE(name, prefix, element, deallocate)      \
-	DLL_CLEAR(name, prefix, element, deallocate)        \
-	DLL_FIRST(name, prefix, element, deallocate)        \
-	DLL_LAST(name, prefix, element, deallocate)         \
-	DLL_IS_ACTIVE(name, prefix, element, deallocate)    \
-	DLL_FRONT(name, prefix, element, deallocate)        \
-	DLL_BACK(name, prefix, element, deallocate)         \
+	DLL_DELETE(name, prefix, element, deallocate)             \
+	DLL_PUSH_BACK(name, prefix, element, deallocate)          \
+	DLL_PUSH_FRONT(name, prefix, element, deallocate)         \
+	DLL_POP_BACK(name, prefix, element, deallocate)           \
+	DLL_POP_FRONT(name, prefix, element, deallocate)          \
+	DLL_AT(name, prefix, element, deallocate)                 \
+	DLL_NEXT(name, prefix, element, deallocate)               \
+	DLL_DISPOSE(name, prefix, element, deallocate)            \
+	DLL_CLEAR(name, prefix, element, deallocate)              \
+	DLL_FIRST(name, prefix, element, deallocate)              \
+	DLL_LAST(name, prefix, element, deallocate)               \
+	DLL_IS_ACTIVE(name, prefix, element, deallocate)          \
+	DLL_FRONT(name, prefix, element, deallocate)              \
+	DLL_BACK(name, prefix, element, deallocate)               \
 	DLL_PREVIOUS(name, prefix, element, deallocate)
 
 #endif

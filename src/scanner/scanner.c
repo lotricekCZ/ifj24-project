@@ -704,21 +704,21 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 			}
 			else
 			{
-				// TODO: capture token type (probably should be in node data)
-				if (node->state == sca_s_comment)
-				{
-					scanner->source_index = high;
-					node = &sca_init; // restart scanning, comment omitted
-					continue;
-				}
-				int offset = (node->state == sca_s_str) * 1 + (node->state == sca_s_comment || node->state == sca_s_ml_str) * 2;
+				int offset = (node->state == sca_s_str) * 1;
 				char *token_text;
 				token_type type = tok_t_eof;
 				if (scanner->source_size != scanner->source_index)
 				{
-					token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
-					memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
-					token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
+					if (node->state != sca_s_ml_str)
+					{
+						token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
+						memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
+						token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
+					}
+					else
+					{
+						token_text = scn_parse_multiline(scanner, high);
+					}
 					type = scn_get_tok_type(node->state, token_text);
 				}
 				Token_ptr token = tok_init(type);
@@ -726,7 +726,6 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 					tok_set_attribute(token, token_text);
 				scanner->source_index = high;
 				has_match = false;
-				tok_dll_push_back(scanner->list, *token);
 				if (type != tok_t_eof)
 				{
 					free(token_text);
@@ -737,31 +736,6 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				}
 				return token;
 			}
-			int offset = (node->state == sca_s_str) * 1;
-			char *token_text;
-			token_type type = tok_t_eof;
-			if (scanner->source_size != scanner->source_index)
-				{
-					if (node->state != sca_s_ml_str)
-				{
-					token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
-					memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
-					token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
-					}
-					else
-					{
-						token_text = scn_parse_multiline(scanner, high);
-					}
-				type = scn_get_tok_type(node->state, token_text);
-			}
-			Token_ptr token = tok_init(type);
-			if (type == tok_t_str || type == tok_t_mstr || type == tok_t_int || type == tok_t_flt || type == tok_t_sym || type == tok_t_error)
-				tok_set_attribute(token, token_text);
-			scanner->source_index = high;
-			has_match = false;
-			if (type != tok_t_eof)
-				free(token_text);
-			return token;
 		}
 	}
 	else
@@ -783,7 +757,7 @@ Token_ptr scn_next(Scanner_ptr scanner)
 {
 	Token_ptr token = scanner->list->activeElement->ptr;
 	tok_dll_next(scanner->list);
-	if(token->type == tok_t_eof || token->type == tok_t_error)
+	if (token->type == tok_t_eof || token->type == tok_t_error)
 		tok_dll_first(scanner->list);
 	return token;
 }
