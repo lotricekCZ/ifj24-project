@@ -134,33 +134,33 @@ data_t *symtable_insert(symtable_t *symtable, char *name){
     return &new_item->data;
 }
 
-bool symtable_insert_params(data_t *data, int type){
+bool symtable_insert_params(data_t *data, int type, bool canNull){
     if(data == NULL){
         return false;
     }
 
     bool result = false;
-    if (type == DATA_TYPE_INT && !data->canNull)
+    if (type == DATA_TYPE_INT && !canNull)
     {
         result = DymString_Insert_Char(data->parameters, 'i');
     }
-    else if (type == DATA_TYPE_INT && data->canNull)
+    else if (type == DATA_TYPE_INT && canNull)
     {
         result = DymString_Insert_Char(data->parameters, 'I');
     }
-    else if (type == DATA_TYPE_DOUBLE && !data->canNull)
+    else if (type == DATA_TYPE_DOUBLE && !canNull)
     {
         result = DymString_Insert_Char(data->parameters, 'd');
     }
-    else if (type == DATA_TYPE_DOUBLE && data->canNull)
+    else if (type == DATA_TYPE_DOUBLE && canNull)
     {
         result = DymString_Insert_Char(data->parameters, 'D');
     }
-    else if (type == DATA_TYPE_U8 && !data->canNull)
+    else if (type == DATA_TYPE_U8 && !canNull)
     {
         result = DymString_Insert_Char(data->parameters, 'u');
     }
-    else if (type == DATA_TYPE_U8 && data->canNull)
+    else if (type == DATA_TYPE_U8 && canNull)
     {
         result = DymString_Insert_Char(data->parameters, 'U');
     }
@@ -255,7 +255,7 @@ bool symtable_insert_builtin(symtable_t *symtable){
         return false;
 
     data->type = DATA_TYPE_VOID;
-    internal_err = symtable_insert_params(data, DATA_TYPE_UND);
+    internal_err = symtable_insert_params(data, DATA_TYPE_UND, false);
     data->used = true;
     data->init = true;
 
@@ -268,7 +268,7 @@ bool symtable_insert_builtin(symtable_t *symtable){
         return false;
 
     data->type = DATA_TYPE_DOUBLE;
-    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT, false);
     data->used = true;
     data->init = true;
 
@@ -281,7 +281,7 @@ bool symtable_insert_builtin(symtable_t *symtable){
         return false;
 
     data->type = DATA_TYPE_INT;
-    internal_err = symtable_insert_params(data, DATA_TYPE_DOUBLE);
+    internal_err = symtable_insert_params(data, DATA_TYPE_DOUBLE, false);
     data->used = true;
     data->init = true;
 
@@ -294,7 +294,7 @@ bool symtable_insert_builtin(symtable_t *symtable){
         return false;
 
     data->type = DATA_TYPE_U8;
-    internal_err = symtable_insert_params(data, DATA_TYPE_STRING);
+    internal_err = symtable_insert_params(data, DATA_TYPE_STRING, false);
     data->used = true;
     data->init = true;
 
@@ -307,7 +307,7 @@ bool symtable_insert_builtin(symtable_t *symtable){
         return false;
 
     data->type = DATA_TYPE_INT;
-    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8, false);
     data->used = true;
     data->init = true;
 
@@ -322,11 +322,11 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_U8;
     data->used = true;
     data->init = true;
-    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8, false);
     if(!internal_err)
         return false;
 
-    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8, false);
     if(!internal_err)
         return false;
 
@@ -338,15 +338,15 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_U8;
     data->used = true;
     data->init = true;
-    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8, false);
     if(!internal_err)
         return false;
 
-    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT, false);
     if(!internal_err)
         return false;
 
-    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT, false);
     if(!internal_err)
         return false;
 
@@ -360,11 +360,11 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_INT;
     data->used = true;
     data->init = true;
-    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8, false);
     if(!internal_err)
         return false;
 
-    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8, false);
     if(!internal_err)
         return false;
 
@@ -376,11 +376,11 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_INT;
     data->used = true;
     data->init = true;
-    internal_err = symtable_insert_params(data, DATA_TYPE_U8);
+    internal_err = symtable_insert_params(data, DATA_TYPE_U8, false);
     if(!internal_err)
         return false;
 
-    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT, false);
     if(!internal_err)
         return false;
 
@@ -392,7 +392,7 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_U8;
     data->used = true;
     data->init = true;
-    internal_err = symtable_insert_params(data, DATA_TYPE_INT);
+    internal_err = symtable_insert_params(data, DATA_TYPE_INT, false);
     if(!internal_err)   
         return false;
     return true;

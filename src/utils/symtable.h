@@ -87,9 +87,10 @@ data_t *symtable_insert(symtable_t *symtable, char *name);
  *
  * @param data data_t, do které chceme přidat parametr
  * @param type typ parametru, který chceme přidat
+ * @param canNull nullability parametru
  * @return true, pokud se podařilo přidat parametr, jinak false
  */
-bool symtable_insert_params(data_t *data, int type);
+bool symtable_insert_params(data_t *data, int type, bool canNull);
 
 /**
  * @brief Zruší symbol table a dealokuje všechna alokovaná místa.
