@@ -25,10 +25,12 @@ Token_ptr tok_init(token_type type)
  */
 Token_ptr tok_init_no_type()
 {
-    Token_ptr new_lex = (Token_ptr)malloc(sizeof(struct _Token));
-    new_lex->type = tok_t_init;
-    new_lex->attribute = NULL;
-    return new_lex;
+    return tok_init(tok_t_init);
+}
+
+void tok_init_no_ret(Token_ptr* tok)
+{
+    *tok = tok_init(tok_t_init);
 }
 
 /**

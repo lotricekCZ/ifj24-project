@@ -13,7 +13,7 @@
  */
 
 _DLL(test, t, char *)
-DLL(test, t, char *, nothing, nothing)
+DLL(test, t, char *, nothing, nothing, nothing)
 void dll_print(t_dllist *dll) {
 	t_dll_element_ptr temp = dll->firstElement;
 	while (temp != NULL) {
