@@ -67,6 +67,8 @@
 	_DLL_ELEM(name, prefix, element) \
 	_DLL_FUNCTIONS(name, prefix, element)
 
+#ifndef VOID_NOTHING
+#define VOID_NOTHING
 /**
  * @brief Nic nedela
  *
@@ -76,4 +78,5 @@
 void nothing()
 {
 }
+#endif
 #endif
