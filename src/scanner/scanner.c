@@ -729,6 +729,7 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 					tok_set_attribute(token, token_text);
 				scanner->source_index = high;
 				has_match = false;
+				tok_dll_push_back(scanner->list, *token);
 				if (type != tok_t_eof)
 				{
 					free(token_text);
