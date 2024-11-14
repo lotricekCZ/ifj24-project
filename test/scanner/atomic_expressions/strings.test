@@ -7,4 +7,4 @@ ijkl\nmno
    3 | tok_t_str            | 28 |               |	help\x55\n\t\r
    4 | tok_t_str            | 28 |               |	
    5 | tok_t_error          | 62 |               |	\\ ss
-\\\ !
+\\\

@@ -39,6 +39,9 @@ SCA_MATCH_DECL(E, 'E')
 SCA_MATCH_DECL(e, 'e')
 SCA_MATCH_DECL(hashtag, '#')
 SCA_MATCH_DECL(newline, '\n')
+SCA_MATCH_DECL(r, 'r')
+SCA_MATCH_DECL(n, 'n')
+SCA_MATCH_DECL(t, 't')
 SCA_GREATER_DECL(text, 34)
 SCA_GREATER_DECL(comments, 31) // for comments
 
@@ -386,7 +389,7 @@ Scanner_ptr scn_init(char *filename)
 
 	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_s5), sca_string)
 	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_s2), SCA_MATCH(backslash))
-	SCA_PATH_INIT(SCA_PATH(sca_s2, sca_s5), sca_string)
+	SCA_PATH_INIT(SCA_PATH(sca_s2, sca_s5), SCA_MATCH(r), SCA_MATCH(n), SCA_MATCH(t), SCA_MATCH(backslash), SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_s1, sca_str), SCA_MATCH(quote))
 
 	SCA_PATH_INIT(SCA_PATH(sca_s5, sca_str), SCA_MATCH(quote))
@@ -412,7 +415,7 @@ Scanner_ptr scn_init(char *filename)
 
 	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml_str), SCA_MATCH(backslash))
 	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml3), SCA_MATCH(x))
-	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml5), sca_string, SCA_MATCH(quote))
+	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml5), SCA_MATCH(r), SCA_MATCH(n), SCA_MATCH(t), SCA_MATCH(backslash), SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_ml3, sca_ml_max1), isxdigit)
 
 	SCA_PATH_INIT(SCA_PATH(sca_ml_max1, sca_ml_max2), isxdigit)
