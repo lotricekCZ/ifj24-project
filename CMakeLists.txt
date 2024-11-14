@@ -14,6 +14,7 @@ add_executable(ifj2024 src/main.c)
 add_library(errors SHARED    	 ${UTILS}/errors.c)
 add_library(token SHARED    	 ${UTILS}/token.c)
 add_library(keyword SHARED 	 	 ${UTILS}/token_types.c)
+add_library(sll SHARED    	     ${UTILS}/sll.c)
 add_library(dll SHARED    	     ${UTILS}/dll.c)
 add_library(dll_trad SHARED    	 ${UTILS}/dll.c)
 add_library(scan_state SHARED	 ${SCANNER}/scan_state.c)
@@ -29,11 +30,15 @@ enable_testing()
 
 
 # tests
+# dll
 add_executable(test_dll_1 ${TEST}/dll/DLL_test_1.c)
 add_executable(test_dll_2 ${TEST}/dll/DLL_test_2.c)
 add_executable(test_dll_3 ${TEST}/dll/DLL_test_3.c)
 add_executable(test_dll_4 ${TEST}/dll/DLL_test_4.c)
 add_executable(test_trad_dll_0 ${TEST}/dll/DLL_trad_test_0.c)
+# sll
+add_executable(test_sll_1 ${TEST}/sll/SLL_test_1.c)
+# scanner
 add_executable(test_scan_1 ${TEST}/scanner/scan_1.c)
 add_executable(test_scan_2 ${TEST}/scanner/scan_2.c)
 add_executable(test_scan_3 ${TEST}/scanner/scan_3.c)
@@ -41,6 +46,7 @@ add_executable(test_scan_4 ${TEST}/scanner/scan_4.c)
 
 
 target_link_libraries(test_dll_4 token dll keyword)
+target_link_libraries(test_dll_1 sll)
 target_link_libraries(test_scan_1 token dll keyword scanner)
 target_link_libraries(test_scan_2 token dll keyword scanner)
 target_link_libraries(test_scan_3 token dll keyword scanner)
@@ -93,6 +99,13 @@ add_test(NAME "dll-trad-token-valgrind" COMMAND valgrind ./test_trad_dll_0)
 set_property (TEST "dll-trad-token-valgrind"
 			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
 
+# test covering SLL with int
+add_test(NAME "sll-int" COMMAND test_sll_1)
+set_property (TEST "sll-int" PROPERTY PASS_REGULAR_EXPRESSION ".*11 10 9 8 7 42 6 5 4 3 2 1.*")
+
+add_test(NAME "sll-int-valgrind" COMMAND valgrind ./test_sll_1)
+set_property (TEST "sll-int-valgrind"
+			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
 
 
 # scanner tests

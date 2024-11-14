@@ -31,7 +31,6 @@
 			return NULL;                             \
 		}                                            \
 		sll->firstElement = NULL;                    \
-		sll->lastElement = NULL;                     \
 		sll->currentLength = 0;                      \
 		return sll;                                  \
 	}
@@ -97,7 +96,6 @@
 			*newElement->ptr = data;                                                          \
 		if (index == 0)                                                                       \
 		{                                                                                     \
-			newElement->previous = NULL;                                                      \
 			newElement->next = sll->firstElement;                                             \
 			sll->firstElement = newElement;                                                   \
 		}                                                                                     \
@@ -106,13 +104,12 @@
 			prefix##_sll_element_ptr temp = prefix##_sll_at(sll, index - 1);                  \
 			if (temp->next != NULL)                                                           \
 			{                                                                                 \
-				newElement->next = temp->next->next;                                          \
+				newElement->next = temp->next;                                                \
 			}                                                                                 \
 			else                                                                              \
 			{                                                                                 \
 				newElement->next = NULL;                                                      \
 			}                                                                                 \
-			temp->next = newElement;                                                          \
 			temp->next = newElement;                                                          \
 		}                                                                                     \
 		sll->currentLength++;                                                                 \
@@ -144,13 +141,20 @@
 			}                                                            \
 		}                                                                \
 		prefix##_sll_element_ptr temp = prefix##_sll_at(sll, index - 1); \
-		if (temp == NULL || temp->next == NULL)                          \
+		prefix##_sll_element_ptr target = NULL;                          \
+		if (temp != NULL && temp->next != NULL)                          \
+		{                                                                \
+			target = temp->next;                                         \
 			temp->next = temp->next->next;                               \
-		deallocate(temp->next->ptr);                                     \
-		if (deallocate == nothing)                                       \
-			free(temp->ptr);                                             \
-		free(temp);                                                      \
-		sll->currentLength--;                                            \
+		}                                                                \
+		if (target != NULL)                                              \
+		{                                                                \
+			deallocate(target->ptr);                                     \
+			if (deallocate == nothing)                                   \
+				free(temp->ptr);                                         \
+			free(temp);                                                  \
+			sll->currentLength--;                                        \
+		}                                                                \
 	}
 
 /**
@@ -229,7 +233,7 @@
 #define SLL_NEXT(name, prefix, element, deallocate)                  \
 	prefix##_sll_element_ptr prefix##_sll_next(prefix##_sllist *sll) \
 	{                                                                \
-		if (sll->lastElement == NULL)                                \
+		if (sll->firstElement == NULL || sll->activeElement == NULL) \
 		{                                                            \
 			return NULL;                                             \
 		}                                                            \
