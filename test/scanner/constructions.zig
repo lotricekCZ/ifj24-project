@@ -30,9 +30,9 @@ pub fn main() void {
     var int5: ?i32 = null;
     var real5: ?f64 = null;
     var char5: ?[]u8 = null;
-    var boolean5: ?bool = null;
+    //var boolean5: ?bool = null;
 
-    //přiřazení hodnot
+    //prirazeni hodnot
     var int6: i32 = 0;
     int6 = 1;
     var real6: f64 = 0.0;
@@ -48,7 +48,7 @@ pub fn main() void {
     var boolean6: bool = true;
     boolean6 = false;
 
-    //přiřazení hodnot konstantám - chyba
+    //prirazeni hodnot konstantam - chyba
     //const int7: i32 = 0;
     //int7 = 1;
     //const real7: f64 = 0.0;
@@ -58,15 +58,15 @@ pub fn main() void {
     //const boolean7: bool = true;
     //boolean7 = false;
 
-    //přiřazení hodnot nulovatelným proměnným
+    //prirazeni hodnot nulovatelnym proměnnym
     var int8: ?i32 = null;
     int8 = 1;
     var real8: ?f64 = null;
     real8 = 1.0;
     var char8: ?[]u8 = null;
     char8 = "def";
-    var boolean8: ?bool = null;
-    boolean8 = false;
+    //var boolean8: ?bool = null;
+    //boolean8 = false;
 
     //true
     var if1: i32 = 0;
@@ -763,7 +763,6 @@ pub fn main() void {
     var int10: ?i32 = function7();
     var real10: ?f64 = function8();
     var char10: ?[]u8 = function9();
-    var boolean10: ?bool = function10();
 
     //vraci 0
     var rec = recurzion(10);
@@ -847,7 +846,7 @@ pub fn function1() void {
     var int1: i32 = 0;
 }
 
-pub fn function2(int1: i32, real1: f64, char1: []u8, boolean1: bool, int2: ?i32, real2: ?f64, char2: ?[]u8, boolean2: ?bool, char3: []u8) void {
+pub fn function2(int1: i32, real1: f64, char1: []u8, boolean1: bool, int2: ?i32, real2: ?f64, char2: ?[]u8, char3: []u8) void {
     var int1: i32 = 0;
     return;
 }
@@ -880,10 +879,6 @@ pub fn function9() ?[]u8 {
     return null;
 }
 
-pub fn function10() ?bool {
-    return null;
-}
-
 pub fn recurzion(n: i32) i32 {
     if (n == 0) {
         return 0;
@@ -895,4 +890,11 @@ pub fn recurzion(n: i32) i32 {
 pub fn mrtvyKod() void {
     const a = ifj.readi32();
     ifj.write(a);
+
+    if () {
+        if () {
+        }
+    }else {
+        
+    }
 }

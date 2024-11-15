@@ -7,7 +7,9 @@
 #ifndef INSTRUCTIONS_H
 #define INSTRUCTIONS_H
 
-#define INSTRUCTION_SIZE 56
+#include "token.h"
+
+#define INSTRUCTION_COUNT 57
 /** Výčet instrukcí strojového kódu */
 typedef enum {
     _move,
@@ -66,10 +68,13 @@ typedef enum {
     _exit,
     _break,
     _dprint,
+    _comment
 } instruction;
 
-char* instructions[INSTRUCTION_SIZE];
+extern const char* format[INSTRUCTION_COUNT];
 
-char *write(instruction, ...);
+void printi_string(Token_ptr token);
+
+//void printi(instruction, ...);
 
 #endif
