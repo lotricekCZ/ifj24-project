@@ -40,8 +40,8 @@ Stack stack_codegen;
 int counter_codegen = 0;
 char string_buffer[100];
 
-DLList sym_list;
 symtable_t current_symtable;
+DLList sym_list;
 data_t *left_data;
 data_t *right_data;
 data_t *result_data;
@@ -341,6 +341,8 @@ void prolog() {
  */
 void function() {
     printf(format[_comment], "<function>");
+    symtable_destroy(&current_symtable);
+    symtable_init(&current_symtable);
 
     if (first_parse_done){
         expect_type(tok_t_pub); OK; // "pub"
@@ -521,7 +523,10 @@ void body() {
  */
 void statement() {
     printf(format[_comment], "<statement>");
+    bool constFlag = false;
 
+    DLL_First(&sym_list);
+    memcpy(&current_symtable, DLL_GetCurrent(&sym_list), sizeof(symtable_t));
     switch (current_token->type) {
     case tok_t_unused: //toto se v podstatě nemusí generovat ani kontrolovat
         next_token();
@@ -536,10 +541,32 @@ void statement() {
         break;
 
     case tok_t_sym:
+
+        while(sym_list.current != sym_list.first){
+            left_data = symtable_get_item(&current_symtable, current_token->attribute);
+            if (left_data == NULL){        
+                DLL_Prev(&sym_list);
+                memcpy(current_symtable, DLL_GetCurrent(&sym_list), sizeof(symtable_t));
+            }
+            else{
+                break;
+            } 
+        }
+
+        if(sym_list.current == sym_list.first){
+            printf("chyba\n");
+        }
+
         push(&stack_codegen, current_token);
 
         next_token();
         id_statement(); OK;
+
+        //TODO: kontrola typu
+
+        if(left_data->isConst){
+            //chyba -> snaha přiřazení do konstanty
+        }
 
         expect_type(tok_t_semicolon); OK;
 
@@ -547,12 +574,17 @@ void statement() {
         break;
 
     case tok_t_const:
+        constFlag = true;
     case tok_t_var:
         printf(format[_comment], "<prefix>");
         printf(format[_comment], "</prefix>");
 
         next_token();
         expect_type(tok_t_sym); OK; // ID
+
+        left_data = symtable_insert(&current_symtable, current_token->attribute);
+        if(constFlag)
+            left_data->isConst = true;
 
         sprintf(string_buffer, "LF@%s", current_token->attribute);
         printf(format[_defvar], string_buffer);
@@ -568,6 +600,8 @@ void statement() {
         value(); OK;
 
         expect_type(tok_t_semicolon); OK;
+
+        //TODO: Odvodit typ podle výrazu a kontrola typů
 
         next_token();
         break;
@@ -601,7 +635,9 @@ void statement() {
         next_token();
         not_null_value(); OK;
 
+        cycle_flag = true;
         then(); OK;
+        cycle_flag = false;
 
         else_then(); OK;
         break;
@@ -628,7 +664,10 @@ void statement() {
         expect_type(tok_t_alias); OK;
 
         next_token();
+
+        cycle_flag = true;
         then(); OK;
+        cycle_flag = false;
         break;
 
     case tok_t_return:
@@ -643,11 +682,19 @@ void statement() {
         next_token();
         expect_type(tok_t_semicolon); OK;
 
+        if(!cycle_flag){
+            //chyba -> break mimo cyklus
+        }
+
         next_token();
         break;
     case tok_t_continue:
         next_token();
         expect_type(tok_t_semicolon); OK;
+
+        if(!cycle_flag){
+            //chyba -> continue mimo cyklus
+        }
 
         next_token();
         break;
@@ -922,6 +969,43 @@ void type() {
     printf(format[_comment], "<type>");
 
     expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
+
+    switch (current_token->type)    // přiřazení typu funkce
+                {
+                case tok_t_i32:
+                    left_data->type = DATA_TYPE_INT;
+                    break;
+
+                case tok_t_f64:
+                    left_data->type = DATA_TYPE_DOUBLE;
+                    break;
+
+                case tok_t_u8:
+                    left_data->type = DATA_TYPE_U8;
+                    break;
+
+                case tok_t_bool:
+                    left_data->type = DATA_TYPE_BOOLEAN;
+                    break;
+                
+                case tok_t_i32_opt:
+                    left_data->type = DATA_TYPE_INT;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_f64_opt:
+                    left_data->type = DATA_TYPE_DOUBLE;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_u8_opt:
+                    left_data->type = DATA_TYPE_U8;
+                    left_data->canNull = true;
+                    break;
+                
+                default:    //nemůže nastat kdyžtak chyba nevjem
+                    break;
+                }
 
     printf(format[_comment], "</type>");
 }

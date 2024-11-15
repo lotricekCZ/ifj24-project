@@ -11,7 +11,7 @@
 #include "dymString.h"
 #include "token_types.h"
 
-#define SYMTABLE_SIZE 4001  // velikost symbol table
+#define SYMTABLE_SIZE 41  // velikost symbol table
 
 /**
  * @enum data type
