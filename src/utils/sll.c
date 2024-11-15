@@ -59,11 +59,12 @@
  *
  * Funkce uvolni pamet alokovanou pro seznam a vsechny jeho prvky.
  */
-#define SLL_DISPOSE(name, prefix, element, deallocate) \
-	void prefix##_sll_dispose(prefix##_sllist *sll)    \
-	{                                                  \
-		prefix##_sll_clear(sll);                       \
-		free(sll);                                     \
+#define SLL_DISPOSE(name, prefix, element, deallocate, is_erasable) \
+	void prefix##_sll_dispose(prefix##_sllist *sll)                 \
+	{                                                               \
+		prefix##_sll_clear(sll);                                    \
+		if (is_erasable)                                            \
+			free(sll);                                              \
 	}
 
 /**
@@ -252,18 +253,18 @@
 		return sll->firstElement;                                     \
 	}
 
-#define SLL(name, prefix, element, copy, deallocate)    \
-	SLL_INIT(name, prefix, element, deallocate)         \
-	SLL_INSERT(name, prefix, element, copy, deallocate) \
-	SLL_DELETE(name, prefix, element, deallocate)       \
-	SLL_PUSH_FRONT(name, prefix, element, deallocate)   \
-	SLL_POP_FRONT(name, prefix, element, deallocate)    \
-	SLL_AT(name, prefix, element, deallocate)           \
-	SLL_NEXT(name, prefix, element, deallocate)         \
-	SLL_DISPOSE(name, prefix, element, deallocate)      \
-	SLL_CLEAR(name, prefix, element, deallocate)        \
-	SLL_FIRST(name, prefix, element, deallocate)        \
-	SLL_IS_ACTIVE(name, prefix, element, deallocate)    \
+#define SLL(name, prefix, element, copy, deallocate, is_erasable) \
+	SLL_INIT(name, prefix, element, deallocate)                   \
+	SLL_INSERT(name, prefix, element, copy, deallocate)           \
+	SLL_DELETE(name, prefix, element, deallocate)                 \
+	SLL_PUSH_FRONT(name, prefix, element, deallocate)             \
+	SLL_POP_FRONT(name, prefix, element, deallocate)              \
+	SLL_AT(name, prefix, element, deallocate)                     \
+	SLL_NEXT(name, prefix, element, deallocate)                   \
+	SLL_DISPOSE(name, prefix, element, deallocate, is_erasable)   \
+	SLL_CLEAR(name, prefix, element, deallocate)                  \
+	SLL_FIRST(name, prefix, element, deallocate)                  \
+	SLL_IS_ACTIVE(name, prefix, element, deallocate)              \
 	SLL_FRONT(name, prefix, element, deallocate)
 
 #endif

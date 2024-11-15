@@ -23,6 +23,7 @@ add_library(token_dll SHARED 	 ${UTILS}/token_dll.c)
 add_library(sym_dll SHARED 	 	 ${UTILS}/symDLList.c)
 add_library(dym_string SHARED 	 ${UTILS}/dymString.c)
 add_library(symtable SHARED 	 ${UTILS}/symtable.c)
+add_library(hashtable SHARED 	 ${UTILS}/hashtable.c)
 target_compile_definitions(dll_trad PUBLIC DLL_TRAD)
 target_link_libraries(scanner token scan_state keyword token_dll)
 target_link_libraries(ifj2024 errors token scanner)
@@ -38,6 +39,8 @@ add_executable(test_dll_4 ${TEST}/dll/DLL_test_4.c)
 add_executable(test_trad_dll_0 ${TEST}/dll/DLL_trad_test_0.c)
 # sll
 add_executable(test_sll_1 ${TEST}/sll/SLL_test_1.c)
+# hashtable
+add_executable(test_ht_0 ${TEST}/hashtable/test_hash_0.c)
 # scanner
 add_executable(test_scan_1 ${TEST}/scanner/scan_1.c)
 add_executable(test_scan_2 ${TEST}/scanner/scan_2.c)
@@ -45,6 +48,7 @@ add_executable(test_scan_3 ${TEST}/scanner/scan_3.c)
 add_executable(test_scan_4 ${TEST}/scanner/scan_4.c)
 
 
+target_link_libraries(test_ht_0 sll)
 target_link_libraries(test_dll_4 token dll keyword)
 target_link_libraries(test_dll_1 sll)
 target_link_libraries(test_scan_1 token dll keyword scanner)
