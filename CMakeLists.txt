@@ -41,6 +41,7 @@ add_executable(test_trad_dll_0 ${TEST}/dll/DLL_trad_test_0.c)
 add_executable(test_sll_1 ${TEST}/sll/SLL_test_1.c)
 # hashtable
 add_executable(test_ht_0 ${TEST}/hashtable/test_hash_0.c)
+add_executable(test_ht_1 ${TEST}/hashtable/test_hash_1.c)
 # scanner
 add_executable(test_scan_1 ${TEST}/scanner/scan_1.c)
 add_executable(test_scan_2 ${TEST}/scanner/scan_2.c)
@@ -49,6 +50,7 @@ add_executable(test_scan_4 ${TEST}/scanner/scan_4.c)
 
 
 target_link_libraries(test_ht_0 sll)
+target_link_libraries(test_ht_1 sll)
 target_link_libraries(test_dll_4 token dll keyword)
 target_link_libraries(test_dll_1 sll)
 target_link_libraries(test_scan_1 token dll keyword scanner)
@@ -109,6 +111,14 @@ set_property (TEST "sll-int" PROPERTY PASS_REGULAR_EXPRESSION ".*11 10 9 8 7 42 
 
 add_test(NAME "sll-int-valgrind" COMMAND valgrind ./test_sll_1)
 set_property (TEST "sll-int-valgrind"
+			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+
+# test covering HT with int
+add_test(NAME "ht-int" COMMAND test_ht_0)
+set_property (TEST "ht-int" PROPERTY PASS_REGULAR_EXPRESSION ".*0: _33__22__11__0_1: _34__23__12__1_2: _35__24__13__2_3: _36__25__14__3_4: _37__26__15__4_5: _38__27__16__5_6: _28__17__6_7: _29__18__7_8: _30__19__8_9: _31__20__9_10: _32__21__10_.*")
+
+add_test(NAME "ht-int-valgrind" COMMAND valgrind ./test_ht_0)
+set_property (TEST "ht-int-valgrind"
 			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
 
 

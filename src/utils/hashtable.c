@@ -12,7 +12,7 @@
 			((table->table)[i]) = *template;             \
 		}                                                \
 		free(template);                                  \
-}
+	}
 
 /**
  * @brief Search for an element in the hash table.
@@ -22,7 +22,7 @@
  * @return A pointer to the element if found, NULL otherwise.
  */
 #define HT_SEARCH(entries, prefix, element, key_type, hash_fn, comp_fn)            \
-	prefix##_sll_element_ptr *prefix##_ht_search(prefix##_ht *table, key_type key) \
+	prefix##_sll_element_ptr prefix##_ht_search(prefix##_ht *table, key_type key) \
 	{                                                                              \
 		size_t hash = hash_fn(key);                                                \
 		prefix##_sllist *row = &(table->table)[hash];                              \
@@ -61,6 +61,7 @@
 		{                                                                                  \
 			size_t hash = hash_fn(key_fn(data));                                           \
 			prefix##_sll_push_front(&(table->table)[hash], data);                          \
+			table->size++;                                                                 \
 		}                                                                                  \
 		else                                                                               \
 		{                                                                                  \
@@ -95,6 +96,7 @@
 				if (*item->ptr == key)                                             \
 				{                                                                  \
 					prefix##_sll_delete(row, index);                               \
+					table->size--;                                                 \
 					return;                                                        \
 				}                                                                  \
 			}                                                                      \
@@ -103,6 +105,7 @@
 				if (comp_fn(item->ptr, key))                                       \
 				{                                                                  \
 					prefix##_sll_delete(row, index);                               \
+					table->size--;                                                 \
 					return;                                                        \
 				}                                                                  \
 			}                                                                      \

@@ -5,18 +5,18 @@
 #include <stddef.h>
 #include "sll.h"
 
-#define _HASHTABLE(entries, prefix, element, key_type)                                \
-	_SLL("ht", prefix, element)                                                       \
-	typedef struct _##prefix##_ht                                                     \
-	{                                                                                 \
-		prefix##_sllist table[entries];                                               \
-		size_t size;                                                                  \
-	}prefix##_ht;                                                                   \
-	void prefix##_ht_init(prefix##_ht *table);                                      \
-	prefix##_sll_element_ptr *prefix##_ht_search(prefix##_ht *table, key_type key); \
-	void prefix##_ht_insert(prefix##_ht *table, element data);                      \
-	element *prefix##_ht_get(prefix##_ht *table, key_type key);                     \
-	void prefix##_ht_delete(prefix##_ht *table, key_type key);                      \
+#define _HASHTABLE(entries, prefix, element, key_type)                             \
+	_SLL("ht", prefix, element)                                                    \
+	typedef struct _##prefix##_ht                                                  \
+	{                                                                              \
+		prefix##_sllist table[entries];                                            \
+		size_t size;                                                               \
+	} prefix##_ht;                                                                 \
+	void prefix##_ht_init(prefix##_ht *table);                                     \
+	prefix##_sll_element_ptr prefix##_ht_search(prefix##_ht *table, key_type key); \
+	void prefix##_ht_insert(prefix##_ht *table, element data);                     \
+	element *prefix##_ht_get(prefix##_ht *table, key_type key);                    \
+	void prefix##_ht_delete(prefix##_ht *table, key_type key);                     \
 	void prefix##_ht_dispose(prefix##_ht *table);
 
 #ifndef SIZE_NOTHING
