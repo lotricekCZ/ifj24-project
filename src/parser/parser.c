@@ -439,11 +439,45 @@ void parameter() {
         printf(format[_defvar], "LF@%s", current_token->attribute);
         printf("MOVE LF@%s LF@%%%i\n", current_token->attribute, counter_codegen++);
 
+        left_data = symtable_insert(&current_symtable, current_token->attribute);
+
         next_token();
         expect_type(tok_t_colon); OK; // ":"
 
         next_token();
         if (current_token->type == tok_t_i32 || current_token->type == tok_t_f64 || current_token->type == tok_t_u8 || current_token->type == tok_t_bool || current_token->type == tok_t_i32_opt || current_token->type == tok_t_f64_opt || current_token->type == tok_t_u8_opt) {
+
+            switch (current_token->type)
+            {
+            case tok_t_i32:
+                left_data->type = DATA_TYPE_INT;
+                break;
+            case tok_t_f64:
+                left_data->type = DATA_TYPE_DOUBLE;
+                break;
+            case tok_t_u8:
+                left_data->type = DATA_TYPE_U8;
+                break;
+            case tok_t_bool:
+                left_data->type = DATA_TYPE_BOOLEAN;
+                break;
+            case tok_t_i32_opt:
+                left_data->type = DATA_TYPE_INT;
+                left_data->canNull = true;
+                break;
+            case tok_t_f64_opt:
+                left_data->type = DATA_TYPE_DOUBLE;
+                left_data->canNull = true;
+                break;
+            case tok_t_u8_opt:
+                left_data->type = DATA_TYPE_U8;
+                left_data->canNull = true;
+                break;
+            
+            default:
+                break;
+            }
+
             next_token();
             parameter_next(); OK;
         } else {
@@ -451,6 +485,7 @@ void parameter() {
             error = err_syntax;
         }
     }
+    DLL_Insert_last(&sym_list, &current_symtable);
     printf(format[_comment], "</parameter>");
 }
 /*
