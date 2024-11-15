@@ -29,7 +29,6 @@
  * Global variables
  */
 Token_ptr current_token = NULL;
-Token_ptr stored_token = NULL;
 Scanner_ptr scanner = NULL;
 token_type fn_ret_type;
 bool ifj_flag = false;
@@ -211,6 +210,9 @@ void next_token_initial() {
 
 void next_token() {
     current_token = scn_scan(scanner);
+    while (current_token->type == tok_t_doc) {
+        current_token = scn_scan(scanner);
+    }
 }
 /* 
  * Function to check if the current token is of the expected type
@@ -366,8 +368,8 @@ void function() {
     expect_type(tok_t_lpa); OK;  
 
     next_token();
-    parameter(); OK;
     counter_codegen = 0;
+    parameter(); OK;
     
     expect_type(tok_t_rpa); OK; // ")"
     
@@ -400,7 +402,7 @@ void function() {
     expect_type(tok_t_rcbr); OK;
 
     printf(format[_popframe]);
-    if (pop(&stack_codegen)->attribute == "main") {
+    if (strcmp(pop(&stack_codegen)->attribute, "main") == 0) {
         printf(format[_jump], "&$main");
     } else {
         printf(format[_return]);
@@ -519,6 +521,7 @@ void statement() {
 
         sprintf(string_buffer, "LF@%s", current_token->attribute);
         printf(format[_defvar], string_buffer);
+        push(&stack_codegen, current_token);
         
         next_token();
         definition(); OK;
@@ -526,6 +529,7 @@ void statement() {
         expect_type(tok_t_ass); OK;
 
         next_token();
+        sprintf(string_buffer, "MOVE LF@%s", pop(&stack_codegen)->attribute);
         value(); OK;
 
         expect_type(tok_t_semicolon); OK;
@@ -642,28 +646,7 @@ void id_statement() {
 void value() {
     printf(format[_comment], "<value>");
 
-    // Store the current token into a single variable
-    if (stored_token == NULL) {
-        stored_token = malloc(sizeof(Token));
-        if (stored_token == NULL) {
-            fprintf(stderr, "Memory allocation error");
-            error = err_internal;
-        }
-    } else {
-        // Free the previous attribute if it exists
-        if (stored_token->attribute != NULL) {
-            free(stored_token->attribute);
-        }
-    }
-
-    // Copy current_token into stored_token
-    stored_token->type = current_token->type;
-    if (current_token->attribute != NULL) {
-        stored_token->attribute = strdup(current_token->attribute); // Duplicate the attribute string
-    } else {
-        stored_token->attribute = NULL;
-    }
-
+    Token_ptr stored_token = current_token;
     next_token();
 
     // test for expression 
@@ -702,13 +685,20 @@ void value() {
                 next_token();
                 expect_type(tok_t_rpa); OK;
 
-
-
                 next_token();
                 break;
 
             case tok_t_sym:
+                char destination[100]; 
+                strcpy(destination, string_buffer);
+                push(&stack_codegen, stored_token);
+                
+                int counter_codegen_temp = counter_codegen;
+                counter_codegen = 0;
                 id_continue(); OK;
+                counter_codegen = counter_codegen_temp;
+
+                printf("%s %s\n", destination, string_buffer);
                 /*if (strcmp(stored_token->attribute, "true") == 0 || strcmp(stored_token->attribute, "false") == 0) {
                     print_token(); OK; // ;
                 } else { // ID
@@ -778,8 +768,11 @@ void id_continue() {
 
     if (current_token->type == tok_t_dot || current_token->type == tok_t_lpa) {
         call(); OK;
+        sprintf(string_buffer, "TF@%%retval");
 
         next_token();
+    } else {
+        sprintf(string_buffer, "LF@%s", pop(&stack_codegen)->attribute);
     }
 
     printf(format[_comment], "</id_continue>");
@@ -791,6 +784,8 @@ void return_value() {
     printf(format[_comment], "<return_value>");
 
     if (current_token->type != tok_t_semicolon) {
+        sprintf(string_buffer, "MOVE LF@%retval");
+
         value(); OK;
     }
 
@@ -839,8 +834,6 @@ void call_params() {
         call_value(); OK;
 
         call_params_next(); OK;
-
-        counter_codegen = 0;
     }
 
     printf(format[_comment], "</call_params>");
@@ -981,7 +974,7 @@ void parse_fn_first() {
 
                 next_token_initial(); OK;
             }
-
+            
             next_token_initial(); OK;
             expect_types(8, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_void, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
@@ -1053,13 +1046,5 @@ void parse() {
 
         // Start parsing second time from the <program> non-terminal.
         program();
-    }
-
-    // Free the stored_token
-    if (stored_token != NULL) {
-        if (stored_token->attribute != NULL) {
-            free(stored_token->attribute);
-        }
-        free(stored_token);
     }
 }
