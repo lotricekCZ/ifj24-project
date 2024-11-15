@@ -69,7 +69,7 @@ const char *format[INSTRUCTION_COUNT] = {
     "EXIT %s\n",            // EXIT ⟨symb⟩
     "BREAK\n",              // BREAK
     "DPRINT %s\n",          // DPRINT ⟨symb⟩
-    ""                      //"# %s\n"                  // # ⟨string⟩
+    "# %s\n"                  // # ⟨string⟩
 };
 
 void printi_string(Token_ptr token) {

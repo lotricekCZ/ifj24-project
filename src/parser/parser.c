@@ -18,6 +18,9 @@
 #include "../utils/errors.h"
 #include "../utils/codegen.h"
 #include "../utils/stack.h"
+#include "../utils/symtable.h"
+#include "../utils/symDLList.h"
+#include "../utils/dymString.h"
 
 
 #define OK if (error != err_none) return
@@ -37,6 +40,14 @@ err_codes error = err_none;
 Stack stack_codegen;
 int counter_codegen = 0;
 char string_buffer[100];
+
+DLList sym_list;
+symtable_t current_symtable;
+data_t *left_data;
+data_t *right_data;
+data_t *result_data;
+bool cycle_flag = false;
+DymString *return_logic;
 
 /*
  * Precedence table
@@ -314,6 +325,10 @@ void prolog() {
     // ";"
     next_token();
     expect_type(tok_t_semicolon); OK;
+
+    // vložení všech built-in funkci do symtable a zaření do dll listu
+    symtable_insert_builtin(&current_symtable); //chyba když false
+    DLL_Insert_last(&sym_list, &current_symtable);
 
     printf(".ifjcode24\n");
 
@@ -930,6 +945,8 @@ void parse_fn_first() {
             next_token_initial(); OK;
             expect_type(tok_t_sym); OK;
 
+            left_data = symtable_insert(&current_symtable, current_token->attribute); // když vrátí NULL chyba
+            
             next_token_initial(); OK;
             expect_type(tok_t_lpa); OK; // (
 
@@ -943,11 +960,12 @@ void parse_fn_first() {
                 next_token_initial(); OK;
                 expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
+                symtable_insert_params(left_data, current_token->type); //když false chyba
+                
                 next_token_initial(); OK;
             }
             
             while (current_token->type != tok_t_rpa) { // ) ???
-                next_token_initial(); OK;
                 expect_type(tok_t_com); OK;
 
                 next_token_initial(); OK;
@@ -959,11 +977,54 @@ void parse_fn_first() {
                 next_token_initial(); OK;
                 expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
+                symtable_insert_params(left_data, current_token->type); // když false chyba
+
                 next_token_initial(); OK;
             }
 
             next_token_initial(); OK;
-            expect_types(4, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_void); OK;
+            expect_types(8, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_void, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
+
+            switch (current_token->type)    // přiřazení typu funkce
+                {
+                case tok_t_i32:
+                    left_data->type = DATA_TYPE_INT;
+                    break;
+
+                case tok_t_f64:
+                    left_data->type = DATA_TYPE_DOUBLE;
+                    break;
+
+                case tok_t_u8:
+                    left_data->type = DATA_TYPE_U8;
+                    break;
+
+                case tok_t_bool:
+                    left_data->type = DATA_TYPE_BOOLEAN;
+                    break;
+                
+                case tok_t_i32_opt:
+                    left_data->type = DATA_TYPE_INT;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_f64_opt:
+                    left_data->type = DATA_TYPE_DOUBLE;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_u8_opt:
+                    left_data->type = DATA_TYPE_U8;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_void:
+                    left_data->type = DATA_TYPE_VOID;
+                    break;
+                
+                default:    //nemůže nastat kdyžtak chyba nevjem
+                    break;
+                }
         }
         next_token_initial(); OK;
     }
@@ -976,6 +1037,10 @@ void parse_fn_first() {
  * Function to parse the source code
  */
 void parse() {
+    // init dll and symtable
+    DLL_Init(&sym_list);
+    symtable_init(&current_symtable);
+
     // Parse the source code for the first time.
     parse_fn_first();
 

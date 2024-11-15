@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "dymString.h"
+#include "token_types.h"
 
 #define SYMTABLE_SIZE 4001  // velikost symbol table
 
@@ -86,11 +87,10 @@ data_t *symtable_insert(symtable_t *symtable, char *name);
  * @brief Přidá parametr do řetězce parametrů data_t.
  *
  * @param data data_t, do které chceme přidat parametr
- * @param type typ parametru, který chceme přidat
- * @param canNull nullability parametru
+ * @param type typ parametru, který chceme přidat 
  * @return true, pokud se podařilo přidat parametr, jinak false
  */
-bool symtable_insert_params(data_t *data, int type, bool canNull);
+bool symtable_insert_params(data_t *data, token_type type);
 
 /**
  * @brief Zruší symbol table a dealokuje všechna alokovaná místa.
