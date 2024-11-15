@@ -31,7 +31,7 @@ void push(Stack *stack, Token_ptr value) {
 Token_ptr pop(Stack *stack) {
     if (isEmpty(stack)) {
         fprintf(stderr, "Stack underflow\n");
-        return tok_t_eof;
+        return NULL;
     }
     return stack->items[stack->top--];
 }
@@ -41,7 +41,7 @@ Token_ptr pop(Stack *stack) {
  */
 Token_ptr peek(Stack *stack) {
     if (isEmpty(stack)) {
-        return tok_t_eof;
+        return NULL;
     }
     return stack->items[stack->top];
 }
