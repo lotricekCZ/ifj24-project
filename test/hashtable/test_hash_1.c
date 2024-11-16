@@ -41,7 +41,7 @@ void ht_print_table(ht_ht *table)
 		ht_sll_element *item = ((table->table)[i]).firstElement;
 		while (item != NULL)
 		{
-			printf("(%p, %d)", item->ptr, **(int **)item->ptr);
+			printf("(%p, %3d)", item->ptr, **(int **)item->ptr);
 			item = item->next;
 		}
 		printf("\n");
@@ -51,11 +51,12 @@ int main()
 {
 	ht_ht table;
 	ht_ht_init(&table);
-	for (int i = 1; i <= 30; i++)
+	for (int i = 1; i <= 130; i++)
 	{
 		void *ptr = malloc(sizeof(int));
 		*(int *)(ptr) = i;
 		ht_ht_insert(&table, ptr);
+		free(ptr);
 	}
 	ht_print_table(&table);
 	ht_ht_dispose(&table);

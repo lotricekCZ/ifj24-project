@@ -21,30 +21,30 @@
  * @param key The key of the element to search for.
  * @return A pointer to the element if found, NULL otherwise.
  */
-#define HT_SEARCH(entries, prefix, element, key_type, hash_fn, comp_fn)            \
+#define HT_SEARCH(entries, prefix, element, key_type, hash_fn, comp_fn)           \
 	prefix##_sll_element_ptr prefix##_ht_search(prefix##_ht *table, key_type key) \
-	{                                                                              \
-		size_t hash = hash_fn(key);                                                \
-		prefix##_sllist *row = &(table->table)[hash];                              \
-		prefix##_sll_first(row);                                                   \
-		prefix##_sll_element_ptr item = prefix##_sll_front(row);                   \
-		while (prefix##_sll_is_active(row))                                        \
-		{                                                                          \
-			if (comp_fn == nothing_size)                                           \
-			{                                                                      \
-				if (*item->ptr == key)                                             \
-					return item;                                                   \
-			}                                                                      \
-			else                                                                   \
-			{                                                                      \
-				if (comp_fn(*item->ptr, key))                                      \
-				{                                                                  \
-					return item;                                                   \
-				}                                                                  \
-			}                                                                      \
-			item = prefix##_sll_next(row);                                         \
-		}                                                                          \
-		return NULL;                                                               \
+	{                                                                             \
+		size_t hash = hash_fn(key);                                               \
+		prefix##_sllist *row = &(table->table)[hash];                             \
+		prefix##_sll_first(row);                                                  \
+		prefix##_sll_element_ptr item = prefix##_sll_front(row);                  \
+		while (prefix##_sll_is_active(row))                                       \
+		{                                                                         \
+			if (comp_fn == nothing_size)                                          \
+			{                                                                     \
+				if (*item->ptr == key)                                            \
+					return item;                                                  \
+			}                                                                     \
+			else                                                                  \
+			{                                                                     \
+				if (comp_fn(*item->ptr, key))                                     \
+				{                                                                 \
+					return item;                                                  \
+				}                                                                 \
+			}                                                                     \
+			item = prefix##_sll_next(row);                                        \
+		}                                                                         \
+		return NULL;                                                              \
 	}
 
 /**
@@ -102,7 +102,7 @@
 			}                                                                      \
 			else                                                                   \
 			{                                                                      \
-				if (comp_fn(item->ptr, key))                                       \
+				if (comp_fn(*item->ptr, key))                                      \
 				{                                                                  \
 					prefix##_sll_delete(row, index);                               \
 					table->size--;                                                 \

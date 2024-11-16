@@ -132,7 +132,7 @@
 		{                                                                \
 			prefix##_sll_element_ptr temp = sll->firstElement;           \
 			sll->firstElement = temp->next;                              \
-			if (temp->next != NULL)                                      \
+			if (temp != NULL && temp->ptr != NULL)                       \
 			{                                                            \
 				deallocate(temp->ptr);                                   \
 				if (deallocate == nothing)                               \
@@ -140,6 +140,7 @@
 				free(temp);                                              \
 				sll->currentLength--;                                    \
 			}                                                            \
+			return;                                                      \
 		}                                                                \
 		prefix##_sll_element_ptr temp = prefix##_sll_at(sll, index - 1); \
 		prefix##_sll_element_ptr target = NULL;                          \
