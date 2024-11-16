@@ -329,7 +329,7 @@ void prolog() {
     expect_type(tok_t_semicolon); OK;
 
     // vložení všech built-in funkci do symtable a zaření do dll listu
-    symtable_insert_builtin(&current_symtable); //chyba když false
+    // symtable_insert_builtin(&current_symtable); //chyba když false
     DLL_Insert_last(&sym_list, &current_symtable);
 
     printf(".ifjcode24\n");
