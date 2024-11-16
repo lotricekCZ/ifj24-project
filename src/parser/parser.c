@@ -403,7 +403,7 @@ void function() {
     // "}"
     expect_type(tok_t_rcbr); OK;
 
-    DLL_Delete_last(&sym_list);
+    DLL_Delete_last(&sym_list);// chyba když false - nepoužitá promněná (u každého)
 
     printf(format[_popframe]);
     if (strcmp(pop(&stack_codegen)->attribute, "main") == 0) {
@@ -556,7 +556,7 @@ void statement() {
         }
 
         if(sym_list.current == sym_list.first){
-            printf("chyba\n");
+            // chyba -> snaha přiřazení do neexistujíceho promněné
         }
 
         push(&stack_codegen, current_token);
@@ -584,7 +584,8 @@ void statement() {
         next_token();
         expect_type(tok_t_sym); OK; // ID
 
-        left_data = symtable_insert(current_symtable, current_token->attribute);
+        left_data = symtable_insert(current_symtable, current_token->attribute); //když null, vnitřní chyba nebo stejný název promněné v jednou bloku
+        
         if(constFlag)
             left_data->isConst = true;
 
@@ -601,7 +602,15 @@ void statement() {
         sprintf(string_buffer, "MOVE LF@%s", pop(&stack_codegen)->attribute);
         value(); OK;
 
+        if(left_data->type == DATA_TYPE_UND){
+            //TODO: Odvození typu podle výrazu
+        }
+        else{
+            //TODO: Kontrola typů
+        }
+
         expect_type(tok_t_semicolon); OK;
+        left_data->init = true;
 
         //TODO: Odvodit typ podle výrazu a kontrola typů
 
