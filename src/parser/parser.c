@@ -47,6 +47,7 @@ data_t *right_data;
 data_t *result_data;
 bool cycle_flag = false;
 DymString *return_logic;
+char *stringBuffer = '\0';
 
 /*
  * Precedence table
@@ -402,6 +403,8 @@ void function() {
     // "}"
     expect_type(tok_t_rcbr); OK;
 
+    DLL_Delete_last(&sym_list);
+
     printf(format[_popframe]);
     if (strcmp(pop(&stack_codegen)->attribute, "main") == 0) {
         printf(format[_jump], "&$main");
@@ -614,12 +617,18 @@ void statement() {
 
         expect_type(tok_t_rpa); OK;
 
+        current_symtable = DLL_Insert_last(&sym_list);
+
         next_token();
         not_null_value(); OK;
 
         then(); OK;
+        DLL_Delete_last(&sym_list);
 
+        current_symtable = DLL_Insert_last(&sym_list);
         else_then(); OK;
+        DLL_Delete_last(&sym_list);
+
         break;
 
     case tok_t_while:
@@ -631,6 +640,8 @@ void statement() {
 
         expect_type(tok_t_rpa); OK;
 
+        current_symtable = DLL_Insert_last(&sym_list);
+
         next_token();
         not_null_value(); OK;
 
@@ -638,7 +649,11 @@ void statement() {
         then(); OK;
         cycle_flag = false;
 
+        current_symtable = DLL_Insert_last(&sym_list);
         else_then(); OK;
+        DLL_Delete_last(&sym_list);
+
+        DLL_Delete_last(&sym_list);
         break;
 
     case tok_t_for:
@@ -647,17 +662,41 @@ void statement() {
 
         next_token();
         expect_type(tok_t_sym); OK;
+        // semantic condition check for
+
+        while(sym_list.current != sym_list.first){
+            left_data = symtable_get_item(current_symtable, current_token->attribute);
+            if(left_data == NULL){
+                DLL_Prev(&sym_list);
+                current_symtable = DLL_GetCurrent(&sym_list);
+            }
+            else{
+                if(left_data->type != DATA_TYPE_U8 || left_data->type != DATA_TYPE_STRING){
+                    // použitý špatný datový typ
+                }
+            }
+        }
+
+        if(sym_list.current == sym_list.first){
+            // neexistující promněná
+        }
 
         next_token();
         id_continue(); OK;
 
         expect_type(tok_t_rpa); OK;
+
+        current_symtable = DLL_Insert_last(&sym_list);
        
         next_token();
         expect_type(tok_t_alias); OK;
  
         next_token();
         expect_type(tok_t_sym); OK;
+
+        left_data = symtable_insert(current_symtable, current_token->attribute);
+        left_data->type = DATA_TYPE_INT;
+        left_data->init = true;
 
         next_token();
         expect_type(tok_t_alias); OK;
@@ -667,6 +706,7 @@ void statement() {
         cycle_flag = true;
         then(); OK;
         cycle_flag = false;
+        DLL_Delete_last(&sym_list);
         break;
 
     case tok_t_return:
@@ -1164,5 +1204,6 @@ void parse() {
 
         // Start parsing second time from the <program> non-terminal.
         program();
+        DLL_Destroy(&sym_list);
     }
 }
