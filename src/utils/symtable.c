@@ -34,7 +34,6 @@ bool symtable_init(symtable_t *symtable){
     {
         (*symtable)[i] = NULL;
     }
-    symtable_insert_builtin(symtable); //chyba když false
     return true;
 }
 

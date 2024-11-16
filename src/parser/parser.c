@@ -40,7 +40,7 @@ Stack stack_codegen;
 int counter_codegen = 0;
 char string_buffer[100];
 
-symtable_t current_symtable;
+symtable_t * current_symtable;
 DLList sym_list;
 data_t *left_data;
 data_t *right_data;
@@ -328,9 +328,8 @@ void prolog() {
     next_token();
     expect_type(tok_t_semicolon); OK;
 
-    // vložení všech built-in funkci do symtable a zaření do dll listu
-    // symtable_insert_builtin(&current_symtable); //chyba když false
-    DLL_Insert_last(&sym_list, &current_symtable);
+    // vložení všech built-in funkci do symtable
+    symtable_insert_builtin(current_symtable); //chyba když false
 
     printf(".ifjcode24\n");
 
@@ -341,8 +340,8 @@ void prolog() {
  */
 void function() {
     printf(format[_comment], "<function>");
-    symtable_destroy(&current_symtable);
-    symtable_init(&current_symtable);
+    
+    current_symtable = DLL_Insert_last(&sym_list);
 
     if (first_parse_done){
         expect_type(tok_t_pub); OK; // "pub"
@@ -441,7 +440,7 @@ void parameter() {
         printf(format[_defvar], "LF@%s", current_token->attribute);
         printf("MOVE LF@%s LF@%%%i\n", current_token->attribute, counter_codegen++);
 
-        left_data = symtable_insert(&current_symtable, current_token->attribute);
+        left_data = symtable_insert(current_symtable, current_token->attribute);
 
         next_token();
         expect_type(tok_t_colon); OK; // ":"
@@ -487,7 +486,6 @@ void parameter() {
             error = err_syntax;
         }
     }
-    DLL_Insert_last(&sym_list, &current_symtable);
     printf(format[_comment], "</parameter>");
 }
 /*
@@ -525,8 +523,9 @@ void statement() {
     printf(format[_comment], "<statement>");
     bool constFlag = false;
 
-    DLL_First(&sym_list);
-    memcpy(&current_symtable, DLL_GetCurrent(&sym_list), sizeof(symtable_t));
+    DLL_Last(&sym_list);
+    current_symtable = DLL_GetCurrent(&sym_list);
+
     switch (current_token->type) {
     case tok_t_unused: //toto se v podstatě nemusí generovat ani kontrolovat
         next_token();
@@ -543,10 +542,10 @@ void statement() {
     case tok_t_sym:
 
         while(sym_list.current != sym_list.first){
-            left_data = symtable_get_item(&current_symtable, current_token->attribute);
+            left_data = symtable_get_item(current_symtable, current_token->attribute);
             if (left_data == NULL){        
                 DLL_Prev(&sym_list);
-                memcpy(current_symtable, DLL_GetCurrent(&sym_list), sizeof(symtable_t));
+                current_symtable = DLL_GetCurrent(&sym_list);
             }
             else{
                 break;
@@ -582,7 +581,7 @@ void statement() {
         next_token();
         expect_type(tok_t_sym); OK; // ID
 
-        left_data = symtable_insert(&current_symtable, current_token->attribute);
+        left_data = symtable_insert(current_symtable, current_token->attribute);
         if(constFlag)
             left_data->isConst = true;
 
@@ -1057,7 +1056,7 @@ void parse_fn_first() {
             next_token_initial(); OK;
             expect_type(tok_t_sym); OK;
 
-            left_data = symtable_insert(&current_symtable, current_token->attribute); // když vrátí NULL chyba
+            left_data = symtable_insert(current_symtable, current_token->attribute); // když vrátí NULL chyba
             
             next_token_initial(); OK;
             expect_type(tok_t_lpa); OK; // (
@@ -1151,7 +1150,7 @@ void parse_fn_first() {
 void parse() {
     // init dll and symtable
     DLL_Init(&sym_list);
-    symtable_init(&current_symtable);
+    current_symtable = DLL_Insert_last(&sym_list);
 
     // Parse the source code for the first time.
     parse_fn_first();
