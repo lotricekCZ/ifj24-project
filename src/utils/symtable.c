@@ -396,5 +396,18 @@ bool symtable_insert_builtin(symtable_t *symtable){
     internal_err = symtable_insert_params(data, tok_t_u8);
     if(!internal_err)   
         return false;
+
+    //@as(i32, temp : i32) i32
+    data = symtable_insert(symtable, "@as");
+    if(data == NULL)
+        return false;
+
+    data->type = DATA_TYPE_INT;
+    data->used = true;
+    data->init = true;
+    internal_err = symtable_insert_params(data, tok_t_i32);
+    if(!internal_err)
+        return false;
+        
     return true;
 }

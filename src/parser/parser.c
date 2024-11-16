@@ -47,7 +47,7 @@ data_t *right_data;
 data_t *result_data;
 bool cycle_flag = false;
 DymString *return_logic;
-char *stringBuffer = '\0';
+char stringBuffer[100] = "\0";
 
 /*
  * Precedence table
@@ -544,27 +544,16 @@ void statement() {
 
     case tok_t_sym:
 
-        while(sym_list.current != sym_list.first){
-            left_data = symtable_get_item(current_symtable, current_token->attribute);
-            if (left_data == NULL){        
-                DLL_Prev(&sym_list);
-                current_symtable = DLL_GetCurrent(&sym_list);
-            }
-            else{
-                break;
-            } 
-        }
-
-        if(sym_list.current == sym_list.first){
-            // chyba -> snaha přiřazení do neexistujíceho promněné
-        }
-
+        strcat(stringBuffer, current_token->attribute);
         push(&stack_codegen, current_token);
 
         next_token();
         id_statement(); OK;
-
-        //TODO: kontrola typu
+        
+        if(left_data != NULL){
+            //TODO: kontrola typů
+        }
+        
 
         if(left_data->isConst){
             //chyba -> snaha přiřazení do konstanty
@@ -754,15 +743,33 @@ void statement() {
 
     printf(format[_comment], "</statement>");
 }
+
 void id_statement() {
     printf(format[_comment], "<id_statement>");
 
     if (current_token->type == tok_t_ass) {
         sprintf(string_buffer, "MOVE LF@%s", pop(&stack_codegen)->attribute);
 
+        while(sym_list.current != sym_list.first){
+            left_data = symtable_get_item(current_symtable, stringBuffer);
+            if (left_data == NULL){        
+                DLL_Prev(&sym_list);
+                current_symtable = DLL_GetCurrent(&sym_list);
+            }
+            else{
+                break;
+            } 
+        }
+
+        if(sym_list.current == sym_list.first){
+            // neexistující promněná
+        }
+
         next_token();
+        stringBuffer[0] = '\0';
         value(); OK;
     } else {
+        left_data = NULL;
         call(); OK;
 
         next_token();
@@ -819,6 +826,8 @@ void value() {
                 break;
 
             case tok_t_sym:
+                strcat(stringBuffer, stored_token->attribute);
+
                 char destination[100]; 
                 strcpy(destination, string_buffer);
                 push(&stack_codegen, stored_token);
@@ -930,18 +939,33 @@ void call() {
     printf(format[_createframe]);
 
     if (current_token->type == tok_t_dot) { //a.a()
+        strcat(stringBuffer, ".");
         next_token();
         expect_type(tok_t_sym); OK;
+
+        strcat(stringBuffer, current_token->attribute);
+        current_symtable = DLL_GetFirst(&sym_list);
+        right_data = symtable_get_item(current_symtable, stringBuffer);
+        current_symtable = DLL_GetLast(&sym_list);
+        if(right_data == NULL){
+            // chyba funkce neexistuje
+        }
 
         next_token();
         expect_type(tok_t_lpa); OK;
 
         next_token();
         call_params(); OK;
-
         expect_type(tok_t_rpa); OK;
     } else { //a()
         expect_type(tok_t_lpa); OK;
+
+        current_symtable = DLL_GetFirst(&sym_list);
+        right_data = symtable_get_item(current_symtable, stringBuffer);
+        current_symtable = DLL_GetLast(&sym_list);
+        if(right_data == NULL){
+            // chyba funkce neexistuje
+        }
 
         next_token();
         call_params(); OK;
@@ -952,6 +976,7 @@ void call() {
         printf(format[_call], string_buffer);
     }
 
+    stringBuffer[0] = '\0';
     printf(format[_comment], "</call>");
 }
 /*
@@ -981,6 +1006,8 @@ void call_value() {
         printf("%s string@", string_buffer);
         printi_string(current_token);
         printf("\n");
+
+        DymString_Insert_Char(right_data->parameters, 's');
 
         next_token();
     } else {
