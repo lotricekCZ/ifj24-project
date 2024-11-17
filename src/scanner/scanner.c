@@ -7,6 +7,7 @@
 #include "scanner.h"
 #include "scan_state.h"
 #include "../utils/memory_table.h"
+#include "../utils/errors.h"
 
 SCA_MATCH_DECL(underscore, '_')
 SCA_MATCH_DECL(question_mark, '?')
@@ -303,13 +304,13 @@ Scanner_ptr scn_init(char *filename)
 	if (scanner == NULL)
 	{
 		// TODO: throw error err_internal
-		return NULL;
+		err_print(err_internal);
 	}
 	scanner->file_name = imalloc(strlen(filename) + 1);
 	if (scanner->file_name == NULL)
 	{
 		// TODO: throw error err_internal
-		return NULL;
+		err_print(err_internal);
 	}
 	strcpy(scanner->file_name, filename);
 
@@ -317,7 +318,7 @@ Scanner_ptr scn_init(char *filename)
 	if (scanner->source == NULL)
 	{
 		// TODO: throw error err_internal
-		return false;
+		err_print(err_internal);
 	}
 	scanner->source_size = strlen(scanner->source);
 	scanner->source_index = 0;
@@ -698,7 +699,7 @@ char *scn_open_file(Scanner_ptr scanner)
 	if (program == NULL)
 	{
 		// TODO: throw error err_internal
-		return NULL;
+		err_print(err_internal);
 	}
 
 	fseek(program, 0, SEEK_END);

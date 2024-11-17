@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "errors.h"
+#include "memory_table.h"
 
 /**
  * @file errors.c
@@ -25,8 +26,7 @@ Err_message err_msg[] = {
     {err_dt_unknown, "semantic error: could not deduce type from expression\n"},
     {err_dt_unused, "semantic error: unused variable/function\n"},
     {err_semantic, "semantic error: other semantic errors\n"},
-    {err_internal, "internal error: error on the level of compiler (program may be ok, but the compiler is not)\n"}
-    };
+    {err_internal, "internal error: error on the level of compiler (program may be ok, but the compiler is not)\n"}};
 
 /**
  * @brief Najde index zpravy v poli err_msg podle kody chyby
@@ -61,8 +61,10 @@ size_t err_fetch(err_codes code)
 void err_print(err_codes code)
 {
     printf(err_msg[err_fetch(code)].format);
-    if(code != err_none){
+    if (code != err_none)
+    {
         // ukoncit preklad, uvolnit vsechny zdroje
+        memory_ht_dispose(&_memory_table);
         exit(code);
     }
 }
