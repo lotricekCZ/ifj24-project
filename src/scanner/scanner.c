@@ -720,6 +720,15 @@ char *scn_open_file(Scanner_ptr scanner)
 	return source;
 }
 
+/**
+ * @brief Kompozice chyboveho hlaseni.
+ *
+ * Funkce vraci retezec, ktery popisuje lexikalni chybu.
+ * Retezec ma format "Lexical error on line <cislo_radky>: <radek_zdrojoveho_kоdу>\n<^>".
+ *
+ * @param scanner Struktura, ktera reprezentuje scanner.
+ * @returns string, ktery popisuje lexikalni chybu.
+ */
 char *scn_compose_message(Scanner_ptr scanner)
 {
 	char *preamble = "Lexical error on line";

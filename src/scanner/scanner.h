@@ -47,7 +47,7 @@
  * Struktura reprezentuje scanner, ktery se pouziva pro lexikalni
  * analyzu. Struktura obsahuje ukazatel na jmeno souboru, ktery
  * se ma analyzovat a ukazatel na dynamicke pole, kam se budou
- * ukladat tokeny.
+ * ukladat tokeny, dále aktuální řádku a index v zdrojovém textu.
  */
 typedef struct _Scanner
 {

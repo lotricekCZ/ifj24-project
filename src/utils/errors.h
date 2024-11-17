@@ -8,6 +8,12 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+/**
+ * @brief Vypíše informaci o souboru a řádku, kde byla nalezena chyba a ukončí program.
+ *
+ * Toto makro se používá pro ukončení programu v případě, že dojde k vnitřní chybě
+ * (tj. chybě, která nebyla způsobena špatným vstupem, ale vnitřní chybou programu).
+ */
 #define exit_internal() {fprintf(stderr, "%s: %d\n", __FILE__, __LINE__); _exit_internal();}
 
 #define ERR_COUNT 11

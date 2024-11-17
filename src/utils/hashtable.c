@@ -48,10 +48,10 @@
 	}
 
 /**
- * @brief Insert an element into the hashtable.
+ * @brief Vlozeni prvku do hashtabulky.
  *
- * @param table The hashtable to insert into.
- * @param data The element to insert.
+ * @param table Hasovaci tabulka, do ktereho se ma prvek vlozit.
+ * @param data Prvek, ktery se ma vlozit.
  */
 #define HT_INSERT(entries, prefix, element, key_type, hash_fn, key_fn, copy_fn, deinit_fn) \
 	void prefix##_ht_insert(prefix##_ht *table, element data)                              \
@@ -70,6 +70,14 @@
 		}                                                                                  \
 	}
 
+/**
+ * @brief Hledani prvku v hasovaci tabulce.
+ *
+ * @param table Hasovaci tabulka, ve ktere se ma prvek hledat.
+ * @param key Klic, podle ktereho se hleda.
+ *
+ * @return Ukazatel na nalezeny prvek, nebo NULL, pokud nebyl prvek nalezen.
+ */
 #define HT_GET(entries, prefix, element, key_type)                      \
 	element *prefix##_ht_get(prefix##_ht *table, key_type key)          \
 	{                                                                   \
@@ -81,6 +89,14 @@
 		return NULL;                                                    \
 	}
 
+/**
+ * @brief Smaze prvek z hasovaci tabulky.
+ *
+ * @param table Hasovaci tabulka, ze ktere se ma prvek smazat.
+ * @param key Klic, podle ktereho se hleda.
+ *
+ * Pokud je prvek nalezen, funkce ho smaze a dekrementuje velikost tabulky.
+ */
 #define HT_DELETE(entries, prefix, element, key_type, comp_fn, hash_fn, deinit_fn) \
 	void prefix##_ht_delete(prefix##_ht *table, key_type key)                      \
 	{                                                                              \
@@ -113,6 +129,11 @@
 			index++;                                                               \
 		}                                                                          \
 	}
+/**
+ * @brief Uvolni pamet alokovanou pro hasovaci tabulku a vsechny jeji prvky.
+ *
+ * @param table Hasovaci tabulka, ktera se ma uvolnit.
+ */
 #define HT_DISPOSE(entries, prefix, element, key_type, deinit_fn) \
 	void prefix##_ht_dispose(prefix##_ht *table)                  \
 	{                                                             \
@@ -122,6 +143,20 @@
 		}                                                         \
 	}
 
+/**
+ * @def HASHTABLE(entries, prefix, element, key_type, hash_fn, key_fn, copy_fn, comp_fn, deinit_fn)
+ * @brief Makro pro definici funkci hasovaci tabulky.
+ *
+ * @param entries pocet polozek v tabulce
+ * @param prefix prefix jmena struktur a funkci
+ * @param element typ prvku ulozenych v tabulce
+ * @param key_type typ klice prvku
+ * @param hash_fn funkce pro vypocet hashe z klice
+ * @param key_fn funkce pro ziskani klice z prvku
+ * @param copy_fn funkce pro kopirovani prvku
+ * @param comp_fn funkce pro porovnani dvou klicu
+ * @param deinit_fn funkce pro uvolneni pameti prvku
+ */
 #define HASHTABLE(entries, prefix, element, key_type, hash_fn, key_fn, copy_fn, comp_fn, deinit_fn) \
 	HT_INIT(entries, prefix, element, key_type)                                                     \
 	HT_SEARCH(entries, prefix, element, key_type, hash_fn, comp_fn)                                 \

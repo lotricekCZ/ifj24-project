@@ -5,6 +5,15 @@
 #include <stddef.h>
 #include "sll.h"
 
+/**
+ * @def _HASHTABLE(entries, prefix, element, key_type)
+ * @brief Definice hasovaci tabulky.
+ *
+ * @param entries pocet polozek v tabulce
+ * @param prefix prefix jmena struktur a funkci
+ * @param element typ prvku ulozenych v tabulce
+ * @param key_type typ klice prvku
+ */
 #define _HASHTABLE(entries, prefix, element, key_type)                             \
 	_SLL("ht", prefix, element)                                                    \
 	typedef struct _##prefix##_ht                                                  \

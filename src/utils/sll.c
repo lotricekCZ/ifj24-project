@@ -1,6 +1,3 @@
-#include "memory_table.h"
-#include <stdlib.h>
-
 /**
  * @file sll.c
  * @brief Dynamicky alokovany spojovy seznam
@@ -11,6 +8,8 @@
  * @author xramas01 Jakub Ramaseuski
  * @cite xsidlil00 Lukas Sidlik
  */
+#include "memory_table.h"
+#include <stdlib.h>
 #include "sll.h"
 #ifndef SLL_C
 #define SLL_C
@@ -282,17 +281,47 @@
 		return sll->activeElement;                                   \
 	}
 
+/**
+ * @brief Vrati true, pokud je aktivni prvek nastaven
+ *
+ * Funkce vrati true, pokud je aktivni prvek nastaven, jinak false.
+ *
+ * @param sll Ukazatel na seznam, v nemz se testuje aktivni prvek.
+ * @return True, pokud je aktivni prvek nastaven, jinak false.
+ */
 #define SLL_IS_ACTIVE(name, prefix, element, deallocate) \
 	bool prefix##_sll_is_active(prefix##_sllist *sll)    \
 	{                                                    \
 		return sll->activeElement != NULL;               \
 	}
+	
+/**
+ * @brief Vrati prvek na zacatku seznamu
+ *
+ * Funkce vrati prvek na zacatku seznamu.
+ *
+ * @param sll Ukazatel na seznam, ze ktereho se ma prvek ziskat.
+ * @return Ukazatel na prvek na zacatku seznamu nebo NULL, pokud je seznam prazdny.
+ */
 #define SLL_FRONT(name, prefix, element, deallocate)                  \
 	prefix##_sll_element_ptr prefix##_sll_front(prefix##_sllist *sll) \
 	{                                                                 \
 		return sll->firstElement;                                     \
 	}
 
+/**
+ * @def SLL(name, prefix, element, copy, deallocate, is_erasable, safe_memory)
+ *
+ * @brief Makro pro generovani funkcionalit pro jednosmerne vazany seznam
+ *
+ * @param name Jmeno seznamu
+ * @param prefix Prefix, ktery se ma pouzit u funkci
+ * @param element Typ prvku v seznamu
+ * @param copy Funkce pro kopirovani prvku
+ * @param deallocate Funkce pro uvolneni pameti prvku
+ * @param is_erasable Funkce pro test, zda prvky lze uvolnit
+ * @param safe_memory Kdyz je true, pouzije se funkce ifree() namisto free()
+ */
 #define SLL(name, prefix, element, copy, deallocate, is_erasable, safe_memory) \
 	SLL_INIT(name, prefix, element, deallocate, safe_memory)                   \
 	SLL_INSERT(name, prefix, element, copy, deallocate, safe_memory)           \
@@ -306,5 +335,4 @@
 	SLL_FIRST(name, prefix, element, deallocate)                               \
 	SLL_IS_ACTIVE(name, prefix, element, deallocate)                           \
 	SLL_FRONT(name, prefix, element, deallocate)
-
 #endif

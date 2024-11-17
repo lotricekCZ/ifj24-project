@@ -63,7 +63,17 @@
 	prefix##_dll_element_ptr prefix##_dll_previous(prefix##_dllist *dll);
 #endif
 
-#define _DLL(name, prefix, element)  \
+/**
+ * @brief Definice makra pro dvousměrně vázaný seznam
+ *
+ * Toto makro definuje struktury a funkce pro dvousměrně vázaný seznam
+ * pro daný typ elementu. Obsahuje definice pro elementy a funkce
+ * pro manipulaci se seznamem.
+ *
+ * @param prefix Prefix pro názvy struktur a funkcí
+ * @param element Typ elementu, který bude seznam obsahovat
+ */
+#define _DLL(name, prefix, element) \
 	_DLL_ELEM(name, prefix, element) \
 	_DLL_FUNCTIONS(name, prefix, element)
 
