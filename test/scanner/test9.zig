@@ -1,12 +1,16 @@
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    var x = 85.0;
+    var x = ifj.readi32();
 
-    while (x > 0.0) {
-        x = x - 1.0;
-        ifj.write(ifj.f2i(x));
-        ifj.write("\n");
+    if (x != 0) {
+        if (x != 0) {
+            if (x != 0) {
+                if (x != 0) {
+                    ifj.write(x);
+                }
+            }
+        }
     }
 
     // x = ifj.readi32();
