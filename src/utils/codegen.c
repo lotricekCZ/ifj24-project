@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include "codegen.h"
-// #include <stdarg.h>
 
 /** Formáty jednotlivých instrukcí */
 const char *format[INSTRUCTION_COUNT] = {
@@ -72,13 +71,13 @@ const char *format[INSTRUCTION_COUNT] = {
     "# %s\n"                  // # ⟨string⟩
 };
 
-void printi_string(char* string) {
-    for (int index = 0; index < strlen(string); index++) {
+void printi_string(str_t* string, char* source) {
+    for (int index = 0; index < strlen(source); index++) {
         // Detekce sekvence \x následované 2 hex číslicemi
-        if (string[index] == 92 && string[index + 1] == 'x' && index + 3 < strlen(string)) {
-            if (isxdigit(string[index + 2]) && isxdigit(string[index + 3])) {
-                char high = string[index + 2];
-                char low = string[index + 3];
+        if (source[index] == 92 && source[index + 1] == 'x' && index + 3 < strlen(source)) {
+            if (isxdigit(source[index + 2]) && isxdigit(source[index + 3])) {
+                char high = source[index + 2];
+                char low = source[index + 3];
 
                 int value;
                 if (isdigit(high))
@@ -91,97 +90,97 @@ void printi_string(char* string) {
                 else
                     value += toupper(low) - 'A' + 10;
 
-                string[index + 3] = (char)value; // Uložení výsledné hodnoty
+                source[index + 3] = (char)value; // Uložení výsledné hodnoty
                 index += 3;                            // Přeskočení zpracovaných znaků
             }
-        } else if (string[index] == 92 && string[index + 1] == 'n' && index + 1 < strlen(string)) {
-            string[index + 1] = (char)10;
+        } else if (source[index] == 92 && source[index + 1] == 'n' && index + 1 < strlen(source)) {
+            source[index + 1] = (char)10;
             index++;
-        } else if (string[index] == 92 && string[index + 1] == 't' && index + 1 < strlen(string)) {
-            string[index + 1] = (char)9;
+        } else if (source[index] == 92 && source[index + 1] == 't' && index + 1 < strlen(source)) {
+            source[index + 1] = (char)9;
             index++;
-        } else if (string[index] == 92 && string[index + 1] == 92 && index + 1 < strlen(string)) {
-            string[index + 1] = (char)92;
+        } else if (source[index] == 92 && source[index + 1] == 92 && index + 1 < strlen(source)) {
+            source[index + 1] = (char)92;
             index++;
-        } else if (string[index] == 92 && string[index + 1] == 34 && index + 1 < strlen(string)) {
-            string[index + 1] = (char)34;
+        } else if (source[index] == 92 && source[index + 1] == 34 && index + 1 < strlen(source)) {
+            source[index + 1] = (char)34;
             index++;
         }
 
-        if ((string[index] >= 0 && string[index] <= 32) || string[index] == 35 || string[index] == 92) {
-            printf("\\%03d", string[index]);
+        if ((source[index] >= 0 && source[index] <= 32) || source[index] == 35 || source[index] == 92) {
+            str_append(string, "\\%03d", source[index]);
         }
         else {
-            printf("%c", string[index]);
+            str_append(string, "%c", source[index]);
         }
     }
 }
 
-void printi_postfix(Token_ptr *postfix, int postfix_index) {
+void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index) {
     int counter = 0;
     for (size_t index = 0; index < postfix_index; index++) {
-        char buffer[MAX_STRING_LENGTH];
+        char buffer[MAX_STRING_LEN];
         switch (postfix[index]->type) {
             case tok_t_null:
-                printf(format[_pushs], "nil@nil");
+                str_append(string, format[_pushs], "nil@nil");
                 break;
             case tok_t_int:
                 sprintf(buffer, "int@%i", atoi(postfix[index]->attribute));
-                printf(format[_pushs], buffer);
+                str_append(string, format[_pushs], buffer);
                 break;
             case tok_t_flt:
                 sprintf(buffer, "float@%a", atof(postfix[index]->attribute));
-                printf(format[_pushs], buffer);
+                str_append(string, format[_pushs], buffer);
                 break;
             case tok_t_bool:
                 sprintf(buffer, "bool@%s", postfix[index]->attribute);
-                printf(format[_pushs], buffer);
+                str_append(string, format[_pushs], buffer);
                 break;
             case tok_t_sym:
                 sprintf(buffer, "LF@%s", postfix[index]->attribute);
-                printf(format[_pushs], buffer);
+                str_append(string, format[_pushs], buffer);
                 break;
             case tok_t_plus:
-                printf("%s", format[_adds]);
+                str_append(string, "%s", format[_adds]);
                 break;
             case tok_t_minus:
-                printf("%s", format[_subs]);
+                str_append(string, "%s", format[_subs]);
                 break;
             case tok_t_times:
-                printf("%s", format[_muls]);
+                str_append(string, "%s", format[_muls]);
                 break;
             case tok_t_divide:
-                printf("%s", format[_divs]);
+                str_append(string, "%s", format[_divs]);
                 break;
             case tok_t_eq:
-                printf("%s", format[_eqs]);
+                str_append(string, "%s", format[_eqs]);
                 break;
             case tok_t_neq:
-                printf("%s", format[_eqs]);
-                printf("%s", format[_nots]);
+                str_append(string, "%s", format[_eqs]);
+                str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_lt:
-                printf("%s", format[_lts]);
+                str_append(string, "%s", format[_lts]);
                 break;
             case tok_t_gt:
-                printf("%s", format[_gts]);
+                str_append(string, "%s", format[_gts]);
                 break;
             case tok_t_leq:
-                printf("%s", format[_gts]);
-                printf("%s", format[_nots]);
+                str_append(string, "%s", format[_gts]);
+                str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_geq:
-                printf("%s", format[_lts]);
-                printf("%s", format[_nots]);
+                str_append(string, "%s", format[_lts]);
+                str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_and:
-                printf("%s", format[_ands]);
+                str_append(string, "%s", format[_ands]);
                 break;
             case tok_t_or:
-                printf("%s", format[_ors]);
+                str_append(string, "%s", format[_ors]);
                 break;
             case tok_t_not:
-                printf("%s", format[_nots]);
+                str_append(string, "%s", format[_nots]);
                 break;
             default:
                 break;
@@ -189,8 +188,20 @@ void printi_postfix(Token_ptr *postfix, int postfix_index) {
     }
 }
 
-void printi_condition_jump(char *name, int number) {
-    printf("\
+void printi_defvar(str_t* string, str_t* defvar, const char* source, ...) {
+    char definition[MAX_STRING_LEN + 30];
+    va_list args;
+    va_start(args, source);
+    vsprintf(definition, source, args);
+    va_end(args); 
+    if (!str_search(defvar, definition)) {
+        str_append(defvar, ",%s,", definition);
+        str_append(string, "%s", definition);
+    }
+}
+
+void printi_condition_jump(str_t* string, const char *name, int number) {
+    str_append(string, "\
 CREATEFRAME\n\
 DEFVAR TF@%%type\n\
 TYPE TF@%%type LF@%%%s%i\n\
@@ -200,8 +211,8 @@ JUMPIFEQ !$%s%i LF@%%%s%i bool@false\n\
 LABEL $$$$%s%i\n", name, number, name, number, name, number, name, number, name, number, name, number);
 }
 
-void printi_builtin() {
-    printf("\
+void printi_builtin(str_t* string) {
+    str_append(string, "\
 LABEL $$$readstr\n\
 PUSHFRAME\n\
 DEFVAR LF@%%retval\n\
@@ -209,7 +220,7 @@ READ LF@%%retval string\n\
 POPFRAME\n\
 RETURN\n");
     
-    printf("\
+    str_append(string, "\
 LABEL $$$readi32\n\
 PUSHFRAME\n\
 DEFVAR LF@%%retval\n\
@@ -217,7 +228,7 @@ READ LF@%%retval int\n\
 POPFRAME\n\
 RETURN\n");
 
-    printf("\
+    str_append(string, "\
 LABEL $$$readf64\n\
 PUSHFRAME\n\
 DEFVAR LF@%%retval\n\
@@ -225,7 +236,7 @@ READ LF@%%retval float\n\
 POPFRAME\n\
 RETURN\n");
     
-    printf("\
+    str_append(string, "\
 LABEL $$$write\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
@@ -249,7 +260,7 @@ WRITE LF@%%0\n\
 POPFRAME\n\
 RETURN\n");
 
-    printf("\
+    str_append(string, "\
 LABEL $$$i2f\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
@@ -271,7 +282,7 @@ LABEL $$$$i2f_end\n\
 POPFRAME\n\
 RETURN\n");
     
-    printf("\
+    str_append(string, "\
 LABEL $$$f2i\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
@@ -293,7 +304,7 @@ LABEL $$$$f2i_end\n\
 POPFRAME\n\
 RETURN\n");
 
-    printf("\
+    str_append(string, "\
 LABEL $$$string\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
@@ -311,7 +322,7 @@ LABEL $$$$string_end\n\
 POPFRAME\n\
 RETURN\n");
 
-    printf("\
+    str_append(string, "\
 LABEL $$$length\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
@@ -329,7 +340,7 @@ LABEL $$$$length_end\n\
 POPFRAME\n\
 RETURN\n");
 
-    printf("\
+    str_append(string, "\
 LABEL $$$concat\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
@@ -352,7 +363,7 @@ LABEL $$$$concat_end\n\
 POPFRAME\n\
 RETURN\n");
             
-    printf("\
+    str_append(string, "\
 LABEL $$$substring\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
@@ -408,7 +419,7 @@ LABEL $$$$substring_end\n\
 POPFRAME\n\
 RETURN\n");
 
-    printf("\
+    str_append(string, "\
 LABEL $$$strcmp\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
@@ -464,7 +475,7 @@ LABEL $$$$strcmp_end\n\
 POPFRAME\n\
 RETURN\n");
 
-    printf("\
+    str_append(string, "\
 LABEL $$$ord\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
@@ -499,7 +510,7 @@ LABEL $$$$ord_end\n\
 POPFRAME\n\
 RETURN\n");
     
-    printf("\
+    str_append(string, "\
 LABEL $$$chr\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\

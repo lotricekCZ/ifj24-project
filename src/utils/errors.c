@@ -14,7 +14,7 @@
  * vystupu. Chybove hlaseni jsou definovany v poli @ref err_msg.
  *
  */
-Err_message err_msg[] = {
+const Err_message err_msg[] = {
     {err_lexic, "lexical error: current lexeme %s is not valid in this context\n"},
     {err_syntax, "syntax error: syntax error or missing header within program file\n"},
     {err_undef, "semantic error: undefined function or variable\n"},
@@ -60,7 +60,7 @@ size_t err_fetch(err_codes code)
  */
 void err_print(err_codes code)
 {
-    printf(err_msg[err_fetch(code)].format);
+    printf("%s", err_msg[err_fetch(code)].format);
     if(code != err_none){
         // ukoncit preklad, uvolnit vsechny zdroje
         exit(code);

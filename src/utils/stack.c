@@ -45,7 +45,3 @@ Token_ptr peek(Stack *stack) {
     }
     return stack->items[stack->top];
 }
-
-/* 
- * Function to print postfix and stack
- */

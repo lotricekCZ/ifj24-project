@@ -29,7 +29,7 @@ typedef struct Err_message {
 	char *format;
 } Err_message;
 
-Err_message err_msg[];
+extern const Err_message err_msg[];
 
 size_t err_fetch(err_codes err);
 void err_print(err_codes err);
