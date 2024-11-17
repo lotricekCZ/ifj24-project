@@ -27,9 +27,9 @@ bool ht_comp(void *src, void *other)
 {
 	return src == other;
 }
-
 _HASHTABLE(11, ht, void *, void *)
-SLL(test, ht, void *, nothing, nothing, false)
+
+SLL(test, ht, void *, nothing, nothing, false, false)
 HASHTABLE(11, ht, void *, void *, getHash, key, ht_copy, ht_comp, ht_deinit)
 
 void ht_print_table(ht_ht *table)

@@ -32,11 +32,11 @@
 #define SCA_PATH_DECL(src, dest) Scan_path src##_to_##dest;
 #define SCA_PATH_DEF(src, dest, args...) Scan_path src##_to_##dest = {.from = &src, .to = &dest, .matches = NULL, .count = 0};
 #define SCA_PATH_INIT(name, args...)                                              \
-	name.matches = malloc(sizeof((int *(*)(int)){args}));                         \
+	name.matches = imalloc(sizeof((int *(*)(int)){args}));                         \
 	memcpy(name.matches, (int (*[])(int)){args}, sizeof((int (*[])(int)){args})); \
 	name.count = sizeof((int (*[])(int)){args}) / sizeof(int (*)(int));
 #define SCA_PATH_DEINIT(name) \
-	free(name.matches);       \
+	ifree(name.matches);       \
 	name.matches = NULL;
 #define SCA_PATH(src, dest) src##_to_##dest
 

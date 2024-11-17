@@ -1,7 +1,10 @@
 #include "../../src/scanner/scanner.h"
+#include "../../src/utils/memory_table.h"
 
 int main(int argc, char **argv)
 {
+	safe_memory = true;
+	memory_ht_init(&_memory_table);
 	if (argc != 2)
 	{
 		printf("ERROR: Please fill in file to compile\nUsage: %s <file>\n", argv[0]);
@@ -19,5 +22,6 @@ int main(int argc, char **argv)
 	} while (element->type != tok_t_eof && element->type != tok_t_error);
 	tok_free(element);
 	scn_free(scanner);
+	memory_ht_dispose(&_memory_table);
 	return 0;
 }

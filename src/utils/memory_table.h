@@ -17,5 +17,5 @@ void ifree(void *ptr);
 _HASHTABLE(MEMORY_TABLE_SIZE, memory, void *, void *)
 
 memory_ht _memory_table;
-bool save_memory = false; 
+bool safe_memory = false; 
 #endif

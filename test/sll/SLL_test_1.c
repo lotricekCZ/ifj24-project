@@ -20,7 +20,7 @@
  */
 
 _SLL(test, t, int)
-SLL(test, t, int, nothing, nothing, true)
+SLL(test, t, int, nothing, nothing, true, false)
 void sll_print(t_sllist *sll) {
 	t_sll_element_ptr temp = sll->firstElement;
 	while (temp != NULL) {

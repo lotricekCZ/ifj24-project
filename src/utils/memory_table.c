@@ -2,7 +2,7 @@
 #include "hashtable.c"
 #include "sll.c"
 
-SLL(memory, memory, void *, nothing, memt_deinit, false)
+SLL(memory, memory, void *, nothing, memt_deinit, false, false)
 HASHTABLE(MEMORY_TABLE_SIZE, memory, void *, void *, memt_hash, memt_key, memt_copy, memt_comp, memt_deinit)
 
 size_t memt_hash(void *src)
@@ -35,13 +35,13 @@ bool memt_comp(void *src, void *other)
 void *imalloc(size_t size)
 {
 	void *ptr = malloc(size);
-	if (save_memory)
+	if (safe_memory)
 		memory_ht_insert(&_memory_table, ptr);
 	return ptr;
 }
 void ifree(void *ptr)
 {
-	if (save_memory)
+	if (safe_memory)
 		memory_ht_delete(&_memory_table, ptr);
 	else
 		free(ptr);

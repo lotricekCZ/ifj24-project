@@ -1,3 +1,4 @@
+#include "memory_table.h"
 #include <stdlib.h>
 
 /**
@@ -22,17 +23,21 @@
  *
  * @return Ukazatel na inicializovanou strukturu seznamu, nebo NULL.
  */
-#define SLL_INIT(name, prefix, element, deallocate)  \
-	prefix##_sllist *prefix##_sll_init()             \
-	{                                                \
-		prefix##_sllist *sll = malloc(sizeof(*sll)); \
-		if (sll == NULL)                             \
-		{                                            \
-			return NULL;                             \
-		}                                            \
-		sll->firstElement = NULL;                    \
-		sll->currentLength = 0;                      \
-		return sll;                                  \
+#define SLL_INIT(name, prefix, element, deallocate, safe_memory) \
+	prefix##_sllist *prefix##_sll_init()                         \
+	{                                                            \
+		prefix##_sllist *sll;                                    \
+		if (safe_memory)                                         \
+			sll = imalloc(sizeof(*sll));                         \
+		else                                                     \
+			sll = malloc(sizeof(*sll));                          \
+		if (sll == NULL)                                         \
+		{                                                        \
+			return NULL;                                         \
+		}                                                        \
+		sll->firstElement = NULL;                                \
+		sll->currentLength = 0;                                  \
+		return sll;                                              \
 	}
 
 /**
@@ -40,18 +45,27 @@
  *
  * Funkce vymaze vsechny prvky seznamu a uvolni pamet.
  */
-#define SLL_CLEAR(name, prefix, element, deallocate)           \
-	void prefix##_sll_clear(prefix##_sllist *sll)              \
-	{                                                          \
-		while (sll->firstElement != NULL)                      \
-		{                                                      \
-			prefix##_sll_element_ptr temp = sll->firstElement; \
-			sll->firstElement = sll->firstElement->next;       \
-			deallocate(temp->ptr);                             \
-			if (deallocate == nothing)                         \
-				free(temp->ptr);                               \
-			free(temp);                                        \
-		}                                                      \
+#define SLL_CLEAR(name, prefix, element, deallocate, safe_memory) \
+	void prefix##_sll_clear(prefix##_sllist *sll)                 \
+	{                                                             \
+		while (sll->firstElement != NULL)                         \
+		{                                                         \
+			prefix##_sll_element_ptr temp = sll->firstElement;    \
+			sll->firstElement = sll->firstElement->next;          \
+			deallocate(temp->ptr);                                \
+			if (safe_memory)                                      \
+			{                                                     \
+				if (deallocate == nothing)                        \
+					ifree(temp->ptr);                             \
+				ifree(temp);                                      \
+			}                                                     \
+			else                                                  \
+			{                                                     \
+				if (deallocate == nothing)                        \
+					free(temp->ptr);                              \
+				free(temp);                                       \
+			}                                                     \
+		}                                                         \
 	}
 
 /**
@@ -59,12 +73,12 @@
  *
  * Funkce uvolni pamet alokovanou pro seznam a vsechny jeho prvky.
  */
-#define SLL_DISPOSE(name, prefix, element, deallocate, is_erasable) \
-	void prefix##_sll_dispose(prefix##_sllist *sll)                 \
-	{                                                               \
-		prefix##_sll_clear(sll);                                    \
-		if (is_erasable)                                            \
-			free(sll);                                              \
+#define SLL_DISPOSE(name, prefix, element, deallocate, is_erasable, safe_memory) \
+	void prefix##_sll_dispose(prefix##_sllist *sll)                              \
+	{                                                                            \
+		prefix##_sll_clear(sll);                                                 \
+		if (is_erasable)                                                         \
+			free(sll);                                                           \
 	}
 
 /**
@@ -78,42 +92,49 @@
  * @param index Pozice, na kterou se ma prvek vlozit.
  * @param data Hodnota prvku, ktery se ma vlozit.
  */
-#define SLL_INSERT(name, prefix, element, copy, deallocate)                                   \
-	void prefix##_sll_insert(prefix##_sllist *sll, size_t index, element data)                \
-	{                                                                                         \
-		prefix##_sll_element_ptr newElement = malloc(sizeof(struct _##prefix##_sll_element)); \
-		if (newElement == NULL)                                                               \
-		{                                                                                     \
-			return;                                                                           \
-		}                                                                                     \
-		newElement->ptr = malloc(sizeof(element));                                            \
-		if (newElement->ptr == NULL)                                                          \
-		{                                                                                     \
-			return;                                                                           \
-		}                                                                                     \
-		if (copy != nothing)                                                                  \
-			copy(newElement->ptr, data);                                                      \
-		else                                                                                  \
-			*newElement->ptr = data;                                                          \
-		if (index == 0)                                                                       \
-		{                                                                                     \
-			newElement->next = sll->firstElement;                                             \
-			sll->firstElement = newElement;                                                   \
-		}                                                                                     \
-		else                                                                                  \
-		{                                                                                     \
-			prefix##_sll_element_ptr temp = prefix##_sll_at(sll, index - 1);                  \
-			if (temp->next != NULL)                                                           \
-			{                                                                                 \
-				newElement->next = temp->next;                                                \
-			}                                                                                 \
-			else                                                                              \
-			{                                                                                 \
-				newElement->next = NULL;                                                      \
-			}                                                                                 \
-			temp->next = newElement;                                                          \
-		}                                                                                     \
-		sll->currentLength++;                                                                 \
+#define SLL_INSERT(name, prefix, element, copy, deallocate, safe_memory)       \
+	void prefix##_sll_insert(prefix##_sllist *sll, size_t index, element data) \
+	{                                                                          \
+		prefix##_sll_element_ptr newElement;                                   \
+		if (safe_memory)                                                       \
+			newElement = imalloc(sizeof(struct _##prefix##_sll_element));      \
+		else                                                                   \
+			newElement = malloc(sizeof(struct _##prefix##_sll_element));       \
+		if (newElement == NULL)                                                \
+		{                                                                      \
+			return;                                                            \
+		}                                                                      \
+		if (safe_memory)                                                       \
+			newElement->ptr = imalloc(sizeof(element));                        \
+		else                                                                   \
+			newElement->ptr = malloc(sizeof(element));                         \
+		if (newElement->ptr == NULL)                                           \
+		{                                                                      \
+			return;                                                            \
+		}                                                                      \
+		if (copy != nothing)                                                   \
+			copy(newElement->ptr, data);                                       \
+		else                                                                   \
+			*newElement->ptr = data;                                           \
+		if (index == 0)                                                        \
+		{                                                                      \
+			newElement->next = sll->firstElement;                              \
+			sll->firstElement = newElement;                                    \
+		}                                                                      \
+		else                                                                   \
+		{                                                                      \
+			prefix##_sll_element_ptr temp = prefix##_sll_at(sll, index - 1);   \
+			if (temp->next != NULL)                                            \
+			{                                                                  \
+				newElement->next = temp->next;                                 \
+			}                                                                  \
+			else                                                               \
+			{                                                                  \
+				newElement->next = NULL;                                       \
+			}                                                                  \
+			temp->next = newElement;                                           \
+		}                                                                      \
+		sll->currentLength++;                                                  \
 	}
 
 /**
@@ -125,7 +146,7 @@
  * @param sll Ukazatel na seznam, ze ktereho se ma prvek odstranit.
  * @param index Pozice, na ktere se ma prvek odstranit.
  */
-#define SLL_DELETE(name, prefix, element, deallocate)                    \
+#define SLL_DELETE(name, prefix, element, deallocate, safe_memory)       \
 	void prefix##_sll_delete(prefix##_sllist *sll, size_t index)         \
 	{                                                                    \
 		if (index == 0)                                                  \
@@ -135,9 +156,18 @@
 			if (temp != NULL && temp->ptr != NULL)                       \
 			{                                                            \
 				deallocate(temp->ptr);                                   \
-				if (deallocate == nothing)                               \
-					free(temp->ptr);                                     \
-				free(temp);                                              \
+				if (safe_memory)                                         \
+				{                                                        \
+					if (deallocate == nothing)                           \
+						ifree(temp->ptr);                                \
+					ifree(temp);                                         \
+				}                                                        \
+				else                                                     \
+				{                                                        \
+					if (deallocate == nothing)                           \
+						free(temp->ptr);                                 \
+					free(temp);                                          \
+				}                                                        \
 				sll->currentLength--;                                    \
 			}                                                            \
 			return;                                                      \
@@ -152,9 +182,18 @@
 		if (target != NULL)                                              \
 		{                                                                \
 			deallocate(target->ptr);                                     \
-			if (deallocate == nothing)                                   \
-				free(temp->ptr);                                         \
-			free(temp);                                                  \
+			if (safe_memory)                                             \
+			{                                                            \
+				if (deallocate == nothing)                               \
+					free(temp->ptr);                                     \
+				free(temp);                                              \
+			}                                                            \
+			else                                                         \
+			{                                                            \
+				if (deallocate == nothing)                               \
+					free(temp->ptr);                                     \
+				free(temp);                                              \
+			}                                                            \
 			sll->currentLength--;                                        \
 		}                                                                \
 	}
@@ -254,18 +293,18 @@
 		return sll->firstElement;                                     \
 	}
 
-#define SLL(name, prefix, element, copy, deallocate, is_erasable) \
-	SLL_INIT(name, prefix, element, deallocate)                   \
-	SLL_INSERT(name, prefix, element, copy, deallocate)           \
-	SLL_DELETE(name, prefix, element, deallocate)                 \
-	SLL_PUSH_FRONT(name, prefix, element, deallocate)             \
-	SLL_POP_FRONT(name, prefix, element, deallocate)              \
-	SLL_AT(name, prefix, element, deallocate)                     \
-	SLL_NEXT(name, prefix, element, deallocate)                   \
-	SLL_DISPOSE(name, prefix, element, deallocate, is_erasable)   \
-	SLL_CLEAR(name, prefix, element, deallocate)                  \
-	SLL_FIRST(name, prefix, element, deallocate)                  \
-	SLL_IS_ACTIVE(name, prefix, element, deallocate)              \
+#define SLL(name, prefix, element, copy, deallocate, is_erasable, safe_memory) \
+	SLL_INIT(name, prefix, element, deallocate, safe_memory)                   \
+	SLL_INSERT(name, prefix, element, copy, deallocate, safe_memory)           \
+	SLL_DELETE(name, prefix, element, deallocate, safe_memory)                 \
+	SLL_PUSH_FRONT(name, prefix, element, deallocate)                          \
+	SLL_POP_FRONT(name, prefix, element, deallocate)                           \
+	SLL_AT(name, prefix, element, deallocate)                                  \
+	SLL_NEXT(name, prefix, element, deallocate)                                \
+	SLL_DISPOSE(name, prefix, element, deallocate, is_erasable, safe_memory)   \
+	SLL_CLEAR(name, prefix, element, deallocate, safe_memory)                  \
+	SLL_FIRST(name, prefix, element, deallocate)                               \
+	SLL_IS_ACTIVE(name, prefix, element, deallocate)                           \
 	SLL_FRONT(name, prefix, element, deallocate)
 
 #endif

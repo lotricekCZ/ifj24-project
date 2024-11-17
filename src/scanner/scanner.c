@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include "scanner.h"
 #include "scan_state.h"
+#include "../utils/memory_table.h"
 
 SCA_MATCH_DECL(underscore, '_')
 SCA_MATCH_DECL(question_mark, '?')
@@ -264,7 +265,7 @@ void sca_assign_children(Scan_node_ptr node, int argc, ...)
 {
 	va_list args;
 	va_start(args, argc);
-	node->children = malloc(argc * sizeof(Scan_path *));
+	node->children = imalloc(argc * sizeof(Scan_path *));
 	node->count = argc;
 	for (size_t i = 0; i < argc; i++)
 		node->children[i] = va_arg(args, Scan_path *);
@@ -285,7 +286,7 @@ void sca_free(Scan_node_ptr node)
 	{
 		SCA_PATH_DEINIT((*node->children[i]))
 	}
-	free(node->children);
+	ifree(node->children);
 }
 
 /**
@@ -297,14 +298,14 @@ void sca_free(Scan_node_ptr node)
 Scanner_ptr scn_init(char *filename)
 {
 	// scanner setup
-	Scanner_ptr scanner = malloc(sizeof(Scanner));
+	Scanner_ptr scanner = imalloc(sizeof(Scanner));
 
 	if (scanner == NULL)
 	{
 		// TODO: throw error err_internal
 		return NULL;
 	}
-	scanner->file_name = malloc(strlen(filename) + 1);
+	scanner->file_name = imalloc(strlen(filename) + 1);
 	if (scanner->file_name == NULL)
 	{
 		// TODO: throw error err_internal
@@ -571,9 +572,9 @@ void scn_free(Scanner_ptr scanner)
 	sca_free(&sca_less);
 
 	tok_dll_dispose(scanner->list);
-	free(scanner->file_name);
-	free(scanner->source);
-	free(scanner);
+	ifree(scanner->file_name);
+	ifree(scanner->source);
+	ifree(scanner);
 }
 /**
  * @brief Vyhleda v poli podminek, zdali je splnena nejaka podminka.
@@ -650,7 +651,7 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 			token_type type = tok_t_eof;
 			if (scanner->source_size != scanner->source_index)
 			{
-				token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
+				token_text = (char *)imalloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
 				memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
 				token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
 				type = scn_get_tok_type(node->state, token_text);
@@ -661,7 +662,7 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 			scanner->source_index = high;
 			has_match = false;
 			if (type != tok_t_eof)
-				free(token_text);
+				ifree(token_text);
 			return token;
 		}
 	}
@@ -704,7 +705,7 @@ char *scn_open_file(Scanner_ptr scanner)
 	size_t file_size = ftell(program);
 	fseek(program, 0, SEEK_SET);
 
-	char *source = malloc(file_size);
+	char *source = imalloc(file_size);
 	fread(source, 1, file_size, program);
 	fclose(program);
 	return source;

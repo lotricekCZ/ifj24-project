@@ -26,7 +26,7 @@ size_t ht_comp(int src, int other){
 
 
 _HASHTABLE(11, ht, int, int)
-SLL(test, ht, int, nothing, nothing, false)
+SLL(test, ht, int, nothing, nothing, false, true)
 HASHTABLE(11, ht, int, int, getHash, key, ht_copy, ht_comp, ht_deinit)
 
 void ht_print_table(ht_ht *table) {
