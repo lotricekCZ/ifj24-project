@@ -6,6 +6,15 @@
 #define ERROR_H
 
 #include <stdio.h>
+#include <stdbool.h>
+
+/**
+ * @brief Vypíše informaci o souboru a řádku, kde byla nalezena chyba a ukončí program.
+ *
+ * Toto makro se používá pro ukončení programu v případě, že dojde k vnitřní chybě
+ * (tj. chybě, která nebyla způsobena špatným vstupem, ale vnitřní chybou programu).
+ */
+#define exit_internal() {fprintf(stderr, "%s: %d\n", __FILE__, __LINE__); _exit_internal();}
 
 #define ERR_COUNT 11
 
@@ -32,7 +41,17 @@ typedef struct Err_message {
 Err_message err_msg[];
 
 size_t err_fetch(err_codes err);
-void err_print(err_codes err);
+void err_print(err_codes err, bool message_needed);
 
-// void err_internal();
+void exit_lexic(char * what);
+void exit_syntax();
+void exit_undef();
+void exit_param();
+void exit_redef();
+void exit_ret_val();
+void exit_dt_invalid();
+void exit_dt_unknown();
+void exit_dt_unused();
+void exit_semantic();
+void _exit_internal();
 #endif

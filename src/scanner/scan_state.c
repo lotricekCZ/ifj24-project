@@ -1,4 +1,5 @@
 #include "scan_state.h"
+#include "../utils/errors.h"
 #include <stddef.h>
 
 State_type_pair sca_translation_table[] =

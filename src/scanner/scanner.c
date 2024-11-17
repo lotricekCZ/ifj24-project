@@ -4,8 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 #include "scanner.h"
 #include "scan_state.h"
+#include "../utils/memory_table.h"
+#include "../utils/errors.h"
 
 SCA_MATCH_DECL(underscore, '_')
 SCA_MATCH_DECL(question_mark, '?')
@@ -258,10 +261,6 @@ SCA_PATH_DEF(sca_init, sca_comma)
 // init to hashtag path
 SCA_PATH_DEF(sca_init, sca_hashtag)
 
-Scan_path sca_paths[] = {
-
-};
-
 /**
  * @brief dosadi cesty k Scan_node.
  * @details Tato funkce pouziva seznam variabilnich argumentu k pripojeni synu
@@ -274,7 +273,7 @@ void sca_assign_children(Scan_node_ptr node, int argc, ...)
 {
 	va_list args;
 	va_start(args, argc);
-	node->children = malloc(argc * sizeof(Scan_path *));
+	node->children = imalloc(argc * sizeof(Scan_path *));
 	node->count = argc;
 	for (size_t i = 0; i < argc; i++)
 		node->children[i] = va_arg(args, Scan_path *);
@@ -295,7 +294,7 @@ void sca_free(Scan_node_ptr node)
 	{
 		SCA_PATH_DEINIT((*node->children[i]))
 	}
-	free(node->children);
+	ifree(node->children);
 }
 
 /**
@@ -307,18 +306,18 @@ void sca_free(Scan_node_ptr node)
 Scanner_ptr scn_init(char *filename)
 {
 	// scanner setup
-	Scanner_ptr scanner = malloc(sizeof(Scanner));
+	Scanner_ptr scanner = imalloc(sizeof(Scanner));
 
 	if (scanner == NULL)
 	{
 		// TODO: throw error err_internal
-		return NULL;
+		exit_internal();
 	}
-	scanner->file_name = malloc(strlen(filename) + 1);
+	scanner->file_name = imalloc(strlen(filename) + 1);
 	if (scanner->file_name == NULL)
 	{
 		// TODO: throw error err_internal
-		return NULL;
+		exit_internal();
 	}
 	strcpy(scanner->file_name, filename);
 
@@ -326,10 +325,13 @@ Scanner_ptr scn_init(char *filename)
 	if (scanner->source == NULL)
 	{
 		// TODO: throw error err_internal
-		return false;
+		exit_internal();
 	}
 	scanner->source_size = strlen(scanner->source);
 	scanner->source_index = 0;
+  scanner->source_line = 0;
+  
+  scanner->line = 1;
 	scanner->is_scanned = false;
 	scanner->list = tok_dll_init();
 
@@ -601,9 +603,9 @@ void scn_free(Scanner_ptr scanner)
 	sca_free(&sca_less);
 
 	tok_dll_dispose(scanner->list);
-	free(scanner->file_name);
-	free(scanner->source);
-	free(scanner);
+	ifree(scanner->file_name);
+	ifree(scanner->source);
+	ifree(scanner);
 }
 /**
  * @brief Vyhleda v poli podminek, zdali je splnena nejaka podminka.
@@ -696,7 +698,12 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 		while (has_match)
 		{
 			Scan_path *path = high < scanner->source_size ? sca_n_has_match(node, scanner->source[high]) : NULL;
-			if (path != NULL)
+      if ((scanner->source[high] == '\n'))
+      {
+        scanner->line++;
+        scanner->source_line = high + 1;
+      }
+      if (path != NULL)
 			{
 				node = path->to;
 				high++;
@@ -714,7 +721,7 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				{
 					if (node->state != sca_s_ml_str)
 					{
-						token_text = (char *)malloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
+						token_text = (char *)imalloc(sizeof(char) * (high - scanner->source_index + 1 - (offset != 0) * 2));
 						memcpy(token_text, scanner->source + scanner->source_index + offset, high - scanner->source_index - (offset != 0) * 2);
 						token_text[high - scanner->source_index - (offset != 0) * 2] = '\0';
 					}
@@ -738,6 +745,11 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				{
 					scanner->is_scanned = true;
 				}
+        if (type == tok_t_error)
+        {
+          char *message = scn_compose_message(scanner);
+          exit_lexic(message);
+        }
 				return token;
 			}
 		}
@@ -780,15 +792,48 @@ char *scn_open_file(Scanner_ptr scanner)
 	if (program == NULL)
 	{
 		// TODO: throw error err_internal
-		return NULL;
+		exit_internal();
 	}
 
 	fseek(program, 0, SEEK_END);
 	size_t file_size = ftell(program);
 	fseek(program, 0, SEEK_SET);
 
-	char *source = malloc(file_size);
+	char *source = imalloc(file_size);
 	fread(source, 1, file_size, program);
 	fclose(program);
 	return source;
+}
+
+/**
+ * @brief Kompozice chyboveho hlaseni.
+ *
+ * Funkce vraci retezec, ktery popisuje lexikalni chybu.
+ * Retezec ma format "Lexical error on line <cislo_radky>: <radek_zdrojoveho_kоdу>\n<^>".
+ *
+ * @param scanner Struktura, ktera reprezentuje scanner.
+ * @returns string, ktery popisuje lexikalni chybu.
+ */
+char *scn_compose_message(Scanner_ptr scanner)
+{
+	char *preamble = "Lexical error on line";
+	// gathering the whole line
+	char *end = strchr(&scanner->source[scanner->source_line], '\n');
+	if (end != NULL)
+		*end = scanner->source[scanner->source_size - 2];
+	int len = end - &scanner->source[scanner->source_line];
+	if (len < 0)
+		exit_internal();
+	char *line = imalloc((len) + 1);
+	memcpy(line, &scanner->source[scanner->source_line], len);
+	// gathering the line number
+	size_t number_size = (size_t)(log(scanner->line) / log(10)) + 1;
+	// return message composition
+	char *message = imalloc((strlen(preamble) + number_size + 1 + len) * 2 + 1);
+	size_t nl = sprintf(message, "%s %zu: %s\n", preamble, scanner->line, line);
+	ifree(line);
+	memset(message + nl, ' ', (strlen(preamble) + number_size + 1 + len));
+	message[strlen(preamble) + number_size + len + nl] = '^';
+	message[strlen(preamble) + number_size + len + nl + 1] = '\0';
+	return message;
 }

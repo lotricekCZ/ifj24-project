@@ -1,4 +1,5 @@
 #include "token.h"
+#include "memory_table.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -12,7 +13,7 @@
  */
 Token_ptr tok_init(token_type type)
 {
-    Token_ptr new_lex = (Token_ptr)malloc(sizeof(struct _Token));
+    Token_ptr new_lex = (Token_ptr)imalloc(sizeof(struct _Token));
     new_lex->type = type;
     new_lex->attribute = NULL;
     return new_lex;
@@ -43,9 +44,9 @@ void tok_free(Token_ptr tok)
 {
     if (tok->attribute != NULL)
     {
-        free(tok->attribute);
+        ifree(tok->attribute);
     }
-    free(tok);
+    ifree(tok);
 }
 
 /**
@@ -104,10 +105,10 @@ void tok_set_attribute(Token_ptr tok, char *attribute)
 {
     if (tok->attribute != NULL)
     {
-        free(tok->attribute);
+        ifree(tok->attribute);
         tok->attribute = NULL;
     }
-    tok->attribute = (char *)malloc(sizeof(char) * (strlen(attribute) + 1));
+    tok->attribute = (char *)imalloc(sizeof(char) * (strlen(attribute) + 1));
     strcpy(tok->attribute, attribute);
 }
 
