@@ -384,8 +384,6 @@ void function() {
     str_unify(&string, &string_tmp);
     str_clear(&string_tmp);
 
-    push(&stack_codegen, current_token);
-
     next_token(); // "("
     expect_type(tok_t_lpa); OK;  
 
@@ -990,8 +988,6 @@ void not_null_value() {
         expect_type(tok_t_alias); OK; // |
 
         next_token();
-    } else {
-        pop(&stack_codegen); // Vyrovnání stacku
     }
 
     printi(format[_comment], "</not_null_value>");
