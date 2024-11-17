@@ -1,10 +1,10 @@
-   0 | 29 |               |	\\abcd
-   1 | 29 |               |	\\efgh
-   2 | 29 |               |	\\ijkl\nmno
-   3 | 28 |               |	help
-   4 | 28 |               |	help\x55
-   5 | 28 |               |	help\x55\n\t\r
-   6 | 28 |               |	
-   7 | 29 |               |	\\ ss
-   8 | 29 |               |	\\\ !
-   9 | 55 |               |	
+   0 | tok_t_mstr           | 29 |               |	abcd
+efgh
+ijkl\nmno
+
+   1 | tok_t_str            | 28 |               |	help
+   2 | tok_t_str            | 28 |               |	help\x55
+   3 | tok_t_str            | 28 |               |	help\x55\n\t\r
+   4 | tok_t_str            | 28 |               |	
+   5 | tok_t_error          | 62 |               |	\\ ss
+\\\

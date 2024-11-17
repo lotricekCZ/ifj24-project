@@ -9,6 +9,8 @@ set(SRC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(TEST ${CMAKE_CURRENT_SOURCE_DIR}/test)
 set(UTILS ${SRC}/utils)
 set(SCANNER ${SRC}/scanner)
+set(PARSER ${SRC}/parser)
+
 add_executable(ifj2024 src/main.c)
 
 add_library(errors SHARED    	 ${UTILS}/errors.c)
@@ -22,18 +24,22 @@ add_library(scanner SHARED    	 ${SCANNER}/scanner.c)
 add_library(token_dll SHARED 	 ${UTILS}/token_dll.c)
 add_library(sym_dll SHARED 	 	 ${UTILS}/symDLList.c)
 add_library(dym_string SHARED 	 ${UTILS}/dymString.c)
+add_library(parser SHARED 	 ${PARSER}/parser.c)
 add_library(symtable SHARED 	 ${UTILS}/symtable.c)
 add_library(hashtable SHARED 	 ${UTILS}/hashtable.c)
 add_library(memory_table SHARED  ${UTILS}/memory_table.c)
 target_compile_definitions(dll_trad PUBLIC DLL_TRAD)
+
 target_link_libraries(dll memory_table)
 target_link_libraries(sll memory_table)
 target_link_libraries(token memory_table)
 target_link_libraries(keyword errors)
 target_link_libraries(scanner token errors scan_state keyword token_dll memory_table m)
-target_link_libraries(ifj2024 errors token scanner)
-enable_testing()
+target_link_libraries(ifj2024 errors token scanner parser)
 
+
+# Enable testing
+enable_testing()
 
 # tests
 # dll
@@ -54,13 +60,13 @@ add_executable(test_scan_2 ${TEST}/scanner/scan_2.c)
 add_executable(test_scan_3 ${TEST}/scanner/scan_3.c)
 add_executable(test_scan_4 ${TEST}/scanner/scan_4.c)
 
-
 target_link_libraries(test_memory_table memory_table token keyword)
 target_link_libraries(test_ht_0 sll)
 target_link_libraries(test_ht_1 sll)
 target_link_libraries(test_dll_1 memory_table)
 target_link_libraries(test_dll_2 memory_table)
 target_link_libraries(test_dll_3 memory_table)
+
 target_link_libraries(test_dll_4 token dll keyword)
 target_link_libraries(test_sll_1 sll)
 target_link_libraries(test_scan_1 token dll keyword scanner)
@@ -71,35 +77,35 @@ target_link_libraries(test_trad_dll_0 token dll_trad keyword scanner)
 
 # test covering initialization, push_front and clear in DLL macro
 add_test(NAME "dll-init" COMMAND test_dll_1)
-set_property (TEST "dll-init"
+set_property(TEST "dll-init"
               PROPERTY PASS_REGULAR_EXPRESSION ".*11 10 9 8 7 42 6 5 4 3 2 1.*")
 
 add_test(NAME "dll-init-valgrind" COMMAND valgrind ./test_dll_1)
-set_property (TEST "dll-init-valgrind"
-			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+set_property(TEST "dll-init-valgrind"
+              PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
 
 # test covering pushes, pops and deletion on specific index in DLL macro
 add_test(NAME "dll-push-pop-delete" COMMAND test_dll_2)
-set_property (TEST "dll-push-pop-delete"
+set_property(TEST "dll-push-pop-delete"
               PROPERTY PASS_REGULAR_EXPRESSION "1 2 3 4 5 42 6 7 8 9 10.*
 .*2 3 4 42 6 7 8 9.*")
 
 add_test(NAME "dll-push-pop-delete-valgrind" COMMAND valgrind ./test_dll_2)
-set_property (TEST "dll-push-pop-delete-valgrind"
-			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+set_property(TEST "dll-push-pop-delete-valgrind"
+              PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
 
 # test covering DLL with strings
 add_test(NAME "dll-string" COMMAND test_dll_3)
-set_property (TEST "dll-string"
+set_property(TEST "dll-string"
               PROPERTY PASS_REGULAR_EXPRESSION "Lorem ipsum dolor sit amet incididunt consectetur adipiscing elit sed do eiusmod tempor")
 
 add_test(NAME "dll-string-valgrind" COMMAND valgrind ./test_dll_2)
-set_property (TEST "dll-string-valgrind"
-			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+set_property(TEST "dll-string-valgrind"
+              PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
 
 # test covering DLL with custom structure
 add_test(NAME "dll-token" COMMAND test_dll_4)
-set_property (TEST "dll-token"
+set_property(TEST "dll-token"
               PROPERTY PASS_REGULAR_EXPRESSION ".*const else fn if i32 while f64 null pub return \\[\\]u8 void while.*")
 
 add_test(NAME "dll-token-valgrind" COMMAND valgrind ./test_dll_4)
@@ -131,17 +137,11 @@ add_test(NAME "ht-int-valgrind" COMMAND valgrind ./test_ht_0)
 set_property (TEST "ht-int-valgrind"
 			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
 
-
 # scanner tests
 foreach(test "float_bad" "float" "strings_bad" "strings" "keywords" "full" "ints")
-	execute_process(
-		COMMAND
-		./test_scan_3 "../test/scanner/atomic_expressions/${test}.txt"
-		OUTPUT_FILE
-			"${test}.out"
-		)	
-	add_test(NAME "scanner-${test}" COMMAND cmake -E compare_files "../test/scanner/atomic_expressions/${test}.test" "${test}.out")
-	add_test(NAME "scanner-${test}-valgrind" COMMAND valgrind ./test_scan_3 "../test/scanner/atomic_expressions/${test}.txt")
-	set_property (TEST "scanner-${test}-valgrind"
-			PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
+	add_test(NAME "scanner-${test}" COMMAND sh -c "./test_scan_3 \"${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.txt\" > \"${test}.out\" && cmake -E compare_files \"${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.test\" \"${test}.out\"")
+    # add_test(NAME "scanner-${test}" COMMAND cmake -E compare_files "${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.test" "${test}.out")
+    add_test(NAME "scanner-${test}-valgrind" COMMAND valgrind ./test_scan_3 "${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.txt")
+    set_property(TEST "scanner-${test}-valgrind"
+              PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})
 endforeach()

@@ -20,7 +20,7 @@
  */
 
 _DLL(test, t, int)
-DLL(test, t, int, nothing, nothing)
+DLL(test, t, int, nothing, nothing, nothing)
 void dll_print(t_dllist *dll) {
 	t_dll_element_ptr temp = dll->firstElement;
 	while (temp != NULL) {

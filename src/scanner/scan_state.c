@@ -18,9 +18,7 @@ State_type_pair sca_translation_table[] =
 
 		{sca_s_str, tok_t_str},
 
-		{sca_s_ml1, tok_t_mstr},
-		{sca_s_ml5, tok_t_mstr},
-		{sca_s_ml_max2, tok_t_mstr},
+		{sca_s_ml_str, tok_t_mstr},
 
 		{sca_s_eof, tok_t_eof},
 		{sca_s_curlybrace_close, tok_t_rcbr},

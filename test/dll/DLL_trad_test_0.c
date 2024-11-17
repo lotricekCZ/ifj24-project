@@ -15,7 +15,7 @@
  */
 
 _DLL(test, tok, Token)
-DLL(test, tok, Token, tok_copy, tok_free)
+DLL(test, tok, Token, tok_copy, tok_init_no_ret, tok_free)
 void dll_print(tok_dllist *dll)
 {
 	tok_dll_element_ptr temp = dll->firstElement;

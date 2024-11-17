@@ -4,7 +4,7 @@
 #include "../../src/utils/dll.h"
 
 _DLL(test, t, int)
-DLL(test, t, int, nothing, nothing)
+DLL(test, t, int, nothing, nothing, nothing)
 
 
 int main() {
