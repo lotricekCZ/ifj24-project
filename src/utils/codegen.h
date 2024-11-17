@@ -9,6 +9,8 @@
 
 #include "token.h"
 
+#define MAX_STRING_LENGTH 150
+
 #define INSTRUCTION_COUNT 57
 /** Výčet instrukcí strojového kódu */
 typedef enum {
@@ -73,7 +75,10 @@ typedef enum {
 
 extern const char* format[INSTRUCTION_COUNT];
 
-void printi_string(Token_ptr token);
+void printi_string(char* string);
+void printi_postfix(Token_ptr *postfix, int postfix_index);
+void printi_condition_jump(char *name, int number);
+void printi_builtin();
 
 //void printi(instruction, ...);
 

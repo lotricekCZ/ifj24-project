@@ -9,7 +9,7 @@
 int main(int argc, char *argv[])
 {
     // Initialize the scanner with the source code file.
-    scanner = scn_init("../test/scanner/test6.zig");
+    scanner = scn_init("../test/scanner/test7.zig");
     if (scanner == NULL) {
         fprintf(stderr, "Failed to initialize scanner.\n");
         return 1;

@@ -29,13 +29,18 @@ Token_ptr current_token = NULL;
 Scanner_ptr scanner = NULL;
 token_type fn_ret_type;
 bool ifj_flag = false;
-bool first_parse_done = false;
 int statement_index = 1;
 err_codes error = err_none;
 
 Stack stack_codegen;
-int counter_codegen = 0;
-char string_buffer[100];
+int counter_codegen_if = 0;
+int counter_codegen_while = 0;
+int counter_codegen_for = 1;
+int counter_codegen_expression = 0;
+int counter_global = 0;
+int cycle = -1;
+char string_buffer[MAX_STRING_LENGTH];
+char string_buffer_value[MAX_STRING_LENGTH];
 
 /*
  * Precedence table
@@ -173,7 +178,8 @@ void parse_expression(Token_ptr stored_token) {
     while (!isEmpty(&stack)) {
         postfix[postfix_index++] = pop(&stack);
     }
-    print_postfix(postfix, postfix_index);
+    printi_postfix(postfix, postfix_index);
+    //print_postfix(postfix, postfix_index);
     printf(format[_comment], "</expression>");
 }
 /* 
@@ -261,7 +267,6 @@ void expect_attribute(const char* attr) {
         error = err_syntax;
     }
 }
-
 /************** Grammar functions ************** 
  *  Function to parse the <program> non-terminal
  */
@@ -271,10 +276,16 @@ void program() {
     next_token();
     prolog(); OK;
 
-    printf(format[_jump], "$main");
+    printf("%s", format[_createframe]);
+    printf(format[_call], "$main");
+    printf(format[_jump], "&$main");
 
     next_token();
     function(); OK;
+
+    pop(&stack_codegen);
+
+    printi_builtin();
 
     printf(format[_label], "&$main");
 
@@ -291,7 +302,8 @@ void prolog() {
 
     // "ID"
     next_token();
-    expect_type(tok_t_sym); OK; 
+    expect_type(tok_t_sym); OK;
+    push(&stack_codegen, current_token);
 
     // "="
     next_token();
@@ -327,12 +339,9 @@ void prolog() {
 void function() {
     printf(format[_comment], "<function>");
 
-    if (first_parse_done){
-        expect_type(tok_t_pub); OK; // "pub"
+    expect_type(tok_t_pub); OK; // "pub"
 
-        next_token();
-    }
-
+    next_token();
     expect_type(tok_t_fn); OK; // "fn"
 
     next_token();
@@ -340,20 +349,13 @@ void function() {
 
     sprintf(string_buffer, "$%s", current_token->attribute);
     printf(format[_label], string_buffer);
-    printf(format[_pushframe]);
+    printf("%s", format[_pushframe]);
     push(&stack_codegen, current_token);
-
-    // Parsing first time: Add function to TS
-    if (!first_parse_done)
-    {
-        // TS add function
-    }
 
     next_token(); // "("
     expect_type(tok_t_lpa); OK;  
 
     next_token();
-    counter_codegen = 0;
     parameter(); OK;
     
     expect_type(tok_t_rpa); OK; // ")"
@@ -364,40 +366,17 @@ void function() {
     next_token();
     expect_type(tok_t_lcbr); OK; // "{"
 
-    // Parsing second time: Parse function body
-    if (first_parse_done) {
-        next_token();
-        body(); OK;
-    } else {
-        // Handle nested braces
-        int brace_count = 1; // We already encountered one '{'
+    next_token();
+    printf(format[_defvar], "LF@_");
+    body(); OK;
 
-        while (brace_count > 0) {
-            next_token();
+    expect_type(tok_t_rcbr); OK; // "}"
 
-            if (current_token->type == tok_t_lcbr) {
-                brace_count++;
-            } else if (current_token->type == tok_t_rcbr) {
-                brace_count--;
-            }
-        }
-    }
+    printf("%s", format[_popframe]);
+    printf("%s", format[_return]);
 
-    // "}"
-    expect_type(tok_t_rcbr); OK;
-
-    printf(format[_popframe]);
-    if (strcmp(pop(&stack_codegen)->attribute, "main") == 0) {
-        printf(format[_jump], "&$main");
-    } else {
-        printf(format[_return]);
-    }
-
-    // Next function or EOF
-    if (first_parse_done) {
-        next_token();
-        function_next(); OK;
-    }
+    next_token();
+    function_next(); OK;
 
     printf(format[_comment], "</function>");
 }
@@ -421,8 +400,9 @@ void parameter() {
     printf(format[_comment], "<parameter>");
 
     if (current_token->type == tok_t_sym) {
-        printf(format[_defvar], "LF@%s", current_token->attribute);
-        printf("MOVE LF@%s LF@%%%i\n", current_token->attribute, counter_codegen++);
+        sprintf(string_buffer, "LF@%s", current_token->attribute);
+        printf(format[_defvar], string_buffer);
+        printf(format[_pops], string_buffer);
 
         next_token();
         expect_type(tok_t_colon); OK; // ":"
@@ -474,11 +454,15 @@ void statement() {
 
     switch (current_token->type) {
     case tok_t_unused: //toto se v podstatě nemusí generovat ani kontrolovat
+        printf(format[_comment], "<id_option>");
+        printf(format[_comment], "</id_option>");
         next_token();
         expect_type(tok_t_ass); OK;
 
         next_token();
         value(); OK;
+        sprintf(string_buffer, "LF@_");
+        printf(format[_move], string_buffer, string_buffer_value);
 
         expect_type(tok_t_semicolon); OK;
 
@@ -486,6 +470,8 @@ void statement() {
         break;
 
     case tok_t_sym:
+        printf(format[_comment], "<id_option>");
+        printf(format[_comment], "</id_option>");
         push(&stack_codegen, current_token);
 
         next_token();
@@ -514,8 +500,9 @@ void statement() {
         expect_type(tok_t_ass); OK;
 
         next_token();
-        sprintf(string_buffer, "MOVE LF@%s", pop(&stack_codegen)->attribute);
         value(); OK;
+        sprintf(string_buffer, "LF@%s", pop(&stack_codegen)->attribute);
+        printf(format[_move], string_buffer, string_buffer_value);
 
         expect_type(tok_t_semicolon); OK;
 
@@ -524,46 +511,98 @@ void statement() {
 
     case tok_t_if:
         next_token(); // (
-        expect_type(tok_t_lpa); OK;
+        expect_type(tok_t_lpa); OK; 
 
         next_token();
+        int if_number = counter_codegen_if++;
+        sprintf(string_buffer, "LF@%%if%i", if_number);
+        printf(format[_defvar], string_buffer);
         value(); OK;
+        sprintf(string_buffer, "LF@%%if%i", if_number);
+        printf(format[_move], string_buffer, string_buffer_value);
 
         expect_type(tok_t_rpa); OK;
+        
+        printi_condition_jump("if", if_number);
 
         next_token();
+        sprintf(string_buffer, "LF@%%if%i", if_number);
         not_null_value(); OK;
 
         then(); OK;
+        sprintf(string_buffer, "*$if%i", if_number);
+        printf(format[_jump], string_buffer);
 
+        sprintf(string_buffer, "!$if%i", if_number);
+        printf(format[_label], string_buffer);
         else_then(); OK;
+
+        sprintf(string_buffer, "*$if%i", if_number);
+        printf(format[_label], string_buffer);
         break;
 
     case tok_t_while:
+        int previous_cycle_while = cycle;
+        counter_codegen_while += 2;
+        int while_number = counter_codegen_while;
+        cycle = counter_codegen_while;
+
         next_token();
         expect_type(tok_t_lpa); OK;
 
         next_token();
+        sprintf(string_buffer, "LF@%%while%i", while_number);
+        printf(format[_defvar], string_buffer);
+
+        sprintf(string_buffer, "*$while%i", while_number);
+        printf(format[_label], string_buffer);
+
         value(); OK;
+        sprintf(string_buffer, "LF@%%while%i", while_number);
+        printf(format[_move], string_buffer, string_buffer_value);
 
         expect_type(tok_t_rpa); OK;
 
+        printi_condition_jump("while", while_number);
+
         next_token();
+        sprintf(string_buffer, "LF@%%while%i", while_number);
         not_null_value(); OK;
 
         then(); OK;
+        sprintf(string_buffer, "*$while%i", while_number);
+        printf(format[_jump], string_buffer);
 
+        sprintf(string_buffer, "!$while%i", while_number);
+        printf(format[_label], string_buffer);
+        cycle = previous_cycle_while;
         else_then(); OK;
+
+        sprintf(string_buffer, "&$while%i", while_number);
+        printf(format[_label], string_buffer);
         break;
 
     case tok_t_for:
+        int previous_cycle_for = cycle;
+        counter_codegen_for += 2;
+        int for_number = counter_codegen_for;
+        cycle = counter_codegen_for;
+
         next_token();
         expect_type(tok_t_lpa); OK;
 
         next_token();
         expect_type(tok_t_sym); OK;
+        push(&stack_codegen, current_token);
 
         next_token();
+        sprintf(string_buffer, "LF@%%forcounter%i", for_number);
+        printf(format[_defvar], string_buffer);
+        printf(format[_move], string_buffer, "int@0");
+        sprintf(string_buffer, "LF@%%for%i", for_number);
+        printf(format[_defvar], string_buffer);
+
+        sprintf(string_buffer, "MOVE LF@%%for%i", for_number);
         id_continue(); OK;
 
         expect_type(tok_t_rpa); OK;
@@ -572,13 +611,49 @@ void statement() {
         expect_type(tok_t_alias); OK;
  
         next_token();
-        expect_type(tok_t_sym); OK;
+        expect_types(2, tok_t_sym, tok_t_unused); OK;
+        printf(format[_comment], "<id_option>");
+        printf(format[_comment], "</id_option>");
+        char name[MAX_STRING_LENGTH - 5] = "_";
+        if (current_token->type == tok_t_sym) {
+            strcpy(name, current_token->attribute);
+        }
+
+        sprintf(string_buffer, "LF@%s", name);
+        if (current_token->type == tok_t_sym) {
+            printf(format[_defvar], string_buffer);
+        }
+
+        sprintf(string_buffer, "*$for%i", for_number);
+        printf(format[_label], string_buffer);
+
+        printf("%s", format[_createframe]);
+        sprintf(string_buffer, "LF@%%for%i", for_number);
+        printf(format[_defvar], "TF@%0");
+        printf(format[_move], "TF@%0", string_buffer);
+        sprintf(string_buffer, "LF@%%forcounter%i", for_number);
+        printf(format[_defvar], "TF@%1");
+        printf(format[_move], "TF@%1", string_buffer);
+        printf(format[_add], string_buffer, string_buffer, "int@1");
+        printf(format[_call], "$$$ord");
+        sprintf(string_buffer, "LF@%s", name);
+        printf(format[_move], string_buffer, "TF@%retval");
+
+        printf("JUMPIFEQ !$for%i %s nil@nil\n", for_number, string_buffer);
 
         next_token();
         expect_type(tok_t_alias); OK;
 
         next_token();
         then(); OK;
+        
+        sprintf(string_buffer, "*$for%i", for_number);
+        printf(format[_jump], string_buffer);
+
+        sprintf(string_buffer, "!$for%i", for_number);
+        printf(format[_label], string_buffer);
+
+        cycle = previous_cycle_for;
         break;
 
     case tok_t_return:
@@ -589,13 +664,39 @@ void statement() {
 
         next_token();
         break;
+
     case tok_t_break:
+        if (cycle == -1) {
+            error = err_syntax;
+            fprintf(stderr, "Syntax error: Break statement outside of a loop\n");
+            return;
+        } else if (cycle % 2 == 0) {
+            sprintf(string_buffer, "&$while%i", cycle);
+            printf(format[_jump], string_buffer);
+        } else {
+            sprintf(string_buffer, "&$for%i", cycle);
+            printf(format[_jump], string_buffer);
+        }
+
         next_token();
         expect_type(tok_t_semicolon); OK;
 
         next_token();
         break;
+
     case tok_t_continue:
+        if (cycle == -1) {
+            error = err_syntax;
+            fprintf(stderr, "Syntax error: Continue statement outside of a loop\n");
+            return;
+        } else if (cycle % 2 == 0) {
+            sprintf(string_buffer, "*$while%i", cycle);
+            printf(format[_jump], string_buffer);
+        } else {
+            sprintf(string_buffer, "*$for%i", cycle);
+            printf(format[_jump], string_buffer);
+        }
+
         next_token();
         expect_type(tok_t_semicolon); OK;
 
@@ -613,10 +714,11 @@ void id_statement() {
     printf(format[_comment], "<id_statement>");
 
     if (current_token->type == tok_t_ass) {
-        sprintf(string_buffer, "MOVE LF@%s", pop(&stack_codegen)->attribute);
-
         next_token();
         value(); OK;
+
+        sprintf(string_buffer, "LF@%s", pop(&stack_codegen)->attribute);
+        printf(format[_move], string_buffer, string_buffer_value);
     } else {
         call(); OK;
 
@@ -634,28 +736,28 @@ void value() {
     Token_ptr stored_token = current_token;
     next_token();
 
-    // test for expression 
+    // test for expression
     if (current_token->type != tok_t_lpa && current_token->type != tok_t_rpa && current_token->type != tok_t_semicolon && current_token->type != tok_t_dot && current_token->type != tok_t_com) {
         parse_expression(stored_token); OK;
+        sprintf(string_buffer_value, "LF@%%expression%i", counter_codegen_expression++);
+        printf(format[_defvar], string_buffer_value);
+        printf(format[_pops], string_buffer_value);
     } else {
         switch (stored_token->type) {
             case tok_t_null:
-                printf("%s nil@nil\n", string_buffer);
+                sprintf(string_buffer_value, "nil@nil");
                 break;
-            case tok_t_int:
-                printf("%s int@%i\n", string_buffer, (int)atoi(stored_token->attribute));
+            case tok_t_int: // 1
+                sprintf(string_buffer_value, "int@%i", (int)atoi(stored_token->attribute));
                 break;
-            case tok_t_flt:
-                printf("%s float@%a\n", string_buffer, (float)atof(stored_token->attribute));
+            case tok_t_flt: //1.1
+                sprintf(string_buffer_value, "float@%a", (float)atof(stored_token->attribute));
                 break;
             case tok_t_bool:
-                printf("%s bool@%s\n", string_buffer, stored_token->attribute);
-                break;
-                // ;
-                // TS
+                sprintf(string_buffer_value, "bool@%s", stored_token->attribute);
                 break;
 
-            case tok_t_as:
+            case tok_t_as: // @as
                 expect_type(tok_t_lpa); OK;
 
                 next_token();
@@ -666,6 +768,7 @@ void value() {
 
                 next_token();
                 expect_type(tok_t_sym); OK;
+                sprintf(string_buffer, "LF@%s", current_token->attribute);
 
                 next_token();
                 expect_type(tok_t_rpa); OK;
@@ -674,21 +777,8 @@ void value() {
                 break;
 
             case tok_t_sym:
-                char destination[100]; 
-                strcpy(destination, string_buffer);
                 push(&stack_codegen, stored_token);
-                
-                int counter_codegen_temp = counter_codegen;
-                counter_codegen = 0;
                 id_continue(); OK;
-                counter_codegen = counter_codegen_temp;
-
-                printf("%s %s\n", destination, string_buffer);
-                /*if (strcmp(stored_token->attribute, "true") == 0 || strcmp(stored_token->attribute, "false") == 0) {
-                    print_token(); OK; // ;
-                } else { // ID
-                    // TS
-                }*/
                 break;
             default:
                 fprintf(stderr, "Syntax error: Expected value, got %s\n", tok_type_to_str(current_token->type));
@@ -706,12 +796,23 @@ void not_null_value() {
 
     if (current_token->type == tok_t_alias) {
         next_token();
-        expect_type(tok_t_sym); OK; // ID
+        expect_types(2, tok_t_sym, tok_t_unused); OK; // ID
+        char source[MAX_STRING_LENGTH];
+        strcpy(source, string_buffer);
+        if (current_token->type == tok_t_sym) {
+            sprintf(string_buffer, "LF@%s", current_token->attribute);
+            printf(format[_defvar], string_buffer);
+        } else {
+            sprintf(string_buffer, "LF@_");
+        }
+        printf(format[_move], string_buffer, source);
 
         next_token();
         expect_type(tok_t_alias); OK; // |
 
         next_token();
+    } else {
+        pop(&stack_codegen); // Vyrovnání stacku
     }
 
     printf(format[_comment], "</not_null_value>");
@@ -752,12 +853,16 @@ void id_continue() {
     printf(format[_comment], "<id_continue>");
 
     if (current_token->type == tok_t_dot || current_token->type == tok_t_lpa) {
+        char source[MAX_STRING_LENGTH]; 
+        strcpy(source, string_buffer_value);
         call(); OK;
-        sprintf(string_buffer, "TF@%%retval");
+        strcpy(string_buffer_value, source);
+
+        sprintf(string_buffer_value, "TF@%%retval");
 
         next_token();
     } else {
-        sprintf(string_buffer, "LF@%s", pop(&stack_codegen)->attribute);
+        sprintf(string_buffer_value, "LF@%s", pop(&stack_codegen)->attribute);
     }
 
     printf(format[_comment], "</id_continue>");
@@ -769,9 +874,9 @@ void return_value() {
     printf(format[_comment], "<return_value>");
 
     if (current_token->type != tok_t_semicolon) {
-        sprintf(string_buffer, "MOVE LF@%retval");
-
         value(); OK;
+        sprintf(string_buffer, "LF@%%retval");
+        printf(format[_move], string_buffer, string_buffer_value);
     }
 
     printf(format[_comment], "</return_value>");
@@ -782,11 +887,14 @@ void return_value() {
 void call() {
     printf(format[_comment], "<call>");
 
-    printf(format[_createframe]);
-
+    printf("%s", format[_createframe]);
     if (current_token->type == tok_t_dot) { //a.a()
+        pop(&stack_codegen);
+
         next_token();
         expect_type(tok_t_sym); OK;
+
+        push(&stack_codegen, current_token);
 
         next_token();
         expect_type(tok_t_lpa); OK;
@@ -795,6 +903,8 @@ void call() {
         call_params(); OK;
 
         expect_type(tok_t_rpa); OK;
+
+        sprintf(string_buffer, "$$$%s", pop(&stack_codegen)->attribute);
     } else { //a()
         expect_type(tok_t_lpa); OK;
 
@@ -804,8 +914,8 @@ void call() {
         expect_type(tok_t_rpa); OK;
 
         sprintf(string_buffer, "$%s", pop(&stack_codegen)->attribute);
-        printf(format[_call], string_buffer);
     }
+    printf(format[_call], string_buffer);
 
     printf(format[_comment], "</call>");
 }
@@ -818,7 +928,27 @@ void call_params() {
     if (current_token->type != tok_t_rpa) {
         call_value(); OK;
 
+        char source[MAX_STRING_LENGTH];
+        strcpy(source, string_buffer_value);
+        bool string = false;
+        if (peek(&stack_codegen)->type == tok_t_str) {
+            pop(&stack_codegen);
+            string = true;
+        } else if (strstr(source, "TF@%retval") != NULL) {
+            sprintf(source, "GF@%%%i", counter_global++);
+            printf(format[_defvar], source);
+            printf(format[_move], source, "TF@%retval");
+            printf("%s" ,format[_createframe]);
+        }
+
         call_params_next(); OK;
+        if (string) {
+            printf("PUSHS string@");
+            printi_string(source);
+            printf("\n");
+        } else {
+            printf(format[_pushs], source);
+        }
     }
 
     printf(format[_comment], "</call_params>");
@@ -829,13 +959,9 @@ void call_params() {
 void call_value() {
     printf(format[_comment], "<call_value>");
 
-    sprintf(string_buffer, "TF@%%%i", counter_codegen);
-    printf(format[_defvar], string_buffer);
-    sprintf(string_buffer, "MOVE TF@%%%i", counter_codegen++);
     if (current_token->type == tok_t_str) {
-        printf("%s string@", string_buffer);
-        printi_string(current_token);
-        printf("\n");
+        strcpy(string_buffer_value, current_token->attribute);
+        push(&stack_codegen, current_token);
 
         next_token();
     } else {
@@ -888,28 +1014,6 @@ void definition() {
 
     printf(format[_comment], "</definition>");
 }
-
-/*
- * Function to parse code for the first time
- *//*
-void parse_fn_first() {
-
-    // Iterate through program
-    while (current_token->type != tok_t_eof) {
-        if (current_token->type == tok_t_pub) {
-            // in <function> add to TS
-            function();
-        }
-        next_token();
-        print_token();
-    }
-
-    printf("First parse done!\n");
-
-    // set next token for second parse
-    next_token();
-}*/
-
 
 /*
  * Function to parse code for the first time
@@ -972,9 +1076,6 @@ void parse() {
     parse_fn_first();
 
     if (error == err_none) {
-        // Set the first_parse_done flag to true.
-        first_parse_done = true;
-
         // Initialize the stack for code generation
         init(&stack_codegen);
 
