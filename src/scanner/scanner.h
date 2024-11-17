@@ -55,7 +55,9 @@ typedef struct _Scanner
 	tok_dllist *list;
 	char *source;
 	size_t source_index;
+	size_t source_line;
 	size_t source_size;
+	size_t line;
 } Scanner;
 
 typedef struct _Scanner *Scanner_ptr;
@@ -94,7 +96,7 @@ Token_ptr scn_get_token(Scanner_ptr scanner);
 Token_ptr scn_previous(Scanner_ptr scanner);
 Token_ptr scn_next(Scanner_ptr scanner);
 char *scn_open_file(Scanner_ptr scanner);
-
+char *scn_compose_message(Scanner_ptr scanner);
 // scanner analyze functions, usage restricted to scanner.c
 /// entry function
 // Token_ptr sca_init();

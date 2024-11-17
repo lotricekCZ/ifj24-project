@@ -30,7 +30,7 @@ target_link_libraries(dll memory_table)
 target_link_libraries(sll memory_table)
 target_link_libraries(token memory_table)
 target_link_libraries(keyword errors)
-target_link_libraries(scanner token errors scan_state keyword token_dll memory_table)
+target_link_libraries(scanner token errors scan_state keyword token_dll memory_table m)
 target_link_libraries(ifj2024 errors token scanner)
 enable_testing()
 

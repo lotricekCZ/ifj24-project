@@ -72,6 +72,5 @@ token_type scn_get_tok_type(scn_state_t state, char *lexeme)
 		}
 	}
 	// error-worthy: ?[]i32, ?[ ]u8 and states that do not have a translation
-	err_print(err_internal);
 	return tok_t_error;
 }

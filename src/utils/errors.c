@@ -58,13 +58,70 @@ size_t err_fetch(err_codes code)
  *
  * @param code Kod chyby
  */
-void err_print(err_codes code)
+void err_print(err_codes code, bool message_needed)
 {
-    printf(err_msg[err_fetch(code)].format);
+    if (message_needed)
+        fprintf(stderr, err_msg[err_fetch(code)].format);
     if (code != err_none)
     {
         // ukoncit preklad, uvolnit vsechny zdroje
         memory_ht_dispose(&_memory_table);
         exit(code);
     }
+}
+
+void exit_lexic(char *what)
+{
+    fprintf(stderr, "%s\n", what);
+    err_print(err_lexic, false);
+}
+
+void exit_syntax()
+{
+    err_print(err_syntax, true);
+}
+
+void exit_undef()
+{
+    err_print(err_undef, true);
+}
+
+void exit_param()
+{
+    err_print(err_param, true);
+}
+
+void exit_redef()
+{
+    err_print(err_redef, true);
+}
+
+void exit_ret_val()
+{
+    err_print(err_ret_val, true);
+}
+
+void exit_dt_invalid()
+{
+    err_print(err_dt_invalid, true);
+}
+
+void exit_dt_unknown()
+{
+    err_print(err_dt_unknown, true);
+}
+
+void exit_dt_unused()
+{
+    err_print(err_dt_unused, true);
+}
+
+void exit_semantic()
+{
+    err_print(err_semantic, true);
+}
+
+void _exit_internal()
+{
+    err_print(err_internal, true);
 }
