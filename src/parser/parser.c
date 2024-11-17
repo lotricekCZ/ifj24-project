@@ -60,7 +60,8 @@ DLList sym_list;
 data_t *left_data;
 data_t *right_data;
 data_t *result_data;
-bool cycle_flag = false;
+data_t *param_data;
+data_t *function_data;
 DymString *return_logic;
 char stringBuffer[100] = "\0";
 
@@ -608,8 +609,6 @@ void statement() {
         expect_type(tok_t_semicolon); OK;
         left_data->init = true;
 
-        //TODO: Odvodit typ podle výrazu a kontrola typů
-
         next_token();
         break;
 
@@ -834,10 +833,6 @@ void statement() {
         next_token();
         expect_type(tok_t_semicolon); OK;
 
-        if(!cycle_flag){
-            //chyba -> break mimo cyklus
-        }
-
         next_token();
         break;
 
@@ -856,10 +851,6 @@ void statement() {
 
         next_token();
         expect_type(tok_t_semicolon); OK;
-
-        if(!cycle_flag){
-            //chyba -> continue mimo cyklus
-        }
 
         next_token();
         break;
@@ -924,15 +915,52 @@ void value() {
     } else {
         switch (stored_token->type) {
             case tok_t_null:
+                if(left_data->canNull == false){
+                    //chyba -> přiřazaní null do nenullovatelné hodnoty
+                }
+
                 sprintf(string_buffer_value, "nil@nil");
                 break;
             case tok_t_int: // 1
+                if(left_data->type == DATA_TYPE_INT || left_data->type == DATA_TYPE_DOUBLE){
+                    left_data->init = true;
+                }
+                else if(left_data->type == DATA_TYPE_UND){
+                    left_data->type = DATA_TYPE_INT;
+                    left_data->init = true;
+                }
+                else{
+                    //chyba -> přiřazaní int do špatného datového typu
+                }
+
                 sprintf(string_buffer_value, "int@%i", (int)atoi(stored_token->attribute));
                 break;
             case tok_t_flt: //1.1
+                if(left_data->type == DATA_TYPE_DOUBLE){
+                    left_data->init = true;
+                }
+                else if(left_data->type == DATA_TYPE_UND){
+                    left_data->type = DATA_TYPE_DOUBLE;
+                    left_data->init = true;
+                }   
+                else{
+                    //chyba -> přiřazaní double do špatného datového typu
+                }
+
                 sprintf(string_buffer_value, "float@%a", (float)atof(stored_token->attribute));
                 break;
             case tok_t_bool:
+                if(left_data->type == DATA_TYPE_BOOLEAN){
+                    left_data->init = true;
+                }
+                else if(left_data->type == DATA_TYPE_UND){
+                    left_data->type = DATA_TYPE_BOOLEAN;
+                    left_data->init = true;
+                }
+                else{
+                    //chyba -> přiřazaní bool do špatného datového typu
+                }
+
                 sprintf(string_buffer_value, "bool@%s", stored_token->attribute);
                 break;
 
