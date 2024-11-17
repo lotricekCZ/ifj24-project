@@ -18,6 +18,9 @@
 #include "../utils/errors.h"
 #include "../utils/codegen.h"
 #include "../utils/stack.h"
+#include "../utils/symtable.h"
+#include "../utils/symDLList.h"
+#include "../utils/dymString.h"
 
 
 #define OK if (error != err_none) return
@@ -41,6 +44,15 @@ int counter_global = 0;
 int cycle = -1;
 char string_buffer[MAX_STRING_LENGTH];
 char string_buffer_value[MAX_STRING_LENGTH];
+
+symtable_t * current_symtable;
+DLList sym_list;
+data_t *left_data;
+data_t *right_data;
+data_t *result_data;
+bool cycle_flag = false;
+DymString *return_logic;
+char stringBuffer[100] = "\0";
 
 /*
  * Precedence table
@@ -329,6 +341,9 @@ void prolog() {
     next_token();
     expect_type(tok_t_semicolon); OK;
 
+    // vložení všech built-in funkci do symtable
+    symtable_insert_builtin(current_symtable); //chyba když false
+
     printf(".ifjcode24\n");
 
     printf(format[_comment], "</prolog>");
@@ -338,6 +353,8 @@ void prolog() {
  */
 void function() {
     printf(format[_comment], "<function>");
+    
+    current_symtable = DLL_Insert_last(&sym_list);
 
     expect_type(tok_t_pub); OK; // "pub"
 
@@ -372,6 +389,8 @@ void function() {
 
     expect_type(tok_t_rcbr); OK; // "}"
 
+    DLL_Delete_last(&sym_list);// chyba když false - nepoužitá promněná (u každého)
+
     printf("%s", format[_popframe]);
     printf("%s", format[_return]);
 
@@ -404,11 +423,45 @@ void parameter() {
         printf(format[_defvar], string_buffer);
         printf(format[_pops], string_buffer);
 
+        left_data = symtable_insert(current_symtable, current_token->attribute);
+
         next_token();
         expect_type(tok_t_colon); OK; // ":"
 
         next_token();
         if (current_token->type == tok_t_i32 || current_token->type == tok_t_f64 || current_token->type == tok_t_u8 || current_token->type == tok_t_bool || current_token->type == tok_t_i32_opt || current_token->type == tok_t_f64_opt || current_token->type == tok_t_u8_opt) {
+
+            switch (current_token->type)
+            {
+            case tok_t_i32:
+                left_data->type = DATA_TYPE_INT;
+                break;
+            case tok_t_f64:
+                left_data->type = DATA_TYPE_DOUBLE;
+                break;
+            case tok_t_u8:
+                left_data->type = DATA_TYPE_U8;
+                break;
+            case tok_t_bool:
+                left_data->type = DATA_TYPE_BOOLEAN;
+                break;
+            case tok_t_i32_opt:
+                left_data->type = DATA_TYPE_INT;
+                left_data->canNull = true;
+                break;
+            case tok_t_f64_opt:
+                left_data->type = DATA_TYPE_DOUBLE;
+                left_data->canNull = true;
+                break;
+            case tok_t_u8_opt:
+                left_data->type = DATA_TYPE_U8;
+                left_data->canNull = true;
+                break;
+            
+            default:
+                break;
+            }
+
             next_token();
             parameter_next(); OK;
         } else {
@@ -451,6 +504,10 @@ void body() {
  */
 void statement() {
     printf(format[_comment], "<statement>");
+    bool constFlag = false;
+
+    DLL_Last(&sym_list);
+    current_symtable = DLL_GetCurrent(&sym_list);
 
     switch (current_token->type) {
     case tok_t_unused: //toto se v podstatě nemusí generovat ani kontrolovat
@@ -472,10 +529,20 @@ void statement() {
     case tok_t_sym:
         printf(format[_comment], "<id_option>");
         printf(format[_comment], "</id_option>");
+        //strcat(stringBuffer, current_token->attribute);
         push(&stack_codegen, current_token);
 
         next_token();
         id_statement(); OK;
+        
+        if(left_data != NULL){
+            //TODO: kontrola typů
+        }
+        
+
+        if(left_data->isConst){
+            //chyba -> snaha přiřazení do konstanty
+        }
 
         expect_type(tok_t_semicolon); OK;
 
@@ -483,12 +550,18 @@ void statement() {
         break;
 
     case tok_t_const:
+        constFlag = true;
     case tok_t_var:
         printf(format[_comment], "<prefix>");
         printf(format[_comment], "</prefix>");
 
         next_token();
         expect_type(tok_t_sym); OK; // ID
+
+        left_data = symtable_insert(current_symtable, current_token->attribute); //když null, vnitřní chyba nebo stejný název promněné v jednou bloku
+        
+        if(constFlag)
+            left_data->isConst = true;
 
         sprintf(string_buffer, "LF@%s", current_token->attribute);
         printf(format[_defvar], string_buffer);
@@ -504,7 +577,17 @@ void statement() {
         sprintf(string_buffer, "LF@%s", pop(&stack_codegen)->attribute);
         printf(format[_move], string_buffer, string_buffer_value);
 
+        if(left_data->type == DATA_TYPE_UND){
+            //TODO: Odvození typu podle výrazu
+        }
+        else{
+            //TODO: Kontrola typů
+        }
+
         expect_type(tok_t_semicolon); OK;
+        left_data->init = true;
+
+        //TODO: Odvodit typ podle výrazu a kontrola typů
 
         next_token();
         break;
@@ -525,17 +608,25 @@ void statement() {
         
         printi_condition_jump("if", if_number);
 
+        current_symtable = DLL_Insert_last(&sym_list);
+
         next_token();
         sprintf(string_buffer, "LF@%%if%i", if_number);
         not_null_value(); OK;
 
         then(); OK;
+
         sprintf(string_buffer, "*$if%i", if_number);
         printf(format[_jump], string_buffer);
 
         sprintf(string_buffer, "!$if%i", if_number);
         printf(format[_label], string_buffer);
+
+        DLL_Delete_last(&sym_list);
+
+        current_symtable = DLL_Insert_last(&sym_list);
         else_then(); OK;
+        DLL_Delete_last(&sym_list);
 
         sprintf(string_buffer, "*$if%i", if_number);
         printf(format[_label], string_buffer);
@@ -565,18 +656,29 @@ void statement() {
 
         printi_condition_jump("while", while_number);
 
+        current_symtable = DLL_Insert_last(&sym_list);
+
         next_token();
         sprintf(string_buffer, "LF@%%while%i", while_number);
         not_null_value(); OK;
 
+        cycle_flag = true;
         then(); OK;
+        cycle_flag = false;
+
         sprintf(string_buffer, "*$while%i", while_number);
         printf(format[_jump], string_buffer);
 
         sprintf(string_buffer, "!$while%i", while_number);
         printf(format[_label], string_buffer);
         cycle = previous_cycle_while;
+
+        current_symtable = DLL_Insert_last(&sym_list);
+
         else_then(); OK;
+        DLL_Delete_last(&sym_list);
+
+        DLL_Delete_last(&sym_list);
 
         sprintf(string_buffer, "&$while%i", while_number);
         printf(format[_label], string_buffer);
@@ -594,6 +696,25 @@ void statement() {
         next_token();
         expect_type(tok_t_sym); OK;
         push(&stack_codegen, current_token);
+        
+        // semantic condition check for
+
+        while(sym_list.current != sym_list.first){
+            left_data = symtable_get_item(current_symtable, current_token->attribute);
+            if(left_data == NULL){
+                DLL_Prev(&sym_list);
+                current_symtable = DLL_GetCurrent(&sym_list);
+            }
+            else{
+                if(left_data->type != DATA_TYPE_U8 || left_data->type != DATA_TYPE_STRING){
+                    // použitý špatný datový typ
+                }
+            }
+        }
+
+        if(sym_list.current == sym_list.first){
+            // neexistující promněná
+        }
 
         next_token();
         sprintf(string_buffer, "LF@%%forcounter%i", for_number);
@@ -606,6 +727,8 @@ void statement() {
         id_continue(); OK;
 
         expect_type(tok_t_rpa); OK;
+
+        current_symtable = DLL_Insert_last(&sym_list);
        
         next_token();
         expect_type(tok_t_alias); OK;
@@ -641,12 +764,20 @@ void statement() {
 
         printf("JUMPIFEQ !$for%i %s nil@nil\n", for_number, string_buffer);
 
+        left_data = symtable_insert(current_symtable, current_token->attribute);
+        left_data->type = DATA_TYPE_INT;
+        left_data->init = true;
+
         next_token();
         expect_type(tok_t_alias); OK;
 
         next_token();
+
+        cycle_flag = true;
         then(); OK;
-        
+        cycle_flag = false;
+        DLL_Delete_last(&sym_list);
+
         sprintf(string_buffer, "*$for%i", for_number);
         printf(format[_jump], string_buffer);
 
@@ -654,6 +785,9 @@ void statement() {
         printf(format[_label], string_buffer);
 
         cycle = previous_cycle_for;
+
+        cycle_flag = false;
+        DLL_Delete_last(&sym_list);
         break;
 
     case tok_t_return:
@@ -681,6 +815,10 @@ void statement() {
         next_token();
         expect_type(tok_t_semicolon); OK;
 
+        if(!cycle_flag){
+            //chyba -> break mimo cyklus
+        }
+
         next_token();
         break;
 
@@ -700,6 +838,10 @@ void statement() {
         next_token();
         expect_type(tok_t_semicolon); OK;
 
+        if(!cycle_flag){
+            //chyba -> continue mimo cyklus
+        }
+
         next_token();
         break;
 
@@ -710,16 +852,34 @@ void statement() {
 
     printf(format[_comment], "</statement>");
 }
+
 void id_statement() {
     printf(format[_comment], "<id_statement>");
 
     if (current_token->type == tok_t_ass) {
+        while(sym_list.current != sym_list.first){
+            left_data = symtable_get_item(current_symtable, stringBuffer);
+            if (left_data == NULL){        
+                DLL_Prev(&sym_list);
+                current_symtable = DLL_GetCurrent(&sym_list);
+            }
+            else{
+                break;
+            } 
+        }
+
+        if(sym_list.current == sym_list.first){
+            // neexistující promněná
+        }
+
         next_token();
+        stringBuffer[0] = '\0';
         value(); OK;
 
         sprintf(string_buffer, "LF@%s", pop(&stack_codegen)->attribute);
         printf(format[_move], string_buffer, string_buffer_value);
     } else {
+        left_data = NULL;
         call(); OK;
 
         next_token();
@@ -891,8 +1051,16 @@ void call() {
     if (current_token->type == tok_t_dot) { //a.a()
         pop(&stack_codegen);
 
+        strcat(stringBuffer, ".");
         next_token();
         expect_type(tok_t_sym); OK;
+        strcat(stringBuffer, current_token->attribute);
+        current_symtable = DLL_GetFirst(&sym_list);
+        right_data = symtable_get_item(current_symtable, stringBuffer);
+        current_symtable = DLL_GetLast(&sym_list);
+        if(right_data == NULL){
+            // chyba funkce neexistuje
+        }
 
         push(&stack_codegen, current_token);
 
@@ -901,12 +1069,18 @@ void call() {
 
         next_token();
         call_params(); OK;
-
         expect_type(tok_t_rpa); OK;
 
         sprintf(string_buffer, "$$$%s", pop(&stack_codegen)->attribute);
     } else { //a()
         expect_type(tok_t_lpa); OK;
+
+        current_symtable = DLL_GetFirst(&sym_list);
+        right_data = symtable_get_item(current_symtable, stringBuffer);
+        current_symtable = DLL_GetLast(&sym_list);
+        if(right_data == NULL){
+            // chyba funkce neexistuje
+        }
 
         next_token();
         call_params(); OK;
@@ -917,6 +1091,7 @@ void call() {
     }
     printf(format[_call], string_buffer);
 
+    stringBuffer[0] = '\0';
     printf(format[_comment], "</call>");
 }
 /*
@@ -963,6 +1138,8 @@ void call_value() {
         strcpy(string_buffer_value, current_token->attribute);
         push(&stack_codegen, current_token);
 
+        DymString_Insert_Char(right_data->parameters, 's');
+
         next_token();
     } else {
         value(); OK;
@@ -999,6 +1176,43 @@ void type() {
 
     expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
+    switch (current_token->type)    // přiřazení typu funkce
+                {
+                case tok_t_i32:
+                    left_data->type = DATA_TYPE_INT;
+                    break;
+
+                case tok_t_f64:
+                    left_data->type = DATA_TYPE_DOUBLE;
+                    break;
+
+                case tok_t_u8:
+                    left_data->type = DATA_TYPE_U8;
+                    break;
+
+                case tok_t_bool:
+                    left_data->type = DATA_TYPE_BOOLEAN;
+                    break;
+                
+                case tok_t_i32_opt:
+                    left_data->type = DATA_TYPE_INT;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_f64_opt:
+                    left_data->type = DATA_TYPE_DOUBLE;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_u8_opt:
+                    left_data->type = DATA_TYPE_U8;
+                    left_data->canNull = true;
+                    break;
+                
+                default:    //nemůže nastat kdyžtak chyba nevjem
+                    break;
+                }
+
     printf(format[_comment], "</type>");
 }
 
@@ -1027,6 +1241,8 @@ void parse_fn_first() {
             next_token_initial(); OK;
             expect_type(tok_t_sym); OK;
 
+            left_data = symtable_insert(current_symtable, current_token->attribute); // když vrátí NULL chyba
+            
             next_token_initial(); OK;
             expect_type(tok_t_lpa); OK; // (
 
@@ -1040,6 +1256,8 @@ void parse_fn_first() {
                 next_token_initial(); OK;
                 expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
+                symtable_insert_params(left_data, current_token->type); //když false chyba
+                
                 next_token_initial(); OK;
             }
             
@@ -1055,11 +1273,54 @@ void parse_fn_first() {
                 next_token_initial(); OK;
                 expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
+                symtable_insert_params(left_data, current_token->type); // když false chyba
+
                 next_token_initial(); OK;
             }
             
             next_token_initial(); OK;
-            expect_types(8, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt, tok_t_void); OK;
+            expect_types(8, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_void, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
+
+            switch (current_token->type)    // přiřazení typu funkce
+                {
+                case tok_t_i32:
+                    left_data->type = DATA_TYPE_INT;
+                    break;
+
+                case tok_t_f64:
+                    left_data->type = DATA_TYPE_DOUBLE;
+                    break;
+
+                case tok_t_u8:
+                    left_data->type = DATA_TYPE_U8;
+                    break;
+
+                case tok_t_bool:
+                    left_data->type = DATA_TYPE_BOOLEAN;
+                    break;
+                
+                case tok_t_i32_opt:
+                    left_data->type = DATA_TYPE_INT;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_f64_opt:
+                    left_data->type = DATA_TYPE_DOUBLE;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_u8_opt:
+                    left_data->type = DATA_TYPE_U8;
+                    left_data->canNull = true;
+                    break;
+
+                case tok_t_void:
+                    left_data->type = DATA_TYPE_VOID;
+                    break;
+                
+                default:    //nemůže nastat kdyžtak chyba nevjem
+                    break;
+                }
         }
         next_token_initial(); OK;
     }
@@ -1072,6 +1333,10 @@ void parse_fn_first() {
  * Function to parse the source code
  */
 void parse() {
+    // init dll and symtable
+    DLL_Init(&sym_list);
+    current_symtable = DLL_Insert_last(&sym_list);
+
     // Parse the source code for the first time.
     parse_fn_first();
 
@@ -1081,5 +1346,6 @@ void parse() {
 
         // Start parsing second time from the <program> non-terminal.
         program();
+        DLL_Destroy(&sym_list);
     }
 }

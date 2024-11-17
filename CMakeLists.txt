@@ -31,7 +31,7 @@ target_compile_definitions(dll_trad PUBLIC DLL_TRAD)
 
 target_link_libraries(scanner token scan_state keyword token_dll)
 # target_link_libraries(scanner parser)
-target_link_libraries(ifj2024 errors token scanner parser codegen stack)
+target_link_libraries(ifj2024 errors token scanner parser codegen stack symtable sym_dll dym_string)
 
 # Enable testing
 enable_testing()
