@@ -107,6 +107,7 @@ data_t *symtable_insert(symtable_t *symtable, char *name){
     new_item->data.canNull = false;
     new_item->data.isConst = false;
     new_item->data.used = false;
+    new_item->data.generatedId = NULL;
     new_item->next = NULL;
 
     //printf("Inserted %s\n", new_item->data.id);
@@ -207,6 +208,10 @@ bool symtable_destroy(symtable_t *symtable){
         {
             DymString_Destroy(item->data.parameters);
             free(item->data.parameters);
+        }
+
+        if (item->data.generatedId != NULL) {
+            free(item->data.generatedId);
         }
 
         free(item);

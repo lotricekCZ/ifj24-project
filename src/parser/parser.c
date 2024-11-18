@@ -175,6 +175,7 @@ void parse_expression() {
             paren_count++;
             push(&stack, current_token);
             break;
+            
         case tok_t_int: //1
             if(left_data->type == DATA_TYPE_INT || left_data->type == DATA_TYPE_DOUBLE){
                 left_data->init = true;
@@ -189,6 +190,7 @@ void parse_expression() {
             postfix[postfix_index++] = current_token;
             next_token();
             break;
+
         case tok_t_flt: //1.0
             if(left_data->type == DATA_TYPE_DOUBLE){
                 left_data->init = true;
@@ -278,6 +280,7 @@ void parse_expression() {
     while (!isEmpty(&stack)) {
         postfix[postfix_index++] = pop(&stack);
     }
+
     printi_postfix(&string_tmp, postfix, postfix_index);
     //print_postfix(postfix, postfix_index);
     printi(format[_comment], "</expression>");

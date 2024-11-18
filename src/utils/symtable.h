@@ -39,6 +39,7 @@ typedef struct data_t
     bool canNull;          // nullability
     bool isConst;          // konstanta
     bool used;             // použití
+    char* generatedId;     // generovaný identifikátor
 } data_t;
 
 /**

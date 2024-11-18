@@ -1,8 +1,7 @@
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    var x = 1.0 + ifj.i2f(tes());
-    ifj.write(x);
+    var x = 1.0;
     // x = ifj.readi32();
     // if (x == 2) {
     //     var o = 3 + 6;
