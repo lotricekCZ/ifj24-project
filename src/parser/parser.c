@@ -180,6 +180,7 @@ void parse_expression(Token_ptr stored_token) {
         } 
         // Operand handling (čísla, symboly, premenné)
         else if (token_to_use->type == tok_t_int || token_to_use->type == tok_t_flt || token_to_use->type == tok_t_sym) {
+            //TODO: kontrola typů
             postfix[postfix_index++] = token_to_use;
         } 
         // Operator handling
@@ -680,9 +681,7 @@ void statement() {
         sprintf(string_buffer, "LF@%%while%i", while_number);
         not_null_value(); OK;
 
-        cycle_flag = true;
         then(); OK;
-        cycle_flag = false;
 
         sprintf(string_buffer, "*$while%i", while_number);
         printi(format[_jump], string_buffer);
@@ -789,9 +788,8 @@ void statement() {
 
         next_token();
 
-        cycle_flag = true;
         then(); OK;
-        cycle_flag = false;
+
         DLL_Delete_last(&sym_list);
 
         sprintf(string_buffer, "*$for%i", for_number);
@@ -802,7 +800,6 @@ void statement() {
 
         cycle = previous_cycle_for;
 
-        cycle_flag = false;
         DLL_Delete_last(&sym_list);
         break;
 
@@ -912,6 +909,7 @@ void value() {
         printi(format[_pops], string_buffer_value);
     } else {
         switch (stored_token->type) {
+            //TODO: rozlišit jestli přiřazení nebo parametr nebo return nebo podmínka
             case tok_t_null:
                 if(left_data->canNull == false){
                     //chyba -> přiřazaní null do nenullovatelné hodnoty
