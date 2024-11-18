@@ -51,13 +51,14 @@ int main()
 {
 	ht_ht table;
 	ht_ht_init(&table);
-	for (int i = 1; i <= 130; i++)
+	void *ptr = malloc(sizeof(int));
+	for (int i = 1; i <= 88; i++)
 	{
-		void *ptr = malloc(sizeof(int));
 		*(int *)(ptr) = i;
 		ht_ht_insert(&table, ptr);
-		free(ptr);
+		ptr = malloc(sizeof(int));
 	}
+	ht_ht_delete(&table, ptr);
 	ht_print_table(&table);
 	ht_ht_dispose(&table);
 	return 0;

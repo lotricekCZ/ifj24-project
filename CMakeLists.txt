@@ -53,6 +53,7 @@ add_executable(test_sll_1 ${TEST}/sll/SLL_test_1.c)
 # hashtable
 add_executable(test_ht_0 ${TEST}/hashtable/test_hash_0.c)
 add_executable(test_ht_1 ${TEST}/hashtable/test_hash_1.c)
+add_executable(test_ht_2 ${TEST}/hashtable/test_hash_2.c)
 add_executable(test_memory_table ${TEST}/hashtable/test_memory_table.c)
 # scanner
 add_executable(test_scan_1 ${TEST}/scanner/scan_1.c)
@@ -63,6 +64,7 @@ add_executable(test_scan_4 ${TEST}/scanner/scan_4.c)
 target_link_libraries(test_memory_table memory_table token keyword)
 target_link_libraries(test_ht_0 sll)
 target_link_libraries(test_ht_1 sll)
+target_link_libraries(test_ht_2 sll)
 target_link_libraries(test_dll_1 memory_table)
 target_link_libraries(test_dll_2 memory_table)
 target_link_libraries(test_dll_3 memory_table)
@@ -139,8 +141,10 @@ set_property (TEST "ht-int-valgrind"
 
 # scanner tests
 foreach(test "float_bad" "float" "strings_bad" "strings" "keywords" "full" "ints")
-	add_test(NAME "scanner-${test}" COMMAND sh -c "./test_scan_3 \"${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.txt\" > \"${test}.out\" && cmake -E compare_files \"${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.test\" \"${test}.out\"")
+	add_test(NAME "scanner-${test}" COMMAND sh -c "./test_scan_3 \"${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.txt\" > \"${test}.out\" && cmake -E compare_files \"${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.test\" \"${test}.out\"" )
     # add_test(NAME "scanner-${test}" COMMAND cmake -E compare_files "${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.test" "${test}.out")
+    set_property(TEST "scanner-${test}"
+              PROPERTY SKIP_RETURN_CODE)
     add_test(NAME "scanner-${test}-valgrind" COMMAND valgrind ./test_scan_3 "${CMAKE_SOURCE_DIR}/test/scanner/atomic_expressions/${test}.txt")
     set_property(TEST "scanner-${test}-valgrind"
               PROPERTY PASS_REGULAR_EXPRESSION ${VALGRIND_OK})

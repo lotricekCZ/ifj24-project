@@ -65,3 +65,10 @@ void ifree(void *ptr)
 	else
 		free(ptr);
 }
+void *irealloc(void *ptr, size_t size)
+{
+	void *newptr = realloc(ptr, size);
+	if (safe_memory)
+		memory_ht_insert(&_memory_table, newptr);
+	return newptr;
+}

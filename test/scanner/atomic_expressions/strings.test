@@ -6,5 +6,7 @@ ijkl\nmno
    2 | tok_t_str            | 28 |               |	help\x55
    3 | tok_t_str            | 28 |               |	help\x55\n\t\r
    4 | tok_t_str            | 28 |               |	
-   5 | tok_t_error          | 62 |               |	\\ ss
-\\\
+   5 | tok_t_mstr           | 29 |               |	ss
+!
+
+   6 | tok_t_eof            | 55 |               |	

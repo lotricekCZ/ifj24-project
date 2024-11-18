@@ -18,6 +18,7 @@ void memt_deinit(void **src);
 bool memt_comp(void *src, void *other);
 void memt_deinit(void **src);
 void *imalloc(size_t size);
+void *irealloc(void *ptr, size_t size);
 void ifree(void *ptr);
 _HASHTABLE(MEMORY_TABLE_SIZE, memory, void *, void *)
 

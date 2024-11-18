@@ -329,9 +329,9 @@ Scanner_ptr scn_init(char *filename)
 	}
 	scanner->source_size = strlen(scanner->source);
 	scanner->source_index = 0;
-  scanner->source_line = 0;
-  
-  scanner->line = 1;
+	scanner->source_line = 0;
+
+	scanner->line = 1;
 	scanner->is_scanned = false;
 	scanner->list = tok_dll_init();
 
@@ -648,8 +648,7 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 	char *result = malloc(sizeof(char) * (index - scanner->source_index + 1));
 	if (result == NULL)
 	{
-		// TODO: handle error
-		return NULL;
+		exit_internal();
 	}
 	memset(result, 0, index - scanner->source_index + 1);
 
@@ -661,8 +660,8 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 			char *endline = strchr(startline + 1, '\n');
 			if (endline == NULL)
 			{				  // means there is no ENDLINE => error
-				free(result); // TODO: handle error properly
-				return NULL;
+				free(result);
+				exit_internal();
 			}
 			size_t len = endline - startline;
 			memcpy(result + strlen(result), startline + 2 + (startline[2] == ' '), len - 2 - (startline[2] == ' '));
@@ -675,6 +674,8 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 		}
 	}
 	result = realloc(result, strlen(result) + 1);
+	if (safe_memory)
+		memory_ht_insert(&_memory_table, result);
 	return result;
 }
 
@@ -698,12 +699,7 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 		while (has_match)
 		{
 			Scan_path *path = high < scanner->source_size ? sca_n_has_match(node, scanner->source[high]) : NULL;
-      if ((scanner->source[high] == '\n'))
-      {
-        scanner->line++;
-        scanner->source_line = high + 1;
-      }
-      if (path != NULL)
+			if (path != NULL)
 			{
 				node = path->to;
 				high++;
@@ -711,6 +707,11 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				{
 					scanner->source_index = high;
 				}
+			if ((scanner->source[high] == '\n'))
+			{
+				scanner->line++;
+				scanner->source_line = high + 1;
+			}
 			}
 			else
 			{
@@ -739,17 +740,17 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				tok_dll_push_back(scanner->list, *token);
 				if (type != tok_t_eof)
 				{
-					free(token_text);
+					ifree(token_text);
 				}
 				else
 				{
 					scanner->is_scanned = true;
 				}
-        if (type == tok_t_error)
-        {
-          char *message = scn_compose_message(scanner);
-          exit_lexic(message);
-        }
+				if (type == tok_t_error)
+				{
+					char *message = scn_compose_message(scanner);
+					exit_lexic(message);
+				}
 				return token;
 			}
 		}

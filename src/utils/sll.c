@@ -184,14 +184,14 @@
 			if (safe_memory)                                             \
 			{                                                            \
 				if (deallocate == nothing)                               \
-					free(temp->ptr);                                     \
-				free(temp);                                              \
+					free(target->ptr);                                   \
+				free(target);                                            \
 			}                                                            \
 			else                                                         \
 			{                                                            \
 				if (deallocate == nothing)                               \
-					free(temp->ptr);                                     \
-				free(temp);                                              \
+					free(target->ptr);                                     \
+				free(target);                                              \
 			}                                                            \
 			sll->currentLength--;                                        \
 		}                                                                \
@@ -294,7 +294,7 @@
 	{                                                    \
 		return sll->activeElement != NULL;               \
 	}
-	
+
 /**
  * @brief Vrati prvek na zacatku seznamu
  *
