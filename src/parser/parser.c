@@ -758,9 +758,9 @@ void statement() {
         sprintf(string_buffer, "LF@%%while%i", while_number);
         not_null_value(); OK;
 
-        cycle_flag = true;
+        //cycle_flag = true;
         then(); OK;
-        cycle_flag = false;
+        //cycle_flag = false;
 
         sprintf(string_buffer, "*$while%i", while_number);
         printi(format[_jump], string_buffer);
@@ -867,9 +867,9 @@ void statement() {
 
         next_token();
 
-        cycle_flag = true;
+        //cycle_flag = true;
         then(); OK;
-        cycle_flag = false;
+        //cycle_flag = false;
         DLL_Delete_last(&sym_list);
 
         sprintf(string_buffer, "*$for%i", for_number);
@@ -880,7 +880,7 @@ void statement() {
 
         cycle = previous_cycle_for;
 
-        cycle_flag = false;
+        //cycle_flag = false;
         DLL_Delete_last(&sym_list);
         break;
 
