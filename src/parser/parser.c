@@ -60,7 +60,8 @@ DLList sym_list;
 data_t *left_data;
 data_t *right_data;
 data_t *result_data;
-bool cycle_flag = false;
+data_t *param_data;
+data_t *function_data;
 DymString *return_logic;
 char stringBuffer[100] = "\0";
 
@@ -175,9 +176,54 @@ void parse_expression() {
             push(&stack, current_token);
             break;
         case tok_t_int: //1
+            if(left_data->type == DATA_TYPE_INT || left_data->type == DATA_TYPE_DOUBLE){
+                left_data->init = true;
+            }
+            else if(left_data->type == DATA_TYPE_UND){
+                left_data->type = DATA_TYPE_INT;
+                left_data->init = true;
+            }
+            else{
+                //chyba -> přiřazaní int do špatného datového typu
+            }
+            postfix[postfix_index++] = current_token;
+            next_token();
+            break;
         case tok_t_flt: //1.0
+            if(left_data->type == DATA_TYPE_DOUBLE){
+                left_data->init = true;
+            }
+            else if(left_data->type == DATA_TYPE_UND){
+                left_data->type = DATA_TYPE_DOUBLE;
+                left_data->init = true;
+            }   
+            else{
+                //chyba -> přiřazaní double do špatného datového typu
+            }
+            postfix[postfix_index++] = current_token;
+            next_token();
+            break;
         case tok_t_bool: // true
+            if(left_data->type == DATA_TYPE_BOOLEAN){
+                left_data->init = true;
+            }
+            else if(left_data->type == DATA_TYPE_UND){
+                left_data->type = DATA_TYPE_BOOLEAN;
+                left_data->init = true;
+            }
+            else{
+                    //chyba -> přiřazaní bool do špatného datového typu
+            }
+            postfix[postfix_index++] = current_token;
+            next_token();
+            break;
         case tok_t_null: // null
+            if(left_data->canNull == false){
+                //chyba -> přiřazaní null do nenullovatelné hodnoty
+            }
+            postfix[postfix_index++] = current_token;
+            next_token();
+            break;
         case tok_t_unreach: // unreachable
             postfix[postfix_index++] = current_token;
             next_token();
@@ -639,8 +685,6 @@ void statement() {
         expect_type(tok_t_semicolon); OK;
         left_data->init = true;
 
-        //TODO: Odvodit typ podle výrazu a kontrola typů
-
         next_token();
         break;
 
@@ -865,10 +909,6 @@ void statement() {
         next_token();
         expect_type(tok_t_semicolon); OK;
 
-        if(!cycle_flag){
-            //chyba -> break mimo cyklus
-        }
-
         next_token();
         break;
 
@@ -887,10 +927,6 @@ void statement() {
 
         next_token();
         expect_type(tok_t_semicolon); OK;
-
-        if(!cycle_flag){
-            //chyba -> continue mimo cyklus
-        }
 
         next_token();
         break;
