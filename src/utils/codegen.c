@@ -124,6 +124,7 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index) {
             case tok_t_null:
                 str_append(string, format[_pushs], "nil@nil");
                 break;
+            case tok_t_as:
             case tok_t_int:
                 sprintf(buffer, "int@%i", atoi(postfix[index]->attribute));
                 str_append(string, format[_pushs], buffer);
@@ -135,6 +136,9 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index) {
             case tok_t_bool:
                 sprintf(buffer, "bool@%s", postfix[index]->attribute);
                 str_append(string, format[_pushs], buffer);
+                break;
+            case tok_t_unreach:
+                str_append(string, format[_pushs], "string@panic:\032reached\032unreachable\032code");
                 break;
             case tok_t_sym:
                 sprintf(buffer, "LF@%s", postfix[index]->attribute);
@@ -150,7 +154,38 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index) {
                 str_append(string, "%s", format[_muls]);
                 break;
             case tok_t_divide:
-                str_append(string, "%s", format[_divs]);
+                //str_append(string, "%s", format[_divs]);
+                printf("\
+CREATEFRAME\n\
+PUSHFRAME\n\
+DEFVAR TF@%%1\n\
+POPS TF@%%1\n\
+DEFVAR TF%%type1\n\
+TYPE TF@%%type1 TF@%%1\n\
+JUMPIFEQ $$$$divs_float TF@%%type1 string@float\n\
+JUMPIFEQ $$$$divs_int TF@%%type1 string@int\n\
+JUMP $$$$divs_error\n\
+LABEL $$$$divs_float\n\
+JUMPIFEQS $$$$divs_error TF@%%1 float@0x0p+0\n\
+JUMP $$$$divs_ok\n\
+JUMPIFEQS $$$$divs_error TF@%%1 int@0\n\
+LABEL $$$$divs_ok\n\
+DEFVAR TF@%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type0\n\
+TYPE TF@%%type0 TF@%%0\n\
+JUMPIFNEQ $$$$divs_uncompatible TF@%%type0 TF@%%type1\n\
+PUSHS TF@%%0\n\
+PUSHS TF@%%1\n\
+DIVS\n\
+JUMP $$$$divs_end\n\
+LABEL $$$$divs_uncompatible\n\
+EXIT int@7\n\
+JUMP $$$$divs_end\n\
+LABEL $$$$divs_error\n\
+EXIT int@57\n\
+LABEL $$$$divs_end\n\
+POPFRAME\n");
                 break;
             case tok_t_eq:
                 str_append(string, "%s", format[_eqs]);
@@ -182,6 +217,48 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index) {
             case tok_t_not:
                 str_append(string, "%s", format[_nots]);
                 break;
+            case tok_t_orelse: //přetypovávat???
+                str_append(string, "\
+CREATEFRAME\n\
+PUSHFRAME\n\
+DEFVAR TF@%%1\n\
+POPS TF@%%1\n\
+DEFVAR TF%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type\n\
+TYPE TF@%%type TF@%%0\n\
+JUMPIFEQ $$$$orelse TF@%%type string@nil\n\
+PUSHS TF@%%0\n\
+JUMP $$$$orelse_end\n\
+LABEL $$$$orelse\n\
+TYPE TF@%%type TF@%%1\n\
+JUMPIFEQ $$$$orelse_nil TF@%%type string@nil\n\
+JUMPIFEQ $$$$orelse_unreachable TF@%%type string@string\n\
+PUSHS TF@%%1\n\
+JUMP $$$$orelse_end\n\
+LABEL $$$$orelse_unreachable\n\
+WRITE TF@%%1\n\
+LABEL $$$$orelse_nil\n\
+EXIT int@57\n\
+LABEL $$$$orelse_end\n\
+POPFRAME\n");
+                break;
+            // case tok_t_dotquest:
+            //     printi_postfix(string, "\
+            //     CREATEFRAME\n\
+            //     PUSHFRAME\n\
+            //     DEFVAR TF@%%0\n\
+            //     POPS TF@%%0\n\
+            //     DEFVAR TF@%%type\n\
+            //     TYPE TF@%%type TF@%%0\n\
+            //     JUMPIFEQ $$$$dotquest_nil TF@%%type string@nil\n\
+            //     PUSHS TF@%%0\n\
+            //     JUMP $$$$dotquest_end\n\
+            //     LABEL $$$$dotquest_nil\n\
+            //     EXIT int@57\n\
+            //     LABEL $$$$dotquest_end\n\
+            //     POPFRAME\n");
+            //     break;
             default:
                 break;
         }
