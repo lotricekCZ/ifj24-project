@@ -59,7 +59,7 @@ token_type pop_operator(token_type* operator_stack, int* operator_top);
 void push_operand(Token_ptr operand, Token_ptr* operand_stack, int* operand_top);
 Token_ptr pop_operand(Token_ptr* operand_stack, int* operand_top);
 char get_precedence_relation(token_type stack_top, token_type current);
-void parse_expression(Token_ptr stored_token);
+void parse_expression();
 
 void parse();
 void parse_fn_first();

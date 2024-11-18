@@ -182,7 +182,7 @@ int main(int argc, char **argv)
 			tok_free(element);
 		element = scn_scan(scanner);
 		Token_ptr element2 = scn_next(scanner);
-		printf("%4d | %2d |%14s |\t%s\n\n", i++, element2->type, kw_get_lexeme(element2->type) != NULL ? kw_get_lexeme(element2->type) : "", element2->attribute != NULL ? element->attribute : "");
+		printf("%4ld | %2d |%14s |\t%s\n\n", i++, element2->type, kw_get_lexeme(element2->type) != NULL ? kw_get_lexeme(element2->type) : "", element2->attribute != NULL ? element->attribute : "");
 	} while (element->type != tok_t_eof);
 	tok_free(element);
 	scn_free(scanner);

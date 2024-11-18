@@ -142,7 +142,7 @@ void print_postfix(Token_ptr *postfix, int postfix_index) {
 /* 
  * Function to parse the expression
  */
-void parse_expression(Token_ptr stored_token) {
+void parse_expression() {
     printi(format[_comment], "<expression>");
 
     Stack stack;
@@ -150,20 +150,16 @@ void parse_expression(Token_ptr stored_token) {
 
     Token_ptr postfix[MAX];
     int postfix_index = 0;
-
-    bool first_iteration = true;
     int paren_count = 0;  // Na sledovanie počtu otvorených zátvoriek
-
-    while (current_token->type != tok_t_semicolon) {
-        Token_ptr token_to_use = first_iteration ? stored_token : current_token;
-
-        // TO-DO: Implement functions for precedence parsing
-
-        // Ak je to pravá zátvorka
-        if (token_to_use->type == tok_t_rpa) {
+    bool expression_continue = true;
+    while (current_token->type != tok_t_semicolon && current_token->type != tok_t_com && expression_continue) {
+        //TODO: Implement functions for precedence parsing
+        switch (current_token->type) {
+        case tok_t_rpa: // )
             paren_count--;
             // Ak máme 0 zátvoriek, skončíme spracovanie
             if (paren_count <= 0) {
+                expression_continue = false;
                 break;  // Končíme spracovanie podmienky
             }
             // Inak pokračujeme v spracovaní výrazu
@@ -171,28 +167,64 @@ void parse_expression(Token_ptr stored_token) {
                 postfix[postfix_index++] = pop(&stack);
             }
             pop(&stack); // Discard the left parenthesis
-        } 
-        // Ak je to ľavá zátvorka, zvýšime počet zátvoriek 
-        else if (token_to_use->type == tok_t_lpa) { 
+            next_token();
+            break;
+        
+        case tok_t_lpa: // (
             paren_count++;
-            push(&stack, token_to_use);
-        } 
-        // Operand handling (čísla, symboly, premenné)
-        else if (token_to_use->type == tok_t_int || token_to_use->type == tok_t_flt || token_to_use->type == tok_t_sym) {
-            postfix[postfix_index++] = token_to_use;
-        } 
-        // Operator handling
-        else {
-            while (!isEmpty(&stack) && getPrecedence(peek(&stack)->type, token_to_use->type) != '<') {
+            push(&stack, current_token);
+            break;
+        case tok_t_int: //1
+        case tok_t_flt: //1.0
+        case tok_t_bool: // true
+        case tok_t_null: // null
+        case tok_t_unreach: // unreachable
+            postfix[postfix_index++] = current_token;
+            next_token();
+            break;
+
+        case tok_t_sym: // id
+            postfix[postfix_index++] = current_token;
+            push(&stack_codegen, current_token);
+            char destination[MAX_STRING_LEN];
+            sprintf(destination, "LF@%s", current_token->attribute);
+
+            next_token();
+            id_continue(); OK;
+
+            printi(format[_defvar], destination);
+            printi(format[_move], destination, string_buffer_value);
+            break;
+        
+        case tok_t_as: // @as
+            next_token();
+            expect_type(tok_t_lpa); OK;
+
+            next_token();
+            expect_type(tok_t_i32); OK;
+
+            next_token();
+            expect_type(tok_t_com); OK;
+
+            next_token();
+            expect_type(tok_t_sym); OK;
+            postfix[postfix_index++] = current_token;
+
+            next_token();
+            expect_type(tok_t_rpa); OK;
+
+            next_token();
+            break;
+
+        default:
+            expect_types(15, tok_t_plus, tok_t_minus, tok_t_times, tok_t_divide, tok_t_not, tok_t_eq, tok_t_neq, tok_t_lt, tok_t_gt, tok_t_leq, tok_t_geq, tok_t_and, tok_t_or, tok_t_not, tok_t_orelse); OK;
+            while (!isEmpty(&stack) && getPrecedence(peek(&stack)->type, current_token->type) != '<') {
                 postfix[postfix_index++] = pop(&stack);
             }
-            push(&stack, token_to_use);
-        }
+            push(&stack, current_token);
 
-        if (first_iteration) {
-            first_iteration = false;
-        } else {
             next_token();
+            break;
         }
     }
 
@@ -548,7 +580,8 @@ void statement() {
     case tok_t_sym:
         printi(format[_comment], "<id_option>");
         printi(format[_comment], "</id_option>");
-        //strcat(stringBuffer, current_token->attribute);
+
+        strcat(stringBuffer, current_token->attribute);
         push(&stack_codegen, current_token);
 
         next_token();
@@ -910,58 +943,12 @@ void id_statement() {
 void value() {
     printi(format[_comment], "<value>");
 
-    Token_ptr stored_token = current_token;
-    next_token();
+    expect_types(6, tok_t_null, tok_t_int, tok_t_flt, tok_t_bool, tok_t_as, tok_t_sym); OK;
 
-    // test for expression
-    if (current_token->type != tok_t_lpa && current_token->type != tok_t_rpa && current_token->type != tok_t_semicolon && current_token->type != tok_t_dot && current_token->type != tok_t_com) {
-        parse_expression(stored_token); OK;
-        sprintf(string_buffer_value, "LF@%%expression%i", counter_codegen_expression++);
-        printi(format[_defvar], string_buffer_value);
-        printi(format[_pops], string_buffer_value);
-    } else {
-        switch (stored_token->type) {
-            case tok_t_null:
-                sprintf(string_buffer_value, "nil@nil");
-                break;
-            case tok_t_int: // 1
-                sprintf(string_buffer_value, "int@%i", (int)atoi(stored_token->attribute));
-                break;
-            case tok_t_flt: //1.1
-                sprintf(string_buffer_value, "float@%a", (float)atof(stored_token->attribute));
-                break;
-            case tok_t_bool:
-                sprintf(string_buffer_value, "bool@%s", stored_token->attribute);
-                break;
-
-            case tok_t_as: // @as
-                expect_type(tok_t_lpa); OK;
-
-                next_token();
-                expect_type(tok_t_i32); OK;
-
-                next_token();
-                expect_type(tok_t_com); OK;
-
-                next_token();
-                expect_type(tok_t_sym); OK;
-                sprintf(string_buffer, "LF@%s", current_token->attribute);
-
-                next_token();
-                expect_type(tok_t_rpa); OK;
-
-                next_token();
-                break;
-
-            case tok_t_sym:
-                push(&stack_codegen, stored_token);
-                id_continue(); OK;
-                break;
-            default:
-                fprintf(stderr, "Syntax error: Expected value, got %s\n", tok_type_to_str(current_token->type));
-                error = err_syntax;
-        }
-    }
+    parse_expression(); OK;
+    sprintf(string_buffer_value, "LF@%%expression%i", counter_codegen_expression++);
+    printi(format[_defvar], string_buffer_value);
+    printi(format[_pops], string_buffer_value);
 
     printi(format[_comment], "</value>");
 }
@@ -1140,6 +1127,7 @@ void call_params() {
             printi("\n");
         } else {
             printi(format[_pushs], source);
+            printi("%s", format[_createframe]);
         }
     }
 
@@ -1155,7 +1143,7 @@ void call_value() {
         strcpy(string_buffer_value, current_token->attribute);
         push(&stack_codegen, current_token);
 
-        //DymString_Insert_Char(right_data->parameters, 's');
+        DymString_Insert_Char(right_data->parameters, 's');
 
         next_token();
     } else {
@@ -1192,7 +1180,7 @@ void type() {
     printi(format[_comment], "<type>");
 
     expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
-
+    
     switch (current_token->type)    // přiřazení typu funkce
                 {
                 case tok_t_i32:
