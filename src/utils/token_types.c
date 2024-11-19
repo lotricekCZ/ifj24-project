@@ -4,6 +4,7 @@
 
 #include "token_types.h"
 #include <stddef.h>
+#include <string.h>
 
 Keyword keywords[] = {
     {tok_t_const, "const"},

@@ -22,29 +22,33 @@ extern int statement_index;
 void print_token();
 void next_token();
 void expect_type(token_type type);
+void expect_types(int count, ...);
 void expect_attribute(const char* attr);
 
 
 // Grammar functions
-int program();
-int prolog();
-int function();
-int function_next();
-int parameter();
-int parameter_next();
-int body();
-int statement();
-int id_statement();
-int value();
-int not_null_value();
-int then();
-int else_then();
-int id_continue();
-int return_value();
+void program();
+void prolog();
+void function();
+void function_next();
+void parameter();
+void parameter_next();
+void body();
+void statement();
+void id_statement();
+void value();
+void not_null_value();
+void then();
+void else_then();
+void id_continue();
+void return_value();
 void call();
 void call_params();
 void call_value();
 void call_params_next();
+void return_type();
+void type();
+void definition();
 
 // Precedence parsing
 extern char precedence_table[17][17];
@@ -55,9 +59,9 @@ token_type pop_operator(token_type* operator_stack, int* operator_top);
 void push_operand(Token_ptr operand, Token_ptr* operand_stack, int* operand_top);
 Token_ptr pop_operand(Token_ptr* operand_stack, int* operand_top);
 char get_precedence_relation(token_type stack_top, token_type current);
-void parse_expression(Token_ptr stored_token);
+void parse_expression();
 
 void parse();
-int parse_fn_first();
+void parse_fn_first();
 
 #endif // PARSER_H

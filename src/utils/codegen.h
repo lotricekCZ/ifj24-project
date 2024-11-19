@@ -7,7 +7,12 @@
 #ifndef INSTRUCTIONS_H
 #define INSTRUCTIONS_H
 
-#define INSTRUCTION_SIZE 56
+#include "token.h"
+#include "str.h"
+
+#define MAX_STRING_LEN 150
+
+#define INSTRUCTION_COUNT 57
 /** Výčet instrukcí strojového kódu */
 typedef enum {
     _move,
@@ -66,10 +71,17 @@ typedef enum {
     _exit,
     _break,
     _dprint,
+    _comment
 } instruction;
 
-char* instructions[INSTRUCTION_SIZE];
+extern const char* format[INSTRUCTION_COUNT];
 
-char *write(instruction, ...);
+void printi_string(str_t* string, char* input_string);
+void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index);
+void printi_defvar(str_t* string, str_t* defvar, const char* source, ...);
+void printi_condition_jump(str_t* string, const char *name, int number);
+void printi_builtin(str_t* string);
+
+//void printi(instruction, ...);
 
 #endif

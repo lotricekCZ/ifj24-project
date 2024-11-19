@@ -3,35 +3,32 @@
  * Vytvořil: Lukáš Šidlík (xsidlil00)
  */
 
-#ifndef SYMDLLIST_H
-#define SYMDLLIST_H
+#ifndef SYMDLLIST
+#define SYMDLLIST
 
 #include "symtable.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 
-#define DLL_TRAD
 /**
  * @struct pro prvek dll seznamu
  */
-typedef struct DLLElement
-{
-    struct symtable_t *symtable; // symbolická tabulka
-    struct DLLElement *next;     // ukazatel na následujíci prvek
-    struct DLLElement *prev;     // ukazatel na predchozí prvek
-} *DLLElementPtr;
+typedef struct DLLElement{
+    symtable_t *symtable;        //symbolická tabulka
+    struct DLLElement *next;            //ukazatel na následujíci prvek
+    struct DLLElement *prev;            //ukazatel na predchozí prvek
+}*DLLElementPtr;
 
 /**
- * @struct pro dll seznam
+ * @struct pro dll seznam   
  */
-typedef struct DLList
-{
-    DLLElementPtr first;   // ukazatel na prvni prvek
-    DLLElementPtr current; // ukazatel na aktivní prvek
-    DLLElementPtr last;    // ukazatel na poslední prvek
-    int length;            // délka seznamu
-} DLList;
+typedef struct DLList{
+    DLLElementPtr first;                //ukazatel na prvni prvek
+    DLLElementPtr current;              //ukazatel na aktivní prvek
+    DLLElementPtr last;                 //ukazatel na poslední prvek
+    int length;                         //délka seznamu
+}DLList;
 
 /**
  * Inicializuje seznam, tzn. nastaví všechny jeho ukazatele na NULL a délku na 0.
@@ -62,7 +59,7 @@ void DLL_Last(DLList *list);
  *
  * @return Vrací true, pokud se operace podařila, jinak false
  */
-bool DLL_Insert_last(DLList *list, symtable_t *symtable);
+symtable_t * DLL_Insert_last(DLList *list);
 
 /**
  * Vrátí první prvek seznamu, nebo NULL, pokud je seznam prázdný.
@@ -70,7 +67,7 @@ bool DLL_Insert_last(DLList *list, symtable_t *symtable);
  * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
  * @return Prvek ze seznamu, nebo NULL
  */
-symtable_t *DLL_GetFirst(DLList *list);
+symtable_t * DLL_GetFirst(DLList *list);
 
 /**
  * Vrátí poslední prvek seznamu, nebo NULL, pokud je seznam prázdný.
@@ -78,7 +75,7 @@ symtable_t *DLL_GetFirst(DLList *list);
  * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
  * @return Poslední prvek ze seznamu, nebo NULL
  */
-symtable_t *DLL_GetLast(DLList *list);
+symtable_t * DLL_GetLast(DLList *list);
 
 /**
  * Vrátí aktuální prvek ze seznamu, nebo NULL, pokud seznam nemá žádný aktivní prvek.
@@ -86,7 +83,7 @@ symtable_t *DLL_GetLast(DLList *list);
  * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
  * @return Aktuální prvek ze seznamu, nebo NULL
  */
-symtable_t *DLL_GetCurrent(DLList *list);
+symtable_t * DLL_GetCurrent(DLList *list);
 
 /**
  * Zruší poslední prvek seznamu list.
@@ -117,9 +114,9 @@ void DLL_Prev(DLList *list);
 
 /**
  * Funkce kontroluje, zda je seznam aktivní.
- *
+ * 
  * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
- *
+ * 
  * @returns Vrací true, pokud je aktuální prvek seznamu nenulový, jinak vrací false.
  */
 bool DLL_isActive(DLList *list);
@@ -133,28 +130,5 @@ bool DLL_isActive(DLList *list);
  */
 bool DLL_Destroy(DLList *list);
 
-/**
- * Nastaví aktivnímu prvku seznamu symtable
- *
- * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
- * @param symtable Ukazatel na symtable, která se má nastavit
- */
-void DLL_Set(DLList *list, symtable_t *symtable);
-
-/**
- * Nastaví symtable prvnímu prvku seznamu.
- *
- * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
- * @param symtable Ukazatel na symtable, který se má nastavit
- */
-void DLL_Set_First(DLList *list, symtable_t *symtable);
-
-/**
- * Nastaví symtable poslednímu prvku seznamu.
- *
- * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
- * @param symtable Ukazatel na symtable, který se má nastavit
- */
-void DLL_Set_Last(DLList *list, symtable_t *symtable);
 
 #endif

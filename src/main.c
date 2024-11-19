@@ -8,11 +8,8 @@
 
 int main(int argc, char *argv[])
 {
-    printf("Hello, World!\n");
-
-
     // Initialize the scanner with the source code file.
-    scanner = scn_init("test/scanner/constructions.zig");
+    scanner = scn_init("../test/scanner/test9.zig");
     if (scanner == NULL) {
         fprintf(stderr, "Failed to initialize scanner.\n");
         return 1;

@@ -15,7 +15,7 @@
  * vystupu. Chybove hlaseni jsou definovany v poli @ref err_msg.
  *
  */
-Err_message err_msg[] = {
+const Err_message err_msg[] = {
     {err_lexic, "lexical error: current lexeme %s is not valid in this context\n"},
     {err_syntax, "syntax error: syntax error or missing header within program file\n"},
     {err_undef, "semantic error: undefined function or variable\n"},
