@@ -32,11 +32,11 @@
 #define SCA_PATH_DECL(src, dest) Scan_path src##_to_##dest;
 #define SCA_PATH_DEF(src, dest, args...) Scan_path src##_to_##dest = {.from = &src, .to = &dest, .matches = NULL, .count = 0};
 #define SCA_PATH_INIT(name, args...)                                              \
-	name.matches = malloc(sizeof((int (*[])(int)){args}));                         \
+	name.matches = imalloc(sizeof((int (*[])(int)){args}));                         \
 	memcpy(name.matches, (int (*[])(int)){args}, sizeof((int (*[])(int)){args})); \
 	name.count = sizeof((int (*[])(int)){args}) / sizeof(int (*)(int));
 #define SCA_PATH_DEINIT(name) \
-	free(name.matches);       \
+	ifree(name.matches);       \
 	name.matches = NULL;
 #define SCA_PATH(src, dest) src##_to_##dest
 
@@ -47,7 +47,7 @@
  * Struktura reprezentuje scanner, ktery se pouziva pro lexikalni
  * analyzu. Struktura obsahuje ukazatel na jmeno souboru, ktery
  * se ma analyzovat a ukazatel na dynamicke pole, kam se budou
- * ukladat tokeny.
+ * ukladat tokeny, dále aktuální řádku a index v zdrojovém textu.
  */
 typedef struct _Scanner
 {
@@ -55,7 +55,9 @@ typedef struct _Scanner
 	tok_dllist *list;
 	char *source;
 	size_t source_index;
+	size_t source_line;
 	size_t source_size;
+	size_t line;
 	bool is_scanned;
 } Scanner;
 
@@ -95,7 +97,7 @@ Token_ptr scn_get_token(Scanner_ptr scanner);
 Token_ptr scn_previous(Scanner_ptr scanner);
 Token_ptr scn_next(Scanner_ptr scanner);
 char *scn_open_file(Scanner_ptr scanner);
-
+char *scn_compose_message(Scanner_ptr scanner);
 // scanner analyze functions, usage restricted to scanner.c
 /// entry function
 // Token_ptr sca_init();

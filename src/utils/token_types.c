@@ -33,6 +33,8 @@ Keyword keywords[] = {
     {tok_t_and, "and"},
     {tok_t_orelse, "orelse"},
     {tok_t_unreach, "unreachable"},
+    {tok_t_true, "true"},
+    {tok_t_false, "false"},
 };
 
 /**
@@ -134,7 +136,9 @@ char *tok_type_to_str(token_type type)
         {tok_t_and, "tok_t_and"},
         {tok_t_orelse, "tok_t_orelse"},
         {tok_t_unreach, "tok_t_unreach"},
-        {tok_t_error, "tok_t_error"}
+        {tok_t_error, "tok_t_error"},
+        {tok_t_true, "tok_t_true"},
+        {tok_t_false, "tok_t_false"}
         };
     for (int i = 0; i < sizeof(all_tokens) / sizeof(Keyword); i++)
     {

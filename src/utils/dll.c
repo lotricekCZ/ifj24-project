@@ -1,5 +1,5 @@
 #include <stdlib.h>
-
+#include "memory_table.h"
 /**
  * @file dll.c
  * @brief Dynamicky alokovany spojovy seznam
@@ -45,7 +45,7 @@
 #define DLL_INIT(name, prefix, element, deallocate)  \
 	prefix##_dllist *prefix##_dll_init()             \
 	{                                                \
-		prefix##_dllist *dll = malloc(sizeof(*dll)); \
+		prefix##_dllist *dll = imalloc(sizeof(*dll)); \
 		if (dll == NULL)                             \
 		{                                            \
 			return NULL;                             \
@@ -72,8 +72,8 @@
 			dll->firstElement = dll->firstElement->next;       \
 			deallocate(temp->ptr);                             \
 			if (deallocate == nothing)                         \
-				free(temp->ptr);                               \
-			free(temp);                                        \
+				ifree(temp->ptr);                               \
+			ifree(temp);                                        \
 		}                                                      \
 		return true;                                           \
 	}
@@ -93,8 +93,8 @@
 			dll->firstElement = dll->firstElement->next;       \
 			deallocate(temp->ptr);                             \
 			if (deallocate == nothing)                         \
-				free(temp->ptr);                               \
-			free(temp);                                        \
+				ifree(temp->ptr);                               \
+			ifree(temp);                                        \
 		}                                                      \
 	}
 #endif
@@ -106,7 +106,7 @@
 		bool cleared = prefix##_dll_clear(dll);        \
 		if (!cleared)                                  \
 			return false;                              \
-		free(dll);                                     \
+		ifree(dll);                                     \
 		return true;                                   \
 	}
 #else
@@ -119,20 +119,20 @@
 	void prefix##_dll_dispose(prefix##_dllist *dll)    \
 	{                                                  \
 		prefix##_dll_clear(dll);                       \
-		free(dll);                                     \
+		ifree(dll);                                     \
 	}
 #endif
 #ifdef DLL_TRAD
 #define DLL_INSERT(name, prefix, element, copy, init, deallocate)                             \
 	bool prefix##_dll_insert(prefix##_dllist *dll, size_t index, element data)                \
 	{                                                                                         \
-		prefix##_dll_element_ptr newElement = malloc(sizeof(struct _##prefix##_dll_element)); \
+		prefix##_dll_element_ptr newElement = imalloc(sizeof(struct _##prefix##_dll_element)); \
 		if (newElement == NULL)                                                               \
 		{                                                                                     \
 			return false;                                                                     \
 		}                                                                                     \
 		if (init == nothing)                                                                  \
-			newElement->ptr = malloc(sizeof(element));                                        \
+			newElement->ptr = imalloc(sizeof(element));                                        \
 		else                                                                                  \
 			init(&newElement->ptr);                                                           \
 		if (newElement->ptr == NULL)                                                          \
@@ -190,13 +190,13 @@
 #define DLL_INSERT(name, prefix, element, copy, init, deallocate)                             \
 	void prefix##_dll_insert(prefix##_dllist *dll, size_t index, element data)                \
 	{                                                                                         \
-		prefix##_dll_element_ptr newElement = malloc(sizeof(struct _##prefix##_dll_element)); \
+		prefix##_dll_element_ptr newElement = imalloc(sizeof(struct _##prefix##_dll_element)); \
 		if (newElement == NULL)                                                               \
 		{                                                                                     \
 			return;                                                                           \
 		}                                                                                     \
 		if (init == nothing)                                                                  \
-			newElement->ptr = malloc(sizeof(element));                                        \
+			newElement->ptr = imalloc(sizeof(element));                                        \
 		else                                                                                  \
 			init(&newElement->ptr);                                                           \
 		if (newElement->ptr == NULL)                                                          \
@@ -266,8 +266,8 @@
 		}                                                            \
 		deallocate(temp->ptr);                                       \
 		if (deallocate == nothing)                                   \
-			free(temp->ptr);                                         \
-		free(temp);                                                  \
+			ifree(temp->ptr);                                         \
+		ifree(temp);                                                  \
 		dll->currentLength--;                                        \
 		return true;                                                 \
 	}
@@ -307,8 +307,8 @@
 		}                                                            \
 		deallocate(temp->ptr);                                       \
 		if (deallocate == nothing)                                   \
-			free(temp->ptr);                                         \
-		free(temp);                                                  \
+			ifree(temp->ptr);                                         \
+		ifree(temp);                                                  \
 		dll->currentLength--;                                        \
 	}
 #endif
@@ -412,7 +412,7 @@
  *
  * Funkce odstrani prvni prvek z  seznamu.
  *
- * @param dll Ukazatel na seznam, z  kter ho se ma prvek odebrat.
+ * @param dll Ukazatel na seznam, ze ktereho se ma prvek odebrat.
  */
 #define DLL_POP_FRONT(name, prefix, element, deallocate) \
 	void prefix##_dll_pop_front(prefix##_dllist *dll)    \
@@ -475,21 +475,54 @@
 	}
 #endif
 
+/**
+ * @brief Posune aktivni prvek na posledni pozici v seznamu
+ *
+ * Funkce posune aktivni prvek na posledni pozici v seznamu.
+ *
+ * @param dll Ukazatel na seznam, v nemz se posunuje aktivni prvek.
+ */
 #define DLL_LAST(name, prefix, element, deallocate) \
 	void prefix##_dll_last(prefix##_dllist *dll)    \
 	{                                               \
 		dll->activeElement = dll->lastElement;      \
 	}
+
+/**
+ * @brief Vrati true, pokud je seznam aktivni
+ *
+ * Funkce vrati true, pokud je seznam aktivni (tj. ma aktivni prvek).
+ * V opacnem pripade vrati false.
+ *
+ * @param dll Ukazatel na seznam, o nemz se ptame.
+ * @return True, pokud je seznam aktivni, jinak false.
+ */
 #define DLL_IS_ACTIVE(name, prefix, element, deallocate) \
 	bool prefix##_dll_is_active(prefix##_dllist *dll)    \
 	{                                                    \
 		return dll->activeElement != NULL;               \
 	}
+/**
+ * @brief Vrati prvni prvek v seznamu
+ *
+ * Funkce vrati prvni prvek v seznamu.
+ *
+ * @param dll Ukazatel na seznam, ze ktereho se hleda prvek.
+ * @return Ukazatel na prvek nebo NULL, pokud je seznam prazdny.
+ */
 #define DLL_FRONT(name, prefix, element, deallocate)                  \
 	prefix##_dll_element_ptr prefix##_dll_front(prefix##_dllist *dll) \
 	{                                                                 \
 		return dll->firstElement;                                     \
 	}
+/**
+ * @brief Vrati posledni prvek v seznamu
+ *
+ * Funkce vrati posledni prvek v seznamu.
+ *
+ * @param dll Ukazatel na seznam, ze ktereho se hleda prvek.
+ * @return Ukazatel na prvek nebo NULL, pokud je seznam prazdny.
+ */
 #define DLL_BACK(name, prefix, element, deallocate)                  \
 	prefix##_dll_element_ptr prefix##_dll_back(prefix##_dllist *dll) \
 	{                                                                \
@@ -505,6 +538,7 @@
 		}                                                      \
 	}
 #else
+
 #define DLL_PREVIOUS(name, prefix, element, deallocate)                  \
 	prefix##_dll_element_ptr prefix##_dll_previous(prefix##_dllist *dll) \
 	{                                                                    \
@@ -516,6 +550,16 @@
 	}
 #endif
 
+/**
+ * @def DLL(name, prefix, element, copy, deallocate)
+ *
+ * @brief Makro pro generovani funkcionalit pro dvojnasobne vazany seznam
+ *
+ * @param prefix Prefix, ktery se ma pouzit u funkci
+ * @param element Typ prvku v seznamu
+ * @param copy Funkce pro kopirovani prvku
+ * @param deallocate Funkce pro uvolneni pameti prvku
+ */
 #define DLL(name, prefix, element, copy, init, deallocate)    \
 	DLL_INIT(name, prefix, element, deallocate)               \
 	DLL_INSERT(name, prefix, element, copy, init, deallocate) \

@@ -19,7 +19,7 @@ typedef enum
 	sca_s_atid,
 
 	sca_s_dt,
-
+	sca_s_orelse_op,
 	sca_s_int,
 	sca_s_intdt,
 	sca_s_intexp,
@@ -44,6 +44,8 @@ typedef enum
 	sca_s_ml5,
 	sca_s_ml6,
 	sca_s_ml_str,
+	sca_s_ml_slash,
+	sca_s_ml_comment,
 
 	sca_s_eof,
 	sca_s_curlybrace_close,
