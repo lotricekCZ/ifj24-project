@@ -613,7 +613,8 @@ void parameter() {
         expect_type(tok_t_colon); OK; // ":"
 
         next_token();
-        type(); OK;
+        bool varOrFunc = false;
+        type(varOrFunc); OK;
 
         next_token();
         parameter_next(); OK;

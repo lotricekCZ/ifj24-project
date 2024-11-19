@@ -8,6 +8,7 @@ err_codes dynamic_array_init(dynamic_array_t* array) {
     }
     array->size = 0;
     array->capacity = 16;
+    return err_none;
 }
 
 err_codes dynamic_array_insert(dynamic_array_t* array, int value) {
@@ -20,6 +21,7 @@ err_codes dynamic_array_insert(dynamic_array_t* array, int value) {
         }
     }
     array->data[array->size++] = value;
+    return err_none;
 }
 
 void dynamic_array_clear(dynamic_array_t* array) {
