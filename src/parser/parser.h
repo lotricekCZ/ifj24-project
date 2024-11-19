@@ -9,6 +9,7 @@
 #include "../utils/token_types.h"
 #include "../scanner/scanner.h"
 #include "../utils/token.h"
+#include "../utils/symtable.h"
 
 // Global variables
 extern Token_ptr current_token;
@@ -17,6 +18,16 @@ extern token_type fn_ret_type;
 extern bool ifj_flag;
 extern bool first_parse_done;
 extern int statement_index;
+
+// Contex enum
+typedef enum {
+    CONTEXT_CONDITION,
+    CONTEXT_NONE,
+    CONTEXT_SYMBOL,
+    CONTEXT_RETURN,
+    CONTEX_PARAM,
+    CONTEXT_CONDITION_FOR
+}context_t;
 
 // Function declarations
 void print_token();
@@ -42,12 +53,12 @@ void then();
 void else_then();
 void id_continue();
 void return_value();
-void call();
+void call(bool is_left);
 void call_params();
 void call_value();
 void call_params_next();
 void return_type();
-void type();
+void type(bool varOrFunc);
 void definition();
 
 // Precedence parsing
