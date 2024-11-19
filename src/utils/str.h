@@ -10,8 +10,8 @@
 // Struktura pro řetězec
 typedef struct {
     char* data;      // Pointer na data
-    size_t length;   // Aktuální délka řetězce
-    size_t capacity; // Kapacita alokované paměti
+    int length;   // Aktuální délka řetězce
+    int capacity; // Kapacita alokované paměti
 } str_t;
 
 void str_init(str_t* string);

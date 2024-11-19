@@ -2,9 +2,10 @@
  * xsidlil00; Lukáš Šidlík
  */
 
-#include "symtable.h"
 #include <stdbool.h>
 #include <string.h>
+#include "symtable.h"
+#include "errors.h"
 
 /**
  * @brief Vypočítá hash pro řetězec pomocí algoritmu djb2.
@@ -73,7 +74,7 @@ data_t *symtable_insert(symtable_t *symtable, char *name){
         return NULL;
     }
 
-    new_item->data.parameters = (DymString *)malloc(sizeof(DymString));
+    new_item->data.parameters = (dynamic_array_t *)malloc(sizeof(dynamic_array_t));
     if (new_item->data.parameters == NULL)
     {
         // vnitřní chyba
@@ -81,8 +82,8 @@ data_t *symtable_insert(symtable_t *symtable, char *name){
         return NULL;
     }
 
-    bool aloc = DymString_Init(new_item->data.parameters);
-    if (!aloc)
+    err_codes aloc = dynamic_array_init(new_item->data.parameters);
+    if (aloc != err_none)
     {
         // vnitřní chyba
         free(new_item->data.parameters);
@@ -141,44 +142,14 @@ bool symtable_insert_params(data_t *data, token_type type){
         return false;
     }
 
-    bool result = false;
-    if (type == tok_t_i32)
-    {
-        result = DymString_Insert_Char(data->parameters, 'i');
-    }
-    else if (type == tok_t_i32_opt)
-    {
-        result = DymString_Insert_Char(data->parameters, 'I');
-    }
-    else if (type == tok_t_f64)
-    {
-        result = DymString_Insert_Char(data->parameters, 'd');
-    }
-    else if (type == tok_t_f64_opt)
-    {
-        result = DymString_Insert_Char(data->parameters, 'D');
-    }
-    else if (type == tok_t_u8)
-    {
-        result = DymString_Insert_Char(data->parameters, 'u');
-    }
-    else if (type == tok_t_u8_opt)
-    {
-        result = DymString_Insert_Char(data->parameters, 'U');
-    }
-    else if (type == tok_t_str)
-    {
-        result = DymString_Insert_Char(data->parameters, 's');
-    }
-    else if (type == tok_t_bool)
-    {
-        result = DymString_Insert_Char(data->parameters, 'b');
-    }
-    else {
-        result = DymString_Insert_Char(data->parameters, 'q'); // pro ifj.write, kde může být víc typů v 1 parametru
+    err_codes result = false;
+    if (type == tok_t_i32 || type == tok_t_i32_opt || type == tok_t_f64 || type == tok_t_f64_opt || type == tok_t_u8 || type == tok_t_u8_opt || type == tok_t_str || type == tok_t_bool)  {
+        result = dynamic_array_insert(data->parameters, type);
+    } else {
+        result = dynamic_array_insert(data->parameters, tok_t_unused);
     }
     
-    if(!result){
+    if(result != err_none){
         //vnitřní chyba
         return false;
     }
@@ -206,7 +177,7 @@ bool symtable_destroy(symtable_t *symtable){
         free(item->key);
         if (item->data.parameters != NULL)
         {
-            DymString_Destroy(item->data.parameters);
+            dynamic_array_destroy(item->data.parameters);
             free(item->data.parameters);
         }
 

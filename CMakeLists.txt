@@ -28,11 +28,12 @@ add_library(stack SHARED 	     ${UTILS}/stack.c)
 add_library(symtable SHARED 	 ${UTILS}/symtable.c)
 add_library(codegen SHARED 	     ${UTILS}/codegen.c)
 add_library(str SHARED 	         ${UTILS}/str.c)
+add_library(dynamic_array SHARED ${UTILS}/dynamic_array.c)
 target_compile_definitions(dll_trad PUBLIC DLL_TRAD)
 
 target_link_libraries(scanner token scan_state keyword token_dll)
 # target_link_libraries(scanner parser)
-target_link_libraries(ifj2024 errors token scanner parser codegen stack symtable sym_dll dym_string str)
+target_link_libraries(ifj2024 errors token scanner parser codegen stack symtable sym_dll dym_string str dynamic_array)
 
 # Enable testing
 enable_testing()

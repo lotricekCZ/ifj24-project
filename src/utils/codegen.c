@@ -116,7 +116,7 @@ void printi_string(str_t* string, char* source) {
     }
 }
 
-void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index) {
+void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack *stack, DLList* sym_list, symtable_t* symtable) {
     int counter = 0;
     for (size_t index = 0; index < postfix_index; index++) {
         char buffer[MAX_STRING_LEN];
@@ -138,54 +138,42 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index) {
                 str_append(string, format[_pushs], buffer);
                 break;
             case tok_t_unreach:
-                str_append(string, format[_pushs], "string@panic:\032reached\032unreachable\032code");
+                str_append(string, format[_pushs], "string@panic:\\032reached\\032unreachable\\032code");
                 break;
             case tok_t_sym:
-                sprintf(buffer, "LF@%s", postfix[index]->attribute);
-                str_append(string, format[_pushs], buffer);
+                DLL_First(sym_list);
+                symtable = DLL_GetCurrent(sym_list);
+                data_t* data = symtable_get_item(symtable, postfix[index]->attribute);
+                if (data != NULL || strcmp(postfix[index]->attribute, "ifj") == 0) {
+                    str_append(string, format[_pushs], pop(stack)->attribute);
+                } else {
+                    DLL_Last(sym_list);
+                    symtable = DLL_GetCurrent(sym_list);
+                    while(sym_list->current != sym_list->first){
+                        data = symtable_get_item(symtable, postfix[index]->attribute);
+                        if (data != NULL) {
+                            str_append(string, format[_pushs], data->generatedId);
+                            break;
+                        } else {
+                            DLL_Prev(sym_list);
+                            symtable = DLL_GetCurrent(sym_list);
+                        }
+                    }
+                }
+                DLL_Last(sym_list);
                 break;
             case tok_t_plus:
-                str_append(string, "%s", format[_adds]);
+                str_append(string, "CALL $$$adds\n");
                 break;
             case tok_t_minus:
-                str_append(string, "%s", format[_subs]);
+                str_append(string, "CALL $$$subs\n");
                 break;
             case tok_t_times:
-                str_append(string, "%s", format[_muls]);
+                str_append(string, "CALL $$$muls\n");
                 break;
             case tok_t_divide:
                 //str_append(string, "%s", format[_divs]);
-                printf("\
-CREATEFRAME\n\
-PUSHFRAME\n\
-DEFVAR TF@%%1\n\
-POPS TF@%%1\n\
-DEFVAR TF%%type1\n\
-TYPE TF@%%type1 TF@%%1\n\
-JUMPIFEQ $$$$divs_float TF@%%type1 string@float\n\
-JUMPIFEQ $$$$divs_int TF@%%type1 string@int\n\
-JUMP $$$$divs_error\n\
-LABEL $$$$divs_float\n\
-JUMPIFEQS $$$$divs_error TF@%%1 float@0x0p+0\n\
-JUMP $$$$divs_ok\n\
-JUMPIFEQS $$$$divs_error TF@%%1 int@0\n\
-LABEL $$$$divs_ok\n\
-DEFVAR TF@%%0\n\
-POPS TF@%%0\n\
-DEFVAR TF@%%type0\n\
-TYPE TF@%%type0 TF@%%0\n\
-JUMPIFNEQ $$$$divs_uncompatible TF@%%type0 TF@%%type1\n\
-PUSHS TF@%%0\n\
-PUSHS TF@%%1\n\
-DIVS\n\
-JUMP $$$$divs_end\n\
-LABEL $$$$divs_uncompatible\n\
-EXIT int@7\n\
-JUMP $$$$divs_end\n\
-LABEL $$$$divs_error\n\
-EXIT int@57\n\
-LABEL $$$$divs_end\n\
-POPFRAME\n");
+                str_append(string, "CALL $$$divs\n");
                 break;
             case tok_t_eq:
                 str_append(string, "%s", format[_eqs]);
@@ -218,47 +206,11 @@ POPFRAME\n");
                 str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_orelse: //přetypovávat???
-                str_append(string, "\
-CREATEFRAME\n\
-PUSHFRAME\n\
-DEFVAR TF@%%1\n\
-POPS TF@%%1\n\
-DEFVAR TF%%0\n\
-POPS TF@%%0\n\
-DEFVAR TF@%%type\n\
-TYPE TF@%%type TF@%%0\n\
-JUMPIFEQ $$$$orelse TF@%%type string@nil\n\
-PUSHS TF@%%0\n\
-JUMP $$$$orelse_end\n\
-LABEL $$$$orelse\n\
-TYPE TF@%%type TF@%%1\n\
-JUMPIFEQ $$$$orelse_nil TF@%%type string@nil\n\
-JUMPIFEQ $$$$orelse_unreachable TF@%%type string@string\n\
-PUSHS TF@%%1\n\
-JUMP $$$$orelse_end\n\
-LABEL $$$$orelse_unreachable\n\
-WRITE TF@%%1\n\
-LABEL $$$$orelse_nil\n\
-EXIT int@57\n\
-LABEL $$$$orelse_end\n\
-POPFRAME\n");
+                str_append(string, "CALL $$$orelse\n");
                 break;
-            // case tok_t_dotquest:
-            //     printi_postfix(string, "\
-            //     CREATEFRAME\n\
-            //     PUSHFRAME\n\
-            //     DEFVAR TF@%%0\n\
-            //     POPS TF@%%0\n\
-            //     DEFVAR TF@%%type\n\
-            //     TYPE TF@%%type TF@%%0\n\
-            //     JUMPIFEQ $$$$dotquest_nil TF@%%type string@nil\n\
-            //     PUSHS TF@%%0\n\
-            //     JUMP $$$$dotquest_end\n\
-            //     LABEL $$$$dotquest_nil\n\
-            //     EXIT int@57\n\
-            //     LABEL $$$$dotquest_end\n\
-            //     POPFRAME\n");
-            //     break;
+            /*case tok_t_dotquest:
+                printi_postfix(string, "CALL $$$dotquest\n");
+                break;*/
             default:
                 break;
         }
@@ -289,6 +241,198 @@ LABEL $$$$%s%i\n", name, number, name, number, name, number, name, number, name,
 }
 
 void printi_builtin(str_t* string) {
+    str_append(string, "\
+LABEL $$$adds\n\
+CREATEFRAME\n\
+PUSHFRAME\n\
+CREATEFRAME\n\
+DEFVAR TF@%%1\n\
+POPS TF@%%1\n\
+DEFVAR TF@%%type1\n\
+TYPE TF@%%type1 TF@%%1\n\
+JUMPIFEQ $$$$adds_ok1 TF@%%type1 string@float\n\
+JUMPIFEQ $$$$adds_ok1 TF@%%type1 string@int\n\
+JUMP $$$$adds_end\n\
+LABEL $$$$adds_ok1\n\
+DEFVAR TF@%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type0\n\
+TYPE TF@%%type0 TF@%%0\n\
+JUMPIFNEQ $$$$adds_ok2 TF@%%type0 string@float\n\
+JUMPIFNEQ $$$$adds_ok2 TF@%%type0 string@int\n\
+JUMP $$$$adds_end\n\
+LABEL $$$$adds_ok2\n\
+JUMPIFNEQ $$$$adds_uncompatible TF@%%type0 TF@%%type1\n\
+JUMP $$$$adds_end\n\
+LABEL $$$$adds_uncompatible\n\
+JUMPIFEQ $$$$adds_float TF@%%type0 string@float\n\
+INT2FLOAT TF@%%0 TF@%%0\n\
+JUMP $$$$adds_end\n\
+LABEL $$$$adds_float\n\
+INT2FLOAT TF@%%1 TF@%%1\n\
+LABEL $$$$adds_end\n\
+PUSHS TF@%%0\n\
+PUSHS TF@%%1\n\
+ADDS\n\
+POPFRAME\n\
+RETURN\n");
+
+    str_append(string, "\
+LABEL $$$subs\n\
+CREATEFRAME\n\
+PUSHFRAME\n\
+CREATEFRAME\n\
+DEFVAR TF@%%1\n\
+POPS TF@%%1\n\
+DEFVAR TF@%%type1\n\
+TYPE TF@%%type1 TF@%%1\n\
+JUMPIFEQ $$$$subs_ok1 TF@%%type1 string@float\n\
+JUMPIFEQ $$$$subs_ok1 TF@%%type1 string@int\n\
+JUMP $$$$subs_end\n\
+LABEL $$$$subs_ok1\n\
+DEFVAR TF@%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type0\n\
+TYPE TF@%%type0 TF@%%0\n\
+JUMPIFNEQ $$$$subs_ok2 TF@%%type0 string@float\n\
+JUMPIFNEQ $$$$subs_ok2 TF@%%type0 string@int\n\
+JUMP $$$$subs_end\n\
+LABEL $$$$subs_ok2\n\
+JUMPIFNEQ $$$$subs_uncompatible TF@%%type0 TF@%%type1\n\
+JUMP $$$$subs_end\n\
+LABEL $$$$subs_uncompatible\n\
+JUMPIFEQ $$$$subs_float TF@%%type0 string@float\n\
+INT2FLOAT TF@%%0 TF@%%0\n\
+JUMP $$$$subs_end\n\
+LABEL $$$$subs_float\n\
+INT2FLOAT TF@%%1 TF@%%1\n\
+LABEL $$$$subs_end\n\
+PUSHS TF@%%0\n\
+PUSHS TF@%%1\n\
+SUBS\n\
+POPFRAME\n\
+RETURN\n");
+
+    str_append(string, "\
+LABEL $$$muls\n\
+CREATEFRAME\n\
+PUSHFRAME\n\
+CREATEFRAME\n\
+DEFVAR TF@%%1\n\
+POPS TF@%%1\n\
+DEFVAR TF@%%type1\n\
+TYPE TF@%%type1 TF@%%1\n\
+JUMPIFEQ $$$$muls_ok1 TF@%%type1 string@float\n\
+JUMPIFEQ $$$$muls_ok1 TF@%%type1 string@int\n\
+JUMP $$$$muls_end\n\
+LABEL $$$$muls_ok1\n\
+DEFVAR TF@%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type0\n\
+TYPE TF@%%type0 TF@%%0\n\
+JUMPIFNEQ $$$$muls_ok2 TF@%%type0 string@float\n\
+JUMPIFNEQ $$$$muls_ok2 TF@%%type0 string@int\n\
+JUMP $$$$muls_end\n\
+LABEL $$$$muls_ok2\n\
+JUMPIFNEQ $$$$muls_uncompatible TF@%%type0 TF@%%type1\n\
+JUMP $$$$muls_end\n\
+LABEL $$$$muls_uncompatible\n\
+JUMPIFEQ $$$$muls_float TF@%%type0 string@float\n\
+INT2FLOAT TF@%%0 TF@%%0\n\
+JUMP $$$$muls_end\n\
+LABEL $$$$muls_float\n\
+INT2FLOAT TF@%%1 TF@%%1\n\
+LABEL $$$$muls_end\n\
+PUSHS TF@%%0\n\
+PUSHS TF@%%1\n\
+MULS\n\
+POPFRAME\n\
+RETURN\n");
+
+   str_append(string, "\
+LABEL $$$divs\n\
+CREATEFRAME\n\
+PUSHFRAME\n\
+CREATEFRAME\n\
+DEFVAR TF@%%1\n\
+POPS TF@%%1\n\
+DEFVAR TF@%%type1\n\
+TYPE TF@%%type1 TF@%%1\n\
+JUMPIFEQ $$$$divs_float1 TF@%%type1 string@float\n\
+JUMPIFEQ $$$$divs_int1 TF@%%type1 string@int\n\
+JUMP $$$$divs_end\n\
+LABEL $$$$divs_int1\n\
+INT2FLOAT TF@%%1 TF@%%1\n\
+LABEL $$$$divs_float1\n\
+DEFVAR TF@%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type0\n\
+TYPE TF@%%type0 TF@%%0\n\
+JUMPIFEQ $$$$divs_int2 TF@%%type0 string@int\n\
+JUMP $$$$divs_end\n\
+LABEL $$$$divs_int2\n\
+INT2FLOAT TF@%%0 TF@%%0\n\
+LABEL $$$$divs_end\n\
+PUSHS TF@%%0\n\
+PUSHS TF@%%1\n\
+DIVS\n\
+JUMPIFNEQ $$$$divs_error TF@%%type0 TF@%%type1\n\
+JUMPIFNEQ $$$$divs_leave TF@%%type0 string@int\n\
+FLOAT2INTS\n\
+JUMP $$$$divs_leave\n\
+LABEL $$$$divs_error\n\
+EXIT int@57\n\
+LABEL $$$$divs_leave\n\
+POPFRAME\n\
+RETURN\n");
+
+    str_append(string, "\
+LABEL $$$orelse\n\
+CREATEFRAME\n\
+PUSHFRAME\n\
+CREATEFRAME\n\
+DEFVAR TF@%%1\n\
+POPS TF@%%1\n\
+DEFVAR TF@%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type\n\
+TYPE TF@%%type TF@%%0\n\
+JUMPIFEQ $$$$orelse TF@%%type string@nil\n\
+PUSHS TF@%%0\n\
+JUMP $$$$orelse_end\n\
+LABEL $$$$orelse\n\
+TYPE TF@%%type TF@%%1\n\
+JUMPIFEQ $$$$orelse_nil TF@%%type string@nil\n\
+JUMPIFEQ $$$$orelse_unreachable TF@%%type string@string\n\
+PUSHS TF@%%1\n\
+JUMP $$$$orelse_end\n\
+LABEL $$$$orelse_unreachable\n\
+WRITE TF@%%1\n\
+LABEL $$$$orelse_nil\n\
+EXIT int@57\n\
+LABEL $$$$orelse_end\n\
+POPFRAME\n\
+RETURN\n");
+
+    str_append(string, "\
+LABEL $$$dotquest\n\
+CREATEFRAME\n\
+PUSHFRAME\n\
+CREATEFRAME\n\
+DEFVAR TF@%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type\n\
+TYPE TF@%%type TF@%%0\n\
+JUMPIFEQ $$$$dotquest_nil TF@%%type string@nil\n\
+PUSHS TF@%%0\n\
+JUMP $$$$dotquest_end\n\
+LABEL $$$$dotquest_nil\n\
+MOVE TF@%%0 string@panic:\\032reached\\032unreachable\\032code\n\
+EXIT int@57\n\
+LABEL $$$$dotquest_end\n\
+POPFRAME\n\
+RETURN\n");
+
     str_append(string, "\
 LABEL $$$readstr\n\
 PUSHFRAME\n\

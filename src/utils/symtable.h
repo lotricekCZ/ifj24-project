@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "dymString.h"
+#include "dynamic_array.h"
 #include "token_types.h"
 
 #define SYMTABLE_SIZE 41  // velikost symbol table
@@ -32,14 +32,14 @@ typedef enum
  */
 typedef struct data_t
 {
-    data_type_t type;      // datový typ dat
-    DymString *parameters; // parametry funkce
-    char *id;              // identifikátor
-    bool init;             // inicializování
-    bool canNull;          // nullability
-    bool isConst;          // konstanta
-    bool used;             // použití
-    char* generatedId;     // generovaný identifikátor
+    data_type_t type;               // datový typ dat
+    dynamic_array_t *parameters;    // parametry funkce
+    char *id;                       // identifikátor
+    bool init;                      // inicializování
+    bool canNull;                   // nullability
+    bool isConst;                   // konstanta
+    bool used;                      // použití
+    char* generatedId;              // generovaný identifikátor
 } data_t;
 
 /**
