@@ -22,6 +22,7 @@
 #include "../utils/symDLList.h"
 #include "../utils/dymString.h"
 #include "../utils/str.h"
+#include "../utils/expresion.h"
 
 
 #define OK if (error != err_none) return
@@ -56,24 +57,26 @@ str_t string_tmp;
 str_t string_defvar;
 
 symtable_t* current_symtable;
+int current_context;
 DLList sym_list;
 data_t *left_data;
 data_t *right_data;
 data_t *result_data;
 data_t *param_data;
 data_t *function_data;
-DymString *return_logic;
 char stringBuffer[100] = "\0";
+int param_count = -1;
+Stack stack_param;
 
 /*
  * Precedence table
  */
 char precedence_table[17][17] = {
 //     +    -    *    /    ==   !=   <    >    <=   >=  and   or   !    (    )    id   $
-    { '>', '>', '<', '<', '<', '<', '<', '<', '<', '<', '>', '>', '<', '<', '>', '<', '>' }, // +
-    { '>', '>', '<', '<', '<', '<', '<', '<', '<', '<', '>', '>', '<', '<', '>', '<', '>' }, // -
-    { '>', '>', '>', '>', '<', '<', '<', '<', '<', '<', '>', '>', '<', '<', '>', '<', '>' }, // *
-    { '>', '>', '>', '>', '<', '<', '<', '<', '<', '<', '>', '>', '<', '<', '>', '<', '>' }, // /
+    { '>', '>', '<', '<', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // +
+    { '>', '>', '<', '<', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // -
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // *
+    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // /
     { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // ==
     { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // !=
     { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // <
@@ -140,6 +143,7 @@ void print_postfix(Token_ptr *postfix, int postfix_index) {
     }
     printf("\n");
 }
+
 /* 
  * Function to parse the expression
  */
@@ -154,7 +158,6 @@ void parse_expression() {
     int paren_count = 0;  // Na sledovanie počtu otvorených zátvoriek
     bool expression_continue = true;
     while (current_token->type != tok_t_semicolon && current_token->type != tok_t_com && expression_continue) {
-        //TODO: Implement functions for precedence parsing
         switch (current_token->type) {
         case tok_t_rpa: // )
             paren_count--;
@@ -176,51 +179,22 @@ void parse_expression() {
             push(&stack, current_token);
             break;
         case tok_t_int: //1
-            if(left_data->type == DATA_TYPE_INT || left_data->type == DATA_TYPE_DOUBLE){
-                left_data->init = true;
-            }
-            else if(left_data->type == DATA_TYPE_UND){
-                left_data->type = DATA_TYPE_INT;
-                left_data->init = true;
-            }
-            else{
-                //chyba -> přiřazaní int do špatného datového typu
-            }
+            
             postfix[postfix_index++] = current_token;
             next_token();
             break;
         case tok_t_flt: //1.0
-            if(left_data->type == DATA_TYPE_DOUBLE){
-                left_data->init = true;
-            }
-            else if(left_data->type == DATA_TYPE_UND){
-                left_data->type = DATA_TYPE_DOUBLE;
-                left_data->init = true;
-            }   
-            else{
-                //chyba -> přiřazaní double do špatného datového typu
-            }
+            
             postfix[postfix_index++] = current_token;
             next_token();
             break;
         case tok_t_bool: // true
-            if(left_data->type == DATA_TYPE_BOOLEAN){
-                left_data->init = true;
-            }
-            else if(left_data->type == DATA_TYPE_UND){
-                left_data->type = DATA_TYPE_BOOLEAN;
-                left_data->init = true;
-            }
-            else{
-                    //chyba -> přiřazaní bool do špatného datového typu
-            }
+
             postfix[postfix_index++] = current_token;
             next_token();
             break;
         case tok_t_null: // null
-            if(left_data->canNull == false){
-                //chyba -> přiřazaní null do nenullovatelné hodnoty
-            }
+
             postfix[postfix_index++] = current_token;
             next_token();
             break;
@@ -234,12 +208,23 @@ void parse_expression() {
             push(&stack_codegen, current_token);
             char destination[MAX_STRING_LEN];
             sprintf(destination, "LF@%s", current_token->attribute);
+            strcat(stringBuffer, current_token->attribute);
 
             next_token();
             id_continue(); OK;
 
             printi(format[_defvar], destination);
             printi(format[_move], destination, string_buffer_value);
+            break;
+
+        case tok_t_true: // true
+            postfix[postfix_index++] = current_token;
+            next_token();
+            break;
+
+        case tok_t_false: // false
+            postfix[postfix_index++] = current_token;
+            next_token();
             break;
         
         case tok_t_as: // @as
@@ -279,7 +264,67 @@ void parse_expression() {
         postfix[postfix_index++] = pop(&stack);
     }
     printi_postfix(&string_tmp, postfix, postfix_index);
-    //print_postfix(postfix, postfix_index);
+    bool convert;
+    result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &convert);
+    switch (current_context)
+    {
+    case CONTEXT_CONDITION:
+        if(result_data->type == DATA_TYPE_STRING || result_data->type == DATA_TYPE_VOID){
+            // chyba -> neplatný datový typ v podmínce
+        }
+    break;
+
+    case CONTEXT_RETURN:// todo hlídat null
+        if(function_data->type != result_data->type && function_data->canNull != result_data->canNull){
+            // chyba -> vracíme špatný typ z funkce
+        } 
+            
+    break;
+
+    case CONTEXT_SYMBOL:
+        if(left_data->type == DATA_TYPE_UND){
+            if(result_data->type == -1){
+                fprintf(stderr, "ERROR: nelze do nedefinovaného typu dát null\n");
+                exit(2);
+            }
+            left_data->type = result_data->type;
+            left_data->canNull = result_data->canNull;
+        }
+        else{
+            if(!left_data->canNull){
+                if(result_data->type == -1){
+                    fprintf(stderr, "ERROR: nelze do nedefinovaného typu dát null\n");
+                    exit(2);
+                }
+
+                if(left_data->type != result_data->type){
+                    fprintf(stderr, "ERROR: neshodné datové typy\n");
+                    exit(2);
+                }
+            }
+            
+
+            if(left_data->type != result_data->type && result_data->type != DATA_TYPE_UND){
+                fprintf(stderr, "ERROR: neshodné datové typy\n");
+                exit(2);
+            }
+        }
+
+    break;
+
+    case CONTEXT_CONDITION_FOR:
+        if(result_data->type != DATA_TYPE_U8 && result_data->canNull != false){
+            // chyba ->neplatný datový typ v podmínce for cyklu
+        }
+    break;
+
+    case CONTEX_PARAM:
+    break;
+    
+    default:
+        break;
+    }
+    print_postfix(postfix, postfix_index);
     printi(format[_comment], "</expression>");
 }
 /* 
@@ -455,6 +500,8 @@ void function() {
     next_token();
     expect_type(tok_t_sym); OK; // "ID"
 
+    function_data = symtable_get_item(current_symtable, current_token->attribute);
+
     sprintf(string_buffer, "$%s", current_token->attribute);
     printi(format[_label], string_buffer);
     printi("%s", format[_pushframe]);
@@ -602,14 +649,18 @@ void body() {
 void statement() {
     printi(format[_comment], "<statement>");
     bool constFlag = false;
+    left_data = NULL;
+
 
     DLL_Last(&sym_list);
     current_symtable = DLL_GetCurrent(&sym_list);
 
     switch (current_token->type) {
     case tok_t_unused: //toto se v podstatě nemusí generovat ani kontrolovat
+        current_context = CONTEXT_NONE;
         printi(format[_comment], "<id_option>");
         printi(format[_comment], "</id_option>");
+
         next_token();
         expect_type(tok_t_ass); OK;
 
@@ -624,6 +675,7 @@ void statement() {
         break;
 
     case tok_t_sym:
+        current_context = CONTEXT_SYMBOL;
         printi(format[_comment], "<id_option>");
         printi(format[_comment], "</id_option>");
 
@@ -650,6 +702,7 @@ void statement() {
     case tok_t_const:
         constFlag = true;
     case tok_t_var:
+        current_context = CONTEXT_SYMBOL;
         printi(format[_comment], "<prefix>");
         printi(format[_comment], "</prefix>");
 
@@ -689,6 +742,7 @@ void statement() {
         break;
 
     case tok_t_if:
+        current_context = CONTEXT_CONDITION;
         next_token(); // (
         expect_type(tok_t_lpa); OK; 
 
@@ -729,6 +783,7 @@ void statement() {
         break;
 
     case tok_t_while:
+        current_context = CONTEXT_CONDITION;
         int previous_cycle_while = cycle;
         counter_codegen_while += 2;
         int while_number = counter_codegen_while;
@@ -779,6 +834,7 @@ void statement() {
         break;
 
     case tok_t_for:
+        current_context = CONTEXT_CONDITION_FOR;
         int previous_cycle_for = cycle;
         counter_codegen_for += 2;
         int for_number = counter_codegen_for;
@@ -790,25 +846,8 @@ void statement() {
         next_token();
         expect_type(tok_t_sym); OK;
         push(&stack_codegen, current_token);
-        
-        // semantic condition check for
 
-        while(sym_list.current != sym_list.first){
-            left_data = symtable_get_item(current_symtable, current_token->attribute);
-            if(left_data == NULL){
-                DLL_Prev(&sym_list);
-                current_symtable = DLL_GetCurrent(&sym_list);
-            }
-            else{
-                if(left_data->type != DATA_TYPE_U8 || left_data->type != DATA_TYPE_STRING){
-                    // použitý špatný datový typ
-                }
-            }
-        }
-
-        if(sym_list.current == sym_list.first){
-            // neexistující promněná
-        }
+        strcat(stringBuffer, current_token->attribute);
 
         next_token();
         sprintf(string_buffer, "LF@%%forcounter%i", for_number);
@@ -856,6 +895,7 @@ void statement() {
 
         printi("JUMPIFEQ !$for%i %s nil@nil\n", for_number, string_buffer);
 
+        // id for cycle
         left_data = symtable_insert(current_symtable, current_token->attribute);
         left_data->type = DATA_TYPE_INT;
         left_data->init = true;
@@ -881,6 +921,7 @@ void statement() {
         break;
 
     case tok_t_return:
+        current_context = CONTEXT_RETURN;
         next_token();
         return_value(); OK;
 
@@ -951,7 +992,7 @@ void id_statement() {
         }
 
         if(sym_list.current == sym_list.first){
-            // neexistující promněná
+            // chyba ->neexistující promněná
         }
 
         next_token();
@@ -961,8 +1002,9 @@ void id_statement() {
         sprintf(string_buffer, "LF@%s", pop(&stack_codegen)->attribute);
         printi(format[_move], string_buffer, string_buffer_value);
     } else {
-        left_data = NULL;
-        call(); OK;
+        right_data = NULL;
+        bool is_left = true;
+        call(is_left); OK;
 
         next_token();
     }
@@ -975,7 +1017,7 @@ void id_statement() {
 void value() {
     printi(format[_comment], "<value>");
 
-    expect_types(6, tok_t_null, tok_t_int, tok_t_flt, tok_t_bool, tok_t_as, tok_t_sym); OK;
+    expect_types(7, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym); OK;
 
     parse_expression(); OK;
     sprintf(string_buffer_value, "LF@%%expression%i", counter_codegen_expression++);
@@ -1049,7 +1091,9 @@ void id_continue() {
     if (current_token->type == tok_t_dot || current_token->type == tok_t_lpa) {
         char source[MAX_STRING_LEN]; 
         strcpy(source, string_buffer_value);
-        call(); OK;
+
+        bool is_left = false;
+        call(is_left); OK;
         strcpy(string_buffer_value, source);
 
         sprintf(string_buffer_value, "TF@%%retval");
@@ -1068,6 +1112,10 @@ void return_value() {
     printi(format[_comment], "<return_value>");
 
     if (current_token->type != tok_t_semicolon) {
+        if(function_data->type == DATA_TYPE_VOID){
+            //chyba 4 -> vracení špatného datového typu z funkce
+        }
+
         value(); OK;
         sprintf(string_buffer, "LF@%%retval");
         printi(format[_move], string_buffer, string_buffer_value);
@@ -1078,7 +1126,7 @@ void return_value() {
 /*
  * Grammar: <call> → "." <ID> <call_params> | "(" <call_params> ")"
  */
-void call() {
+void call(bool is_left) {
     printi(format[_comment], "<call>");
     
     printi("%s", format[_createframe]);
@@ -1097,12 +1145,21 @@ void call() {
             // chyba funkce neexistuje
         }
 
+        if (is_left){
+            if(right_data->type != DATA_TYPE_VOID){
+                //chyba -> funkce vrací hodnotu, ale není nikde přiřazena
+            }
+        }
+        
         push(&stack_codegen, current_token);
 
         next_token();
         expect_type(tok_t_lpa); OK;
 
         next_token();
+        //char* func_in_params = *right_data->parameters->data;
+        //push(&stack_param, &func_in_params);
+
         call_params(); OK;
 
         expect_type(tok_t_rpa); OK;
@@ -1118,7 +1175,10 @@ void call() {
             // chyba funkce neexistuje
         }
 
+
         next_token();
+        //char* func_in_params = *right_data->parameters->data;
+        //push(&stack_param, &func_in_params);
         call_params(); OK;
 
         expect_type(tok_t_rpa); OK;
@@ -1135,6 +1195,7 @@ void call() {
  */
 void call_params() {
     printi(format[_comment], "<call_params>");
+    param_count++;
 
     if (current_token->type != tok_t_rpa) {
         call_value(); OK;
@@ -1175,10 +1236,13 @@ void call_value() {
         strcpy(string_buffer_value, current_token->attribute);
         push(&stack_codegen, current_token);
 
-        DymString_Insert_Char(right_data->parameters, 's');
+        /*if(strcmp(right_data->parameters->data, "s") != 0 || strcmp(right_data->parameters->data, "q") != 0){
+            // chyba -> do funkce se přiřazuje nesprávný datový typ parametru
+        }*/
 
         next_token();
     } else {
+        current_context = CONTEX_PARAM;
         value(); OK;
     }
 
@@ -1201,54 +1265,57 @@ void return_type() {
     printi(format[_comment], "<return_type>");
 
     if (current_token->type != tok_t_void) {
-        type(); OK;
+        bool func = false;
+        type(func); OK;
         
         printi(format[_defvar], "LF@%retval");
     }
 
     printi(format[_comment], "</return_type>");
 }
-void type() {
+void type(bool varOrFunc) {
     printi(format[_comment], "<type>");
 
     expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
     
-    switch (current_token->type)    // přiřazení typu funkce
-                {
-                case tok_t_i32:
-                    left_data->type = DATA_TYPE_INT;
-                    break;
+    if(varOrFunc){
+        switch (current_token->type)    // přiřazení typu funkce
+        {
+            case tok_t_i32:
+                left_data->type = DATA_TYPE_INT;
+                break;
 
-                case tok_t_f64:
-                    left_data->type = DATA_TYPE_DOUBLE;
-                    break;
+            case tok_t_f64:
+                left_data->type = DATA_TYPE_DOUBLE;
+                break;
 
-                case tok_t_u8:
-                    left_data->type = DATA_TYPE_U8;
-                    break;
+            case tok_t_u8:
+                left_data->type = DATA_TYPE_U8;
+                break;
 
-                case tok_t_bool:
-                    left_data->type = DATA_TYPE_BOOLEAN;
-                    break;
-                
-                case tok_t_i32_opt:
-                    left_data->type = DATA_TYPE_INT;
-                    left_data->canNull = true;
-                    break;
+            case tok_t_bool:
+                left_data->type = DATA_TYPE_BOOLEAN;
+                break;
+            
+            case tok_t_i32_opt:
+                left_data->type = DATA_TYPE_INT;
+                left_data->canNull = true;
+                break;
 
-                case tok_t_f64_opt:
-                    left_data->type = DATA_TYPE_DOUBLE;
-                    left_data->canNull = true;
-                    break;
+            case tok_t_f64_opt:
+                left_data->type = DATA_TYPE_DOUBLE;
+                left_data->canNull = true;
+                break;
 
-                case tok_t_u8_opt:
-                    left_data->type = DATA_TYPE_U8;
-                    left_data->canNull = true;
-                    break;
-                
-                default:    //nemůže nastat kdyžtak chyba nevjem
-                    break;
-                }
+            case tok_t_u8_opt:
+                left_data->type = DATA_TYPE_U8;
+                left_data->canNull = true;
+                break;
+            
+            default:    //nemůže nastat kdyžtak chyba nevjem
+                break;
+        }
+    }
 
     printi(format[_comment], "</type>");
 }
@@ -1258,7 +1325,8 @@ void definition() {
 
     if (current_token->type == tok_t_colon) {
         next_token();
-        type(); OK;
+        bool var = true;
+        type(var); OK;
 
         next_token();
     }
