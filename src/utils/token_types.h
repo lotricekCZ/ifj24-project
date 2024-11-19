@@ -78,6 +78,7 @@ typedef enum _token_type
 	tok_t_or,		 // or (extension)
 	tok_t_and,		 // and (extension)
 	tok_t_orelse,	 // or else (extension)
+	tok_t_orelse_un, // or else unreachable (extension)
 	tok_t_unreach,	 // unreachable (extension)
 	tok_t_error,	 // throws that the error state has been set
 	tok_t_true,		 // throws that the error state has been set

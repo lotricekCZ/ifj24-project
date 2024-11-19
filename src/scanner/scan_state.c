@@ -43,6 +43,7 @@ State_type_pair sca_translation_table[] =
 		{sca_s_plus, tok_t_plus},
 		{sca_s_comma, tok_t_com},
 		{sca_s_hashtag, tok_t_hashtag},
+		{sca_s_orelse_op, tok_t_orelse_un},
 };
 
 /**
