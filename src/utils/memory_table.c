@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "memory_table.h"
 #include "hashtable.c"
 #include "sll.c"
@@ -181,7 +182,7 @@ memory_sll_element_ptr memory_ht_search(memory_ht *table, void *key)
 	memory_sll_element_ptr item = memory_sll_front(row);
 	while (memory_sll_is_active(row))
 	{
-		if (memt_comp == nothing_size)
+		if ((void*)memt_comp == nothing_size)
 		{
 			if (*item->ptr == key)
 				return item;
@@ -230,7 +231,7 @@ void memory_ht_delete(memory_ht *table, void *key)
 	memory_sll_element_ptr item = memory_sll_front(row);
 	while (memory_sll_is_active(row))
 	{
-		if (memt_comp == nothing_size)
+		if ((void*)memt_comp == nothing_size)
 		{
 			if (*item->ptr == key)
 			{
@@ -262,7 +263,7 @@ void memory_ht_dispose(memory_ht *table)
 
 size_t memt_hash(void *src)
 {
-	return (int)src % MEMORY_TABLE_SIZE;
+	return (uintptr_t)src % MEMORY_TABLE_SIZE;
 }
 
 void *memt_key(void *src)

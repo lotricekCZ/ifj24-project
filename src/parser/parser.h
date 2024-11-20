@@ -60,6 +60,7 @@ void call_params_next();
 void return_type();
 void type(bool varOrFunc);
 void definition();
+void for_value();
 
 // Precedence parsing
 extern char precedence_table[17][17];

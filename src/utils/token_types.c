@@ -135,6 +135,7 @@ char *tok_type_to_str(token_type type)
         {tok_t_or, "tok_t_or"},
         {tok_t_and, "tok_t_and"},
         {tok_t_orelse, "tok_t_orelse"},
+        {tok_t_orelse_un, "tok_t_orelse_un"},
         {tok_t_unreach, "tok_t_unreach"},
         {tok_t_error, "tok_t_error"},
         {tok_t_true, "tok_t_true"},
