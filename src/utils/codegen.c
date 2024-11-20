@@ -145,7 +145,7 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 symtable = DLL_GetCurrent(sym_list);
                 data_t* data = symtable_get_item(symtable, postfix[index]->attribute);
                 if (data != NULL || strcmp(postfix[index]->attribute, "ifj") == 0) {
-                    str_append(string, format[_pushs], pop(stack)->attribute);
+                    //str_append(string, format[_pushs], pop(stack)->attribute);
                 } else {
                     DLL_Last(sym_list);
                     symtable = DLL_GetCurrent(sym_list);

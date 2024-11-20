@@ -69,9 +69,10 @@ data_t *param_data;
 data_t *function_data;
 int depth = 0;
 dynamic_array_t depth_sequence;
-char stringBuffer[100] = "\0";
+char stringBuffer[MAX_STRING_LEN] = "\0";
 int param_count = -1;
 Stack stack_param;
+int kolo = 0;
 
 /*
  * Precedence table
@@ -209,14 +210,23 @@ void parse_expression() {
             break;
 
         case tok_t_sym: // id
-            postfix[postfix_index++] = current_token;
+            postfix[postfix_index] = current_token;
             push(&stack_codegen, current_token);
             char destination[MAX_STRING_LEN];
             strcpy(destination, current_token->attribute);
-            strcat(stringBuffer, current_token->attribute);
+
+            Token_ptr func_token = NULL;
+            func_token = tok_init(current_token->type);
+            
+            strcpy(stringBuffer, current_token->attribute);
 
             next_token();
             id_continue(); OK;
+            
+            tok_set_attribute(func_token, stringBuffer);
+            stringBuffer[0] = '\0';
+            postfix[postfix_index] = func_token;
+            postfix_index++;
 
             DLL_First(&sym_list);
             current_symtable = DLL_GetCurrent(&sym_list);
@@ -290,9 +300,13 @@ void parse_expression() {
     break;
 
     case CONTEXT_RETURN:// todo hlídat null
-        if(function_data->type != result_data->type && function_data->canNull != result_data->canNull){
-            // chyba -> vracíme špatný typ z funkce
-        } 
+        if(result_data->type == -1 && !function_data->canNull){
+            // chyba -> neplatný datový typ v return
+        }
+
+        if((function_data->type != result_data->type)){
+            // chyba -> neplatný datový typ v return
+        }
             
     break;
 
@@ -613,7 +627,7 @@ void parameter() {
         expect_type(tok_t_colon); OK; // ":"
 
         next_token();
-        bool varOrFunc = false;
+        bool varOrFunc = true;
         type(varOrFunc); OK;
 
         next_token();
@@ -688,7 +702,7 @@ void statement() {
         printi(format[_comment], "<id_option>");
         printi(format[_comment], "</id_option>");
 
-        strcat(stringBuffer, current_token->attribute);
+        strcpy(stringBuffer, current_token->attribute);
         push(&stack_codegen, current_token);
 
         next_token();
@@ -1154,6 +1168,11 @@ void id_continue() {
             }
         }
         DLL_Last(&sym_list);
+
+        if(sym_list.current == sym_list.first) {
+            // chyba -> nenalezení v symtable
+        }
+
         sprintf(string_buffer_value, "%s", left_data->generatedId);
         pop(&stack_codegen)->attribute;
     }
@@ -1190,21 +1209,26 @@ void return_value() {
  */
 void call(bool is_left) {
     printi(format[_comment], "<call>");
+    param_count = -1; 
     
     printi("%s", format[_createframe]);
     if (current_token->type == tok_t_dot) { //a.a()
         pop(&stack_codegen);
+        fprintf(stderr, "aaaaaa%i %s\n", param_count, stringBuffer);
 
         strcat(stringBuffer, ".");
         next_token();
         expect_type(tok_t_sym); OK;
 
+        fprintf(stderr, "aaaaaa%i %s\n", param_count, stringBuffer);
         strcat(stringBuffer, current_token->attribute);
+                
+
         current_symtable = DLL_GetFirst(&sym_list);
         right_data = symtable_get_item(current_symtable, stringBuffer);
         current_symtable = DLL_GetLast(&sym_list);
         if(right_data == NULL){
-            // chyba funkce neexistuje
+            error = err_undef; return;
         }
 
         if (is_left){
@@ -1219,8 +1243,6 @@ void call(bool is_left) {
         expect_type(tok_t_lpa); OK;
 
         next_token();
-        //char* func_in_params = *right_data->parameters->data;
-        //push(&stack_param, &func_in_params);
 
         call_params(); OK;
 
@@ -1234,13 +1256,11 @@ void call(bool is_left) {
         right_data = symtable_get_item(current_symtable, stringBuffer);
         current_symtable = DLL_GetLast(&sym_list);
         if(right_data == NULL){
-            // chyba funkce neexistuje
+            error = err_undef; return;
         }
 
 
         next_token();
-        //char* func_in_params = *right_data->parameters->data;
-        //push(&stack_param, &func_in_params);
         call_params(); OK;
 
         expect_type(tok_t_rpa); OK;
@@ -1248,8 +1268,6 @@ void call(bool is_left) {
         sprintf(string_buffer, "$%s", pop(&stack_codegen)->attribute);
     }
     printi(format[_call], string_buffer);
-
-    stringBuffer[0] = '\0';
     printi(format[_comment], "</call>");
 }
 /*
@@ -1257,10 +1275,76 @@ void call(bool is_left) {
  */
 void call_params() {
     printi(format[_comment], "<call_params>");
-    param_count++;
-
+    char stringBuffer2[MAX_STRING_LEN];
+    
+    
     if (current_token->type != tok_t_rpa) {
+        param_count++;
+        data_t* data = right_data;
+        int param_count_save = param_count;
+        fprintf(stderr, "iiii%i %s\n", param_count, stringBuffer);
+        strcpy(stringBuffer2, stringBuffer);
         call_value(); OK;
+        kolo++;
+        fprintf(stderr, "%i %s\n", kolo, "joloooooooooooooooo");
+        strcpy(stringBuffer, stringBuffer2);
+                fprintf(stderr, "%i %s\n", param_count, stringBuffer);
+        param_count = param_count_save;
+        right_data = data;
+        bool found = true;
+        if (data->parameters->size <= param_count) {
+            fprintf(stderr, "Semantic error: Function parameter count mismatch\n");
+            error = err_param;
+            return;
+        } else if(peek(&stack_codegen)->type == tok_t_str || peek(&stack_codegen)->type == tok_t_mstr){
+            if (data->parameters->data[param_count] != peek(&stack_codegen)->type) {
+                found = false;
+            }
+        } else {
+            switch (result_data->type) {
+                case DATA_TYPE_INT:
+                    if (result_data->canNull) {
+                        if (data->parameters->data[param_count] != tok_t_i32_opt) {
+                            found = false;
+                        }
+                    } else if (data->parameters->data[param_count] != tok_t_i32) {
+                        found = false;
+                    }
+                    break;
+                
+                case DATA_TYPE_DOUBLE:
+                    if (result_data->canNull) {
+                        if (data->parameters->data[param_count] != tok_t_f64_opt) {
+                            found = false;
+                        }
+                    } else if (data->parameters->data[param_count] != tok_t_f64) {
+                        found = false;
+                    }
+                    break;
+                case DATA_TYPE_U8:
+                    if (result_data->canNull) {
+                        if (data->parameters->data[param_count] != tok_t_u8_opt) {
+                            found = false;
+                        }
+                    } else if (data->parameters->data[param_count] != tok_t_u8) {
+                        found = false;
+                    }
+                    break;
+                case DATA_TYPE_BOOLEAN:
+                    if (data->parameters->data[param_count] != tok_t_bool) {
+                        found = false;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        if (!found && data->parameters->data[param_count] != tok_t_unused) {
+            fprintf(stderr, "Semantic error: Function parameter type mismatch\n");
+            error = err_param;
+            return;
+        }
         char source[MAX_STRING_LEN];
         strcpy(source, string_buffer_value);
         bool string_value = false;
@@ -1285,7 +1369,6 @@ void call_params() {
             printi("%s", format[_createframe]);
         }
     }
-
     printi(format[_comment], "</call_params>");
 }
 /*
@@ -1335,8 +1418,6 @@ void return_type() {
         printi(format[_defvar], "LF@%retval");
     } else {
         expect_type(tok_t_void); OK;
-
-        //left_data->type = DATA_TYPE_VOID;
     }
 
     printi(format[_comment], "</return_type>");
@@ -1512,6 +1593,11 @@ void parse() {
 
     // Parse the source code for the first time.
     parse_fn_first();
+
+    if(symtable_get_item(current_symtable, "main") == NULL) {
+        // chyba 3 -> chybí main
+    }
+
     if (error == err_none) {
         // Initialize the stack for code generation
         init(&stack_codegen);

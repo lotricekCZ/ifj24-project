@@ -51,6 +51,7 @@ void check_operator2(data_t *result_data, data_t *result){
 }
 
 data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLList sym_list){
+    symtable = DLL_GetLast(&sym_list);
     if(popToken->type == tok_t_int){
         result->type = DATA_TYPE_INT;
         return result;
@@ -468,6 +469,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     fprintf(stderr, "ERROR: and, or nelze emplicitně přetypovat\n");
                     exit(2);
                 }
+                result_data->used = true;
             }
 
             if(popToken2->type == tok_t_sym){
@@ -477,6 +479,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                         fprintf(stderr, "ERROR: and, or nelze emplicitně přetypovat\n");
                         exit(2);
                     }
+                    result_data2->used = true;
                 }
 
             popToken->type = tok_t_bool;
@@ -502,6 +505,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     fprintf(stderr, "ERROR: not nelze emplicitně přetypovat\n");
                     exit(2);
                 }
+                result_data->used = true;
             }
 
             push(&stack, popToken);
@@ -561,6 +565,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     fprintf(stderr, "ERROR: orElse nepodporuje dané datové typy\n");
                     exit(2);
                 }
+                result_data->used = true;
                 result->type = result_data->type;
                 result->canNull = result_data->canNull;
             }
