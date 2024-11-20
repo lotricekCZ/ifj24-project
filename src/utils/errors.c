@@ -61,7 +61,7 @@ size_t err_fetch(err_codes code)
 void err_print(err_codes code, bool message_needed)
 {
     if (message_needed)
-        fprintf(stderr, err_msg[err_fetch(code)].format);
+        fprintf(stderr, "%s", err_msg[err_fetch(code)].format);
     if (code != err_none)
     {
         // ukoncit preklad, uvolnit vsechny zdroje

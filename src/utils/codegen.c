@@ -133,9 +133,11 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 sprintf(buffer, "float@%a", atof(postfix[index]->attribute));
                 str_append(string, format[_pushs], buffer);
                 break;
-            case tok_t_bool:
-                sprintf(buffer, "bool@%s", postfix[index]->attribute);
-                str_append(string, format[_pushs], buffer);
+            case tok_t_true:
+                str_append(string, format[_pushs], "bool@true");
+                break;
+            case tok_t_false:
+                str_append(string, format[_pushs], "bool@false");
                 break;
             case tok_t_unreach:
                 str_append(string, format[_pushs], "string@panic:\\032reached\\032unreachable\\032code");
@@ -208,9 +210,9 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
             case tok_t_orelse: //přetypovávat???
                 str_append(string, "CALL $$$orelse\n");
                 break;
-            /*case tok_t_dotquest:
-                printi_postfix(string, "CALL $$$dotquest\n");
-                break;*/
+            case tok_t_orelse_un:
+                str_append(string, "CALL $$$orelse_un\n");
+                break;
             default:
                 break;
         }
@@ -415,7 +417,7 @@ POPFRAME\n\
 RETURN\n");
 
     str_append(string, "\
-LABEL $$$dotquest\n\
+LABEL $$$orelse_un\n\
 CREATEFRAME\n\
 PUSHFRAME\n\
 CREATEFRAME\n\
@@ -423,13 +425,13 @@ DEFVAR TF@%%0\n\
 POPS TF@%%0\n\
 DEFVAR TF@%%type\n\
 TYPE TF@%%type TF@%%0\n\
-JUMPIFEQ $$$$dotquest_nil TF@%%type string@nil\n\
+JUMPIFEQ $$$$orelse_un_nil TF@%%type string@nil\n\
 PUSHS TF@%%0\n\
-JUMP $$$$dotquest_end\n\
-LABEL $$$$dotquest_nil\n\
+JUMP $$$$orelse_un_end\n\
+LABEL $$$$orelse_un_nil\n\
 MOVE TF@%%0 string@panic:\\032reached\\032unreachable\\032code\n\
 EXIT int@57\n\
-LABEL $$$$dotquest_end\n\
+LABEL $$$$orelse_un_end\n\
 POPFRAME\n\
 RETURN\n");
 

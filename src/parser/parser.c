@@ -181,12 +181,12 @@ void parse_expression() {
             pop(&stack); // Discard the left parenthesis
             next_token();
             break;
-        
+
         case tok_t_lpa: // (
             paren_count++;
             push(&stack, current_token);
             break;
-            
+
         case tok_t_int: //1
             postfix[postfix_index++] = current_token;
             next_token();
@@ -196,14 +196,12 @@ void parse_expression() {
             postfix[postfix_index++] = current_token;
             next_token();
             break;
-        case tok_t_bool: // true
-            postfix[postfix_index++] = current_token;
-            next_token();
-            break;
+
         case tok_t_null: // null
             postfix[postfix_index++] = current_token;
             next_token();
             break;
+
         case tok_t_unreach: // unreachable
             postfix[postfix_index++] = current_token;
             next_token();
@@ -273,7 +271,7 @@ void parse_expression() {
             break;
 
         default:
-            expect_types(15, tok_t_plus, tok_t_minus, tok_t_times, tok_t_divide, tok_t_not, tok_t_eq, tok_t_neq, tok_t_lt, tok_t_gt, tok_t_leq, tok_t_geq, tok_t_and, tok_t_or, tok_t_not, tok_t_orelse); OK;
+            expect_types(16, tok_t_plus, tok_t_minus, tok_t_times, tok_t_divide, tok_t_not, tok_t_eq, tok_t_neq, tok_t_lt, tok_t_gt, tok_t_leq, tok_t_geq, tok_t_and, tok_t_or, tok_t_not, tok_t_orelse, tok_t_orelse_un); OK;
             while (!isEmpty(&stack) && getPrecedence(peek(&stack)->type, current_token->type) != '<') {
                 postfix[postfix_index++] = pop(&stack);
             }
@@ -387,7 +385,7 @@ void next_token() {
     do {
         current_token = scn_scan(scanner);
     } while (current_token->type == tok_t_doc);
-    //fprintf(stderr, "%s\n", tok_type_to_str(current_token->type));
+    fprintf(stderr, "%s\n", tok_type_to_str(current_token->type));
 }
 /* 
  * Function to check if the current token is of the expected type
@@ -504,7 +502,7 @@ void prolog() {
 
     // "STRING"
     next_token();
-    expect_type(tok_t_str); OK;
+    expect_types(2, tok_t_str, tok_t_mstr); OK;
 
     // ")"
     next_token();
@@ -863,19 +861,18 @@ void statement() {
         expect_type(tok_t_lpa); OK;
 
         next_token();
-        expect_type(tok_t_sym); OK;
-        push(&stack_codegen, current_token);
+        expect_types(3, tok_t_sym, tok_t_str, tok_t_mstr); OK;
 
         strcat(stringBuffer, current_token->attribute);
 
-        next_token();
+        for_value(); OK;
+
         sprintf(string_buffer, "LF@%%forcounter%i", for_number);
         printi(format[_defvar], string_buffer);
         printi(format[_move], string_buffer, "int@0");
         sprintf(string_buffer, "LF@%%for%i", for_number);
         printi(format[_defvar], string_buffer);
 
-        id_continue(); OK;
         sprintf(string_buffer, "LF@%%for%i", for_number);
         printi(format[_move], string_buffer, string_buffer_value);
 
@@ -1348,7 +1345,7 @@ void call_params() {
         char source[MAX_STRING_LEN];
         strcpy(source, string_buffer_value);
         bool string_value = false;
-        if (peek(&stack_codegen)->type == tok_t_str) {
+        if (peek(&stack_codegen)->type == tok_t_str || peek(&stack_codegen)->type == tok_t_mstr) {
             pop(&stack_codegen);
             string_value = true;
         } else if (strstr(source, "TF@%retval") != NULL) {
@@ -1377,7 +1374,7 @@ void call_params() {
 void call_value() {
     printi(format[_comment], "<call_value>");
 
-    if (current_token->type == tok_t_str) {
+    if (current_token->type == tok_t_str || current_token->type == tok_t_mstr) {
         strcpy(string_buffer_value, current_token->attribute);
         push(&stack_codegen, current_token);
 
@@ -1481,6 +1478,27 @@ void definition() {
     }
 
     printi(format[_comment], "</definition>");
+}
+
+void for_value() {
+    printi(format[_comment], "<for_value>");
+
+    if (current_token->type == tok_t_sym) {
+        push(&stack_codegen, current_token);
+        
+        next_token();
+        id_continue(); OK;
+    } else {
+        sprintf(string_buffer_value, "LF@%%expression%i", counter_codegen_expression++);
+        printi(format[_defvar], string_buffer_value);
+        printi("MOVE %s string@", string_buffer_value);
+        printi_string(&string_tmp, current_token->attribute);
+        printi("\n");
+
+        next_token();
+    }
+
+    printi(format[_comment], "</for_value>");
 }
 
 /*
