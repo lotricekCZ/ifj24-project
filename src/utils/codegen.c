@@ -116,7 +116,7 @@ void printi_string(str_t* string, char* source) {
     }
 }
 
-void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack *stack, DLList* sym_list, symtable_t* symtable) {
+void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack *stack, DLList* sym_list, symtable_t* symtable, err_codes *error) {
     int counter = 0;
     for (size_t index = 0; index < postfix_index; index++) {
         char buffer[MAX_STRING_LEN];
@@ -145,14 +145,18 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
             case tok_t_sym:
                 DLL_First(sym_list);
                 symtable = DLL_GetCurrent(sym_list);
-                data_t* data = symtable_get_item(symtable, postfix[index]->attribute);
+                data_t* data = symtable_get_item(symtable, postfix[index]->attribute, error);
+                if(*error != err_none)
+                    return;
                 if (data != NULL) {
                     str_append(string, format[_pushs], pop(stack)->attribute);
                 } else {
                     DLL_Last(sym_list);
                     symtable = DLL_GetCurrent(sym_list);
                     while(sym_list->current != sym_list->first){
-                        data = symtable_get_item(symtable, postfix[index]->attribute);
+                        data = symtable_get_item(symtable, postfix[index]->attribute, error);
+                            if(*error != err_none)
+                                return;
                         if (data != NULL) {
                             str_append(string, format[_pushs], data->generatedId);
                             break;

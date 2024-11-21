@@ -91,6 +91,7 @@ dynamic_array_t depth_sequence;
 char stringBuffer[MAX_STRING_LEN] = "\0";
 int param_count = -1;
 Stack stack_param;
+bool params = false;
 
 /*
  * Precedence table
@@ -239,7 +240,7 @@ void parse_expression() {
 
             DLL_First(&sym_list);
             current_symtable = DLL_GetCurrent(&sym_list);
-            data_t* data = symtable_get_item(current_symtable, stringBuffer); OK;
+            data_t* data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
 
             if (data != NULL) {
                 sprintf(string_buffer, "LF@%%retval%i", counter_codegen_expression++);
@@ -249,6 +250,7 @@ void parse_expression() {
                 strcpy(current_token->attribute, string_buffer_value);
                 push(&stack_functions, current_token);
             }
+            DLL_Last(&sym_list);
             current_symtable = DLL_GetLast(&sym_list);
 
             tok_set_attribute(func_token, stringBuffer);
@@ -281,7 +283,7 @@ void parse_expression() {
             expect_type(tok_t_sym); OK;
             current_symtable = DLL_GetLast(&sym_list);
             while(sym_list.current != sym_list.first) {
-                result_data = symtable_get_item(current_symtable, current_token->attribute); OK;
+                result_data = symtable_get_item(current_symtable, current_token->attribute, &error); OK;
                 if(result_data == NULL){
                     DLL_Prev(&sym_list);
                     current_symtable = DLL_GetCurrent(&sym_list);
@@ -289,9 +291,10 @@ void parse_expression() {
                     break;
                 }
             }
+            DLL_Last(&sym_list);
             current_symtable = DLL_GetLast(&sym_list);
 
-            if(sym_list.current == sym_list.first) {
+            if(sym_list.current == sym_list.first || result_data == NULL){ 
                 error = err_undef;
                 return;
             }
@@ -326,8 +329,8 @@ void parse_expression() {
         postfix[postfix_index++] = pop(&stack);
     }
 
-    bool convert;
-    result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &convert); OK;
+    printi_postfix(&string_tmp, postfix, postfix_index, &stack_functions, &sym_list, current_symtable, &error); OK;
+    result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &error); OK;
     switch (current_context)
     {
     case CONTEXT_CONDITION:
@@ -391,8 +394,6 @@ void parse_expression() {
     default:
         break;
     }
-
-    printi_postfix(&string_tmp, postfix, postfix_index, &stack_functions, &sym_list, current_symtable);
 
     //print_postfix(postfix, postfix_index);
     printi(format[_comment], "</expression>");
@@ -553,7 +554,7 @@ void prolog() {
     expect_type(tok_t_semicolon); OK;
 
     // vložení všech built-in funkci do symtable
-    symtable_insert_builtin(current_symtable); OK;
+    symtable_insert_builtin(current_symtable, &error); OK;
 
     printi(".ifjcode24\n");
 
@@ -565,7 +566,7 @@ void prolog() {
 void function() {
     printi(format[_comment], "<function>");
     
-    current_symtable = DLL_Insert_last(&sym_list); OK;
+    current_symtable = DLL_Insert_last(&sym_list, &error); OK;
 
     expect_type(tok_t_pub); OK; // "pub"
 
@@ -577,8 +578,7 @@ void function() {
     push(&stack_codegen, current_token);
 
     current_symtable = DLL_GetFirst(&sym_list);
-    function_data = symtable_get_item(current_symtable, current_token->attribute); OK;
-    DLL_Last(&sym_list);
+    function_data = symtable_get_item(current_symtable, current_token->attribute, &error); OK;
     current_symtable = DLL_GetLast(&sym_list);
 
     sprintf(string_buffer, "$%s", current_token->attribute);
@@ -610,11 +610,11 @@ void function() {
 
     expect_type(tok_t_rcbr); OK; // "}"
 
-    DLL_Delete_last(&sym_list); OK;
+    DLL_Delete_last(&sym_list, &error); OK;
 
     DLL_First(&sym_list);
     current_symtable = DLL_GetCurrent(&sym_list);
-    data_t* data = symtable_get_item(current_symtable, pop(&stack_codegen)->attribute); OK;
+    data_t* data = symtable_get_item(current_symtable, pop(&stack_codegen)->attribute, &error); OK;
 
     if(data == NULL) {
         error = err_undef;
@@ -665,7 +665,8 @@ void parameter() {
         printi(format[_defvar], string_buffer);
         printi(format[_pops], string_buffer);
 
-        left_data = symtable_insert(current_symtable, current_token->attribute); OK;
+        left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
+        left_data->modified = true;
 
         left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(string_buffer) + 1));
         strcpy(left_data->generatedId, string_buffer);
@@ -717,7 +718,7 @@ void statement() {
     printi(format[_comment], "<statement>");
     bool constFlag = false;
     left_data = NULL;
-
+    params = false;
 
     DLL_Last(&sym_list);
     current_symtable = DLL_GetCurrent(&sym_list);
@@ -770,10 +771,10 @@ void statement() {
         next_token();
         expect_type(tok_t_sym); OK; // ID
 
-        left_data = symtable_insert(current_symtable, current_token->attribute); OK;
+        left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
         
-        if(constFlag)
-            left_data->isConst = true;
+        left_data->isConst = constFlag;
+        left_data->modified = constFlag;
 
         sprintf(string_buffer, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
 
@@ -792,13 +793,6 @@ void statement() {
         value(); OK;
         
         printi(format[_move], destination, string_buffer_value);
-
-        if(left_data->type == DATA_TYPE_UND){
-            //TODO: Odvození typu podle výrazu
-        }
-        else{
-            //TODO: Kontrola typů
-        }
 
         expect_type(tok_t_semicolon); OK;
 
@@ -822,7 +816,7 @@ void statement() {
         
         printi_condition_jump(&string_tmp, "if", if_number);
 
-        current_symtable = DLL_Insert_last(&sym_list); OK;
+        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
 
         next_token();
         sprintf(string_buffer, "LF@%%if%i", if_number);
@@ -836,11 +830,11 @@ void statement() {
         sprintf(string_buffer, "!$if%i", if_number);
         printi(format[_label], string_buffer);
 
-        DLL_Delete_last(&sym_list); OK;
+        DLL_Delete_last(&sym_list, &error); OK;
 
-        current_symtable = DLL_Insert_last(&sym_list); OK;
+        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
         else_then(); OK;
-        DLL_Delete_last(&sym_list); OK;
+        DLL_Delete_last(&sym_list, &error); OK;
 
         sprintf(string_buffer, "*$if%i", if_number);
         printi(format[_label], string_buffer);
@@ -871,7 +865,7 @@ void statement() {
 
         printi_condition_jump(&string_tmp, "while", while_number);
 
-        current_symtable = DLL_Insert_last(&sym_list); OK;
+        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
 
         next_token();
         sprintf(string_buffer, "LF@%%while%i", while_number);
@@ -886,10 +880,10 @@ void statement() {
         printi(format[_label], string_buffer);
         cycle = previous_cycle_while;
 
-        current_symtable = DLL_Insert_last(&sym_list); OK;
+        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
 
         else_then(); OK;
-        DLL_Delete_last(&sym_list); OK;
+        DLL_Delete_last(&sym_list, &error); OK;
 
         sprintf(string_buffer, "&$while%i", while_number);
         printi(format[_label], string_buffer);
@@ -923,7 +917,7 @@ void statement() {
 
         expect_type(tok_t_rpa); OK;
 
-        current_symtable = DLL_Insert_last(&sym_list); OK;
+        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
 
         next_token();
         expect_type(tok_t_alias); OK;
@@ -936,9 +930,10 @@ void statement() {
             sprintf(destination, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
             printi(format[_defvar], destination);
 
-            left_data = symtable_insert(current_symtable, current_token->attribute); OK;
+            left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
             left_data->type = DATA_TYPE_INT;
             left_data->canNull = false;
+            left_data->modified = true;
             left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(destination) + 1));
             strcpy(left_data->generatedId, destination);
         } else {
@@ -975,7 +970,7 @@ void statement() {
 
         cycle = previous_cycle_for;
 
-        DLL_Delete_last(&sym_list); OK;
+        DLL_Delete_last(&sym_list, &error); OK;
         break;
 
     case tok_t_return:
@@ -1041,7 +1036,7 @@ void id_statement() {
         DLL_Last(&sym_list);
         current_symtable = DLL_GetCurrent(&sym_list);
         while(sym_list.current != sym_list.first){
-            left_data = symtable_get_item(current_symtable, string_buffer); OK;
+            left_data = symtable_get_item(current_symtable, string_buffer, &error); OK;
             if (left_data != NULL){   
                 break;     
             }
@@ -1049,8 +1044,9 @@ void id_statement() {
             current_symtable = DLL_GetCurrent(&sym_list);
         }
         DLL_Last(&sym_list);
+        current_symtable = DLL_GetLast(&sym_list);
 
-        if(sym_list.current == sym_list.first){
+        if(sym_list.current == sym_list.first || left_data == NULL){
             error = err_undef;
             return;
         }       
@@ -1060,6 +1056,7 @@ void id_statement() {
             return;
         }
 
+        left_data->modified = true;
         next_token();
         stringBuffer[0] = '\0';
         value(); OK;
@@ -1110,9 +1107,10 @@ void not_null_value() {
             sprintf(string_buffer, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
             printi(format[_defvar], string_buffer);
 
-            left_data = symtable_insert(current_symtable, current_token->attribute); OK;
+            left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
             left_data->type = result_data->type;
-            left_data->canNull = result_data->canNull;
+            left_data->canNull = !result_data->canNull;
+            left_data->modified = true;
             left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(string_buffer) + 1));
             strcpy(left_data->generatedId, string_buffer);
         } else {
@@ -1201,25 +1199,50 @@ void id_continue() {
 
         next_token();
     } else {
-        DLL_Last(&sym_list);
-        current_symtable = DLL_GetCurrent(&sym_list);
-        while(sym_list.current != sym_list.first) {
-            left_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute); OK;
-            if(left_data == NULL){
-                DLL_Prev(&sym_list);
-                current_symtable = DLL_GetCurrent(&sym_list);
-            } else {
-                break;
+        if(params){
+            DLL_Last(&sym_list);
+            current_symtable = DLL_GetCurrent(&sym_list);
+            while(sym_list.current != sym_list.first) {
+                param_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
+                if(param_data == NULL){
+                    DLL_Prev(&sym_list);
+                    current_symtable = DLL_GetCurrent(&sym_list);
+                } else {
+                    break;
+                }
             }
-        }
-        DLL_Last(&sym_list);
+            DLL_Last(&sym_list);
+            current_symtable = DLL_GetLast(&sym_list);
 
-        if(sym_list.current == sym_list.first) {
-            error = err_undef;
-            return;
+            if(sym_list.current == sym_list.first || param_data == NULL){ 
+                error = err_undef;
+                return;
+            }
+            param_data->used = true;
+            sprintf(string_buffer_value, "%s", param_data->generatedId);
         }
+        else{
+            DLL_Last(&sym_list);
+            current_symtable = DLL_GetCurrent(&sym_list);
+            while(sym_list.current != sym_list.first) {
+                left_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
+                if(left_data == NULL){
+                    DLL_Prev(&sym_list);
+                    current_symtable = DLL_GetCurrent(&sym_list);
+                } else {
+                    break;
+                }
+            }
+            DLL_Last(&sym_list);
+            DLL_GetLast(&sym_list);
 
-        sprintf(string_buffer_value, "%s", left_data->generatedId);
+            if(sym_list.current == sym_list.first || left_data == NULL){ 
+                error = err_undef;
+                return;
+            }
+            sprintf(string_buffer_value, "%s", left_data->generatedId);
+        }
+        
         pop(&stack_codegen)->attribute;
     }
 
@@ -1257,6 +1280,7 @@ void return_value() {
 void call(bool is_left) {
     printi(format[_comment], "<call>");
     param_count = -1; 
+    params = true;
     
     printi("%s", format[_createframe]);
     if (current_token->type == tok_t_dot) { //a.a()
@@ -1268,7 +1292,7 @@ void call(bool is_left) {
         strcat(stringBuffer, current_token->attribute);
                 
         current_symtable = DLL_GetFirst(&sym_list);
-        right_data = symtable_get_item(current_symtable, stringBuffer); OK;
+        right_data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
         current_symtable = DLL_GetLast(&sym_list);
         if(right_data == NULL){
             error = err_undef; 
@@ -1298,7 +1322,7 @@ void call(bool is_left) {
         expect_type(tok_t_lpa); OK;
 
         current_symtable = DLL_GetFirst(&sym_list);
-        right_data = symtable_get_item(current_symtable, stringBuffer); OK;
+        right_data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
         if(right_data == NULL){
             error = err_undef; 
             return;
@@ -1325,7 +1349,6 @@ void call(bool is_left) {
 void call_params() {
     printi(format[_comment], "<call_params>");
     char stringBuffer2[MAX_STRING_LEN];
-    
     
     if (current_token->type != tok_t_rpa) {
         param_count++;
@@ -1554,7 +1577,8 @@ void parse_fn_first() {
             next_token_initial(); OK;
             expect_type(tok_t_sym); OK;
 
-            left_data = symtable_insert(current_symtable, current_token->attribute); OK;
+            left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
+            left_data->modified = true;
             
             next_token_initial(); OK;
             expect_type(tok_t_lpa); OK; // (
@@ -1569,7 +1593,7 @@ void parse_fn_first() {
                 next_token_initial(); OK;
                 expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
-                symtable_insert_params(left_data, current_token->type); OK;
+                symtable_insert_params(left_data, current_token->type, &error); OK;
                 
                 next_token_initial(); OK;
             }
@@ -1586,7 +1610,7 @@ void parse_fn_first() {
                 next_token_initial(); OK;
                 expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
-                symtable_insert_params(left_data, current_token->type); OK;
+                symtable_insert_params(left_data, current_token->type, &error); OK;
 
                 next_token_initial(); OK;
             }
@@ -1650,12 +1674,12 @@ void parse_fn_first() {
 err_codes parse() {
     // init dll and symtable
     DLL_Init(&sym_list);
-    current_symtable = DLL_Insert_last(&sym_list);
+    current_symtable = DLL_Insert_last(&sym_list, &error); OK;
 
     // Parse the source code for the first time.
     parse_fn_first();
 
-    left_data = symtable_get_item(current_symtable, "main");
+    left_data = symtable_get_item(current_symtable, "main", &error); OK;
     
     if(left_data == NULL) {
         error = err_undef;
@@ -1686,7 +1710,7 @@ err_codes parse() {
         str_destroy(&string_defvar);
         dynamic_array_destroy(&depth_sequence);
     }
-    DLL_Destroy(&sym_list);
+    DLL_Destroy(&sym_list, &error); OK;
 
     return error;
 }

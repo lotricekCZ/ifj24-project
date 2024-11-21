@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "errors.h"
 
 /**
  * @struct pro prvek dll seznamu
@@ -59,7 +60,7 @@ void DLL_Last(DLList *list);
  *
  * @return Vrací true, pokud se operace podařila, jinak false
  */
-symtable_t * DLL_Insert_last(DLList *list);
+symtable_t * DLL_Insert_last(DLList *list, err_codes *error);
 
 /**
  * Vrátí první prvek seznamu, nebo NULL, pokud je seznam prázdný.
@@ -94,7 +95,7 @@ symtable_t * DLL_GetCurrent(DLList *list);
  *
  * @returns true, pokud se vše podařilo, jinak false
  */
-void DLL_Delete_last(DLList *list);
+void DLL_Delete_last(DLList *list, err_codes *error);
 
 /**
  * Posune aktivitu na následující prvek seznamu list.
@@ -128,7 +129,7 @@ bool DLL_isActive(DLList *list);
  * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  * @return true, pokud došlo k úspěšnému zrušení všech prvků, false jinak
  */
-void DLL_Destroy(DLList *list);
+void DLL_Destroy(DLList *list, err_codes *error);
 
 
 #endif

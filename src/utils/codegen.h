@@ -12,6 +12,7 @@
 #include "stack.h"
 #include "symtable.h"
 #include "symDLList.h"
+#include "errors.h"
 
 #define MAX_STRING_LEN 150
 
@@ -80,7 +81,7 @@ typedef enum {
 extern const char* format[INSTRUCTION_COUNT];
 
 void printi_string(str_t* string, char* input_string);
-void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack *stack, DLList* sym_list, symtable_t* symtable);
+void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack *stack, DLList* sym_list, symtable_t* symtable, err_codes *error);
 void printi_defvar(str_t* string, str_t* defvar, const char* source, ...);
 void printi_condition_jump(str_t* string, const char *name, int number);
 void printi_builtin(str_t* string);

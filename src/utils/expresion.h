@@ -15,7 +15,8 @@
 #include "symtable.h"
 #include "dymString.h"
 #include "symDLList.h"
+#include "errors.h"
 
-data_t * postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list, symtable_t *symtable, bool *convert);
+data_t * postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list, symtable_t *symtable, err_codes *error);
 
 #endif

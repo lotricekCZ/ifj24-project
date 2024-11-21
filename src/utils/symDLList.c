@@ -7,9 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include "errno.h"
-
-err_codes error = err_none;
+#include "errors.h"
+#include "memory_table.h"
 
 void DLL_Init(DLList *list) {
     list->first = NULL;
@@ -42,34 +41,38 @@ bool DLL_isActive(DLList *list) {
     return list->current != NULL;
 }
 
-void DLL_Destroy(DLList *list) {
+void DLL_Destroy(DLList *list, err_codes *error) {
     while (list->first != NULL) {
         DLLElementPtr deleteElement = list->first;
         list->first = deleteElement->next;
-        if (!symtable_destroy((symtable_t *)deleteElement->symtable)) {
+        symtable_destroy((symtable_t *)deleteElement->symtable, error);
+        if (*error != err_none) 
             return;
-        }
+        
         free(deleteElement);
         list->length--;
     }
     return;
 }
 
-symtable_t * DLL_Insert_last(DLList *list) {
-    DLLElementPtr new = (DLLElementPtr)malloc(sizeof(struct DLLElement));
+symtable_t * DLL_Insert_last(DLList *list, err_codes *error) {
+    DLLElementPtr new = (DLLElementPtr)imalloc(sizeof(struct DLLElement));
     if (new == NULL) {
-        error = err_internal;
+        *error = err_internal;
         return NULL;
     }
 
-    new->symtable  = (symtable_t *)malloc(sizeof(symtable_t));
+    new->symtable  = (symtable_t *)imalloc(sizeof(symtable_t));
     if (new->symtable == NULL) {
-        error = err_internal;
+        *error = err_internal;
         free(new);
         return NULL;
     }
 
-    symtable_init(new->symtable);
+    symtable_init(new->symtable, error);
+    if (*error != err_none) 
+        return NULL;
+    
     new->next = NULL;
     new->prev = list->last;
     if (list->last != NULL) {
@@ -104,7 +107,7 @@ symtable_t *DLL_GetCurrent(DLList *list) {
     return NULL;
 }
 
-void DLL_Delete_last(DLList *list) {
+void DLL_Delete_last(DLList *list, err_codes *error) {
     DLLElementPtr delete;
     if (list->last != NULL) {
         delete = list->last;
@@ -118,9 +121,10 @@ void DLL_Delete_last(DLList *list) {
             list->last = list->last->prev;
             list->last->next = NULL;
         }
-        if (!symtable_destroy((symtable_t *)delete->symtable)) {
+        symtable_destroy((symtable_t *)delete->symtable, error);
+        if (*error != err_none) 
             return;
-        }
+
         free(delete);
         list->length--;
     }
