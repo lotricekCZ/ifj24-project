@@ -10,7 +10,7 @@ TEMP_EXPECTED="expected.tmp"
 TEMP_ACTUAL="actual.tmp"
 TEMP_INPUTS="inputs.tmp"
 
-XLOGIN="xsidlil00"
+XLOGIN="xhubacv00"
 SERVER="$XLOGIN@merlin.fit.vutbr.cz"
 REMOTE_TMP="/tmp/$USER_$(date +%s)"
 
