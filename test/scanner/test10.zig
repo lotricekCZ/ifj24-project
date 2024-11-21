@@ -1,5 +1,7 @@
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    var u : []u8 = 5.2;
+    if(5 + 2 == 3 + 9 and 2 and 3){
+
+    }
 }
