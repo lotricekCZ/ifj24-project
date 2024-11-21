@@ -25,7 +25,6 @@ typedef enum {
     CONTEXT_NONE,
     CONTEXT_SYMBOL,
     CONTEXT_RETURN,
-    CONTEX_PARAM,
     CONTEXT_CONDITION_FOR
 }context_t;
 
@@ -58,7 +57,7 @@ void call_params();
 void call_value();
 void call_params_next();
 void return_type();
-void type(bool varOrFunc);
+void type();
 void definition();
 void for_value();
 

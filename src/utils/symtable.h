@@ -35,7 +35,7 @@ typedef struct data_t
     data_type_t type;               // datový typ dat
     dynamic_array_t *parameters;    // parametry funkce
     char *id;                       // identifikátor
-    bool init;                      // inicializování
+    bool as_func;                   // as funkce
     bool canNull;                   // nullability
     bool isConst;                   // konstanta
     bool used;                      // použití

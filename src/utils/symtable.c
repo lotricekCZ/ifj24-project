@@ -13,6 +13,9 @@
  * @param str řetězec, pro který chceme vypočítat hash
  * @return hash jako unsigned int
  */
+
+err_codes error = err_none;
+
 unsigned int getHash(char *str)
 {
     unsigned int hash = 5381;
@@ -27,7 +30,7 @@ unsigned int getHash(char *str)
 
 bool symtable_init(symtable_t *symtable){
     if(symtable == NULL){
-        // vnitřní chyba
+        
         return false;
     }
 
@@ -40,7 +43,7 @@ bool symtable_init(symtable_t *symtable){
 
 data_t *symtable_get_item(symtable_t *symtable, char *name){
     if(symtable == NULL || name == NULL){
-        //vnitřní chyba
+        error = err_internal;
         return NULL;
     }
 
@@ -59,25 +62,25 @@ data_t *symtable_get_item(symtable_t *symtable, char *name){
 
 data_t *symtable_insert(symtable_t *symtable, char *name){
     if(symtable == NULL || name == NULL){
-        //vnitřní chyba
+        error = err_internal;
         return NULL;
     }
     if(symtable_get_item(symtable, name) != NULL){
-        //jmeno jiz existuje
+        error = err_redef;
         return NULL;
     }
 
     symtable_item_t *new_item = (symtable_item_t *)malloc(sizeof(symtable_item_t));
     if (new_item == NULL)
     {
-        // vnitřní chyba
+        error = err_internal;
         return NULL;
     }
 
     new_item->data.parameters = (dynamic_array_t *)malloc(sizeof(dynamic_array_t));
     if (new_item->data.parameters == NULL)
     {
-        // vnitřní chyba
+        error = err_internal;
         free(new_item);
         return NULL;
     }
@@ -85,7 +88,7 @@ data_t *symtable_insert(symtable_t *symtable, char *name){
     err_codes aloc = dynamic_array_init(new_item->data.parameters);
     if (aloc != err_none)
     {
-        // vnitřní chyba
+        error = err_internal;
         free(new_item->data.parameters);
         free(new_item);
         return NULL;
@@ -94,17 +97,16 @@ data_t *symtable_insert(symtable_t *symtable, char *name){
     new_item->key = (char *)malloc((strlen(name) + 1) * sizeof(char));
     if (new_item->key == NULL)
     {
-        // vnitřní chyba
+        error = err_internal;
         free(new_item->data.parameters);
         free(new_item);
         return NULL;
     }
 
-    //new_item->key[strlen(name)+1] = '\0';
     strcpy(new_item->key, name);
     new_item->data.id = new_item->key;
     new_item->data.type = DATA_TYPE_UND;
-    new_item->data.init = false;
+    new_item->data.as_func = false;
     new_item->data.canNull = false;
     new_item->data.isConst = false;
     new_item->data.used = false;
@@ -142,15 +144,13 @@ bool symtable_insert_params(data_t *data, token_type type){
         return false;
     }
 
-    err_codes result = false;
     if (type == tok_t_i32 || type == tok_t_i32_opt || type == tok_t_f64 || type == tok_t_f64_opt || type == tok_t_u8 || type == tok_t_u8_opt || type == tok_t_str || type == tok_t_bool)  {
-        result = dynamic_array_insert(data->parameters, type);
+        error = dynamic_array_insert(data->parameters, type);
     } else {
-        result = dynamic_array_insert(data->parameters, tok_t_unused);
+        error = dynamic_array_insert(data->parameters, tok_t_unused);
     }
     
-    if(result != err_none){
-        //vnitřní chyba
+    if(error != err_none){
         return false;
     }
     return true;
@@ -158,7 +158,7 @@ bool symtable_insert_params(data_t *data, token_type type){
 
 bool symtable_destroy(symtable_t *symtable){
     if(symtable == NULL){
-        //vnitřní chyba
+        error = err_internal;
         return false;
     }
 
@@ -204,7 +204,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->canNull = true;
     data->type = DATA_TYPE_U8;
     data->used = true;
-    data->init = true;
     
     //ifj.readi32() ?i32
     data = symtable_insert(symtable, "ifj.readi32");
@@ -214,7 +213,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->canNull = true;
     data->type = DATA_TYPE_INT;
     data->used = true;
-    data->init = true;
 
     //ifj.readf64() ?f64
     data = symtable_insert(symtable, "ifj.readf64");
@@ -224,7 +222,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->canNull = true;
     data->type = DATA_TYPE_DOUBLE;
     data->used = true;
-    data->init = true;
 
     //ifj.write(term) void
     data = symtable_insert(symtable, "ifj.write");
@@ -234,7 +231,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_VOID;
     internal_err = symtable_insert_params(data, tok_t_null);
     data->used = true;
-    data->init = true;
 
     if(!internal_err)
         return false;
@@ -247,7 +243,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_DOUBLE;
     internal_err = symtable_insert_params(data, tok_t_i32);
     data->used = true;
-    data->init = true;
 
     if(!internal_err)
         return false;
@@ -260,7 +255,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_INT;
     internal_err = symtable_insert_params(data, tok_t_f64);
     data->used = true;
-    data->init = true;
 
     if(!internal_err)
         return false;
@@ -273,7 +267,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_U8;
     internal_err = symtable_insert_params(data, tok_t_str);
     data->used = true;
-    data->init = true;
 
     if(!internal_err)
         return false;
@@ -286,7 +279,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_INT;
     internal_err = symtable_insert_params(data, tok_t_u8);
     data->used = true;
-    data->init = true;
 
     if(!internal_err)
         return false;
@@ -298,7 +290,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
 
     data->type = DATA_TYPE_U8;
     data->used = true;
-    data->init = true;
     internal_err = symtable_insert_params(data, tok_t_u8);
     if(!internal_err)
         return false;
@@ -314,7 +305,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
 
     data->type = DATA_TYPE_U8;
     data->used = true;
-    data->init = true;
     internal_err = symtable_insert_params(data, tok_t_u8);
     if(!internal_err)
         return false;
@@ -336,7 +326,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
 
     data->type = DATA_TYPE_INT;
     data->used = true;
-    data->init = true;
     internal_err = symtable_insert_params(data, tok_t_u8);
     if(!internal_err)
         return false;
@@ -352,7 +341,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
 
     data->type = DATA_TYPE_INT;
     data->used = true;
-    data->init = true;
     internal_err = symtable_insert_params(data, tok_t_u8);
     if(!internal_err)
         return false;
@@ -368,7 +356,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
 
     data->type = DATA_TYPE_U8;
     data->used = true;
-    data->init = true;
     internal_err = symtable_insert_params(data, tok_t_u8);
     if(!internal_err)   
         return false;
@@ -380,7 +367,6 @@ bool symtable_insert_builtin(symtable_t *symtable){
 
     data->type = DATA_TYPE_INT;
     data->used = true;
-    data->init = true;
     internal_err = symtable_insert_params(data, tok_t_i32);
     if(!internal_err)
         return false;
