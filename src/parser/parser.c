@@ -680,7 +680,8 @@ void parameter() {
         expect_type(tok_t_colon); OK; // ":"
 
         next_token();
-        type(); OK;
+        bool varOrFunc = true;
+        type(varOrFunc); OK;
 
         next_token();
         parameter_next(); OK;
@@ -1477,8 +1478,8 @@ void return_type() {
     printi(format[_comment], "<return_type>");
 
     if (current_token->type != tok_t_void) {
-        bool func = false;
-        type(func); OK;
+        bool varOrFunc = false;
+        type(varOrFunc); OK;
         
         printi(format[_defvar], "LF@%retval");
     } else {
@@ -1487,50 +1488,50 @@ void return_type() {
 
     printi(format[_comment], "</return_type>");
 }
-void type() {
+void type(bool varOrFunc) {
     printi(format[_comment], "<type>");
 
     expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
-    
-    switch (current_token->type)    // přiřazení typu funkce
-    {
-        case tok_t_i32:
-            left_data->type = DATA_TYPE_INT;
-            break;
+    if(varOrFunc){
+        switch (current_token->type)    // přiřazení typu funkce
+        {
+            case tok_t_i32:
+                left_data->type = DATA_TYPE_INT;
+                break;
 
-        case tok_t_f64:
-            left_data->type = DATA_TYPE_DOUBLE;
-            break;
+            case tok_t_f64:
+                left_data->type = DATA_TYPE_DOUBLE;
+                break;
 
-        case tok_t_u8:
-            left_data->type = DATA_TYPE_U8;
-            break;
+            case tok_t_u8:
+                left_data->type = DATA_TYPE_U8;
+                break;
 
-        case tok_t_bool:
-            left_data->type = DATA_TYPE_BOOLEAN;
-            break;
-        
-        case tok_t_i32_opt:
-            left_data->type = DATA_TYPE_INT;
-            left_data->canNull = true;
-            break;
+            case tok_t_bool:
+                left_data->type = DATA_TYPE_BOOLEAN;
+                break;
+            
+            case tok_t_i32_opt:
+                left_data->type = DATA_TYPE_INT;
+                left_data->canNull = true;
+                break;
 
-        case tok_t_f64_opt:
-            left_data->type = DATA_TYPE_DOUBLE;
-            left_data->canNull = true;
-            break;
+            case tok_t_f64_opt:
+                left_data->type = DATA_TYPE_DOUBLE;
+                left_data->canNull = true;
+                break;
 
-        case tok_t_u8_opt:
-            left_data->type = DATA_TYPE_U8;
-            left_data->canNull = true;
-            break;
-        
-        default:    
-            error = err_internal;
-            return;
-            break;
+            case tok_t_u8_opt:
+                left_data->type = DATA_TYPE_U8;
+                left_data->canNull = true;
+                break;
+            
+            default:    
+                error = err_internal;
+                return;
+                break;
+        }
     }
-    
 
     printi(format[_comment], "</type>");
 }
@@ -1540,8 +1541,8 @@ void definition() {
 
     if (current_token->type == tok_t_colon) {
         next_token();
-        bool var = true;
-        type(var); OK;
+        bool varOrFunc = true;
+        type(varOrFunc); OK;
 
         next_token();
     }
@@ -1679,12 +1680,12 @@ void parse_fn_first() {
 err_codes parse() {
     // init dll and symtable
     DLL_Init(&sym_list);
-    current_symtable = DLL_Insert_last(&sym_list, &error); OK;
+    current_symtable = DLL_Insert_last(&sym_list, &error); OK error;
 
     // Parse the source code for the first time.
     parse_fn_first();
 
-    left_data = symtable_get_item(current_symtable, "main", &error); OK;
+    left_data = symtable_get_item(current_symtable, "main", &error); OK error;
     
     if(left_data == NULL) {
         error = err_undef;
@@ -1715,7 +1716,7 @@ err_codes parse() {
         str_destroy(&string_defvar);
         dynamic_array_destroy(&depth_sequence);
     }
-    DLL_Destroy(&sym_list, &error); OK;
+    DLL_Destroy(&sym_list, &error); 
 
     return error;
 }

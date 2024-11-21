@@ -58,7 +58,7 @@ void call_params();
 void call_value();
 void call_params_next();
 void return_type();
-void type();
+void type(bool varOrFunc);
 void definition();
 void for_value();
 
