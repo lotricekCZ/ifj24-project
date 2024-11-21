@@ -26,6 +26,10 @@ if [ -f ../dokumentace.pdf ]; then
 	cp -v ../dokumentace.pdf .
 fi
 
+if [ -f ../rozsireni ]; then
+	cp -v ../rozsireni .
+fi
+
 sed -i '/enable_testing()/,$d' CMakeLists.txt
 sed -i '/add_library/s/\${.*}\///g' CMakeLists.txt
 sed -i '/add_executable/s/\${.*}\///g' CMakeLists.txt

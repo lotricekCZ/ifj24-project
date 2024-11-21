@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xramas01; Jakub Ramaseuski
+ */
+
 #ifndef HASHTABLE_H
 #define HASHTABLE_H
 

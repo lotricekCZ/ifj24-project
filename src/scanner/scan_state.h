@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xramas01; Jakub Ramaseuski
+ */
+
 #ifndef SCAN_STATE_H
 #define SCAN_STATE_H
 

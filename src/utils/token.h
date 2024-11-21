@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xramas01; Jakub Ramaseuski
+ */
+
 #ifndef TOKEN_H
 #define TOKEN_H
 #include "token_types.h"

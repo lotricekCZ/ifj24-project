@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xramas01; Jakub Ramaseuski
+ */
+
 #ifndef DLL_H
 #define DLL_H
 #include <stdbool.h>
