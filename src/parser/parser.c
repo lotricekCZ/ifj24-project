@@ -57,6 +57,25 @@ str_t string_tmp;
 str_t string_defvar;
 
 /*
+#define get_most_important(data, id) \
+                    DLL_First(&sym_list); \
+                    data = symtable_get_item(current_symtable, id); \
+                    DLL_Last(&sym_list); \
+                    if (data == NULL) { \
+                        current_symtable = DLL_GetCurrent(&sym_list); \
+                        while(sym_list.current != sym_list.first) { \
+                            data = symtable_get_item(current_symtable, id); \
+                            if (data == NULL) { \
+                                DLL_Prev(&sym_list); \
+                                current_symtable = DLL_GetCurrent(&sym_list);\
+                            } else { \
+                                break; \
+                            } \
+                        } \
+                    } DLL_Last(&sym_list)
+*/
+
+/*
  * Global variables for the semantic analysis
  */
 symtable_t* current_symtable;
@@ -210,8 +229,6 @@ void parse_expression() {
         case tok_t_sym: // id
             postfix[postfix_index] = current_token;
             push(&stack_codegen, current_token);
-            char destination[MAX_STRING_LEN];
-            strcpy(destination, current_token->attribute);
 
             Token_ptr func_token = NULL;
             func_token = tok_init(current_token->type);
@@ -220,16 +237,11 @@ void parse_expression() {
 
             next_token();
             id_continue(); OK;
-            
-            tok_set_attribute(func_token, stringBuffer);
-            stringBuffer[0] = '\0';
-            postfix[postfix_index] = func_token;
-            postfix_index++;
 
             DLL_First(&sym_list);
             current_symtable = DLL_GetCurrent(&sym_list);
-            data_t* data = symtable_get_item(current_symtable, destination);
-            if (data != NULL || strcmp(destination, "ifj") == 0) {
+            data_t* data = symtable_get_item(current_symtable, stringBuffer);
+            if (data != NULL) {
                 sprintf(string_buffer, "LF@%%retval%i", counter_codegen_expression++);
                 printi(format[_defvar], string_buffer);
                 printi(format[_move], string_buffer, "TF@%retval");
@@ -238,6 +250,11 @@ void parse_expression() {
                 push(&stack_functions, current_token);
             }
             DLL_Last(&sym_list);
+
+            tok_set_attribute(func_token, stringBuffer);
+            postfix[postfix_index] = func_token;
+            postfix_index++;
+            stringBuffer[0] = '\0';
             break;
 
         case tok_t_true: // true
@@ -385,7 +402,7 @@ void next_token() {
     do {
         current_token = scn_scan(scanner);
     } while (current_token->type == tok_t_doc);
-    fprintf(stderr, "%s\n", tok_type_to_str(current_token->type));
+    //fprintf(stderr, "%s\n", tok_type_to_str(current_token->type));
 }
 /* 
  * Function to check if the current token is of the expected type
@@ -1211,13 +1228,11 @@ void call(bool is_left) {
     printi("%s", format[_createframe]);
     if (current_token->type == tok_t_dot) { //a.a()
         pop(&stack_codegen);
-        fprintf(stderr, "aaaaaa%i %s\n", param_count, stringBuffer);
 
         strcat(stringBuffer, ".");
         next_token();
         expect_type(tok_t_sym); OK;
 
-        fprintf(stderr, "aaaaaa%i %s\n", param_count, stringBuffer);
         strcat(stringBuffer, current_token->attribute);
                 
 
@@ -1279,13 +1294,10 @@ void call_params() {
         param_count++;
         data_t* data = right_data;
         int param_count_save = param_count;
-        fprintf(stderr, "iiii%i %s\n", param_count, stringBuffer);
         strcpy(stringBuffer2, stringBuffer);
         call_value(); OK;
         kolo++;
-        fprintf(stderr, "%i %s\n", kolo, "joloooooooooooooooo");
         strcpy(stringBuffer, stringBuffer2);
-                fprintf(stderr, "%i %s\n", param_count, stringBuffer);
         param_count = param_count_save;
         right_data = data;
         bool found = true;

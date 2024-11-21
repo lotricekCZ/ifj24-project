@@ -146,8 +146,8 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 DLL_First(sym_list);
                 symtable = DLL_GetCurrent(sym_list);
                 data_t* data = symtable_get_item(symtable, postfix[index]->attribute);
-                if (data != NULL || strcmp(postfix[index]->attribute, "ifj") == 0) {
-                    //str_append(string, format[_pushs], pop(stack)->attribute);
+                if (data != NULL) {
+                    str_append(string, format[_pushs], pop(stack)->attribute);
                 } else {
                     DLL_Last(sym_list);
                     symtable = DLL_GetCurrent(sym_list);
@@ -178,9 +178,11 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 str_append(string, "CALL $$$divs\n");
                 break;
             case tok_t_eq:
+                str_append(string, "CALL $$$null\n");
                 str_append(string, "%s", format[_eqs]);
                 break;
             case tok_t_neq:
+                str_append(string, "CALL $$$null\n");
                 str_append(string, "%s", format[_eqs]);
                 str_append(string, "%s", format[_nots]);
                 break;
@@ -243,6 +245,31 @@ LABEL $$$$%s%i\n", name, number, name, number, name, number, name, number, name,
 }
 
 void printi_builtin(str_t* string) {
+    str_append(string, "\
+LABEL $$$null\n\
+CREATEFRAME\n\
+PUSHFRAME\n\
+CREATEFRAME\n\
+DEFVAR TF@%%1\n\
+POPS TF@%%1\n\
+DEFVAR TF@%%type1\n\
+TYPE TF@%%type1 TF@%%1\n\
+DEFVAR TF@%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type0\n\
+TYPE TF@%%type0 TF@%%0\n\
+JUMPIFEQ $$$$null_yes TF@%%type1 string@nil\n\
+JUMPIFEQ $$$$null_yes TF@%%type0 string@nil\n\
+JUMP $$$$null_no\n\
+LABEL $$$$null_yes\n\
+MOVE TF@%%0 TF@%%type0\n\
+MOVE TF@%%1 TF@%%type1\n\
+LABEL $$$$null_no\n\
+PUSHS TF@%%0\n\
+PUSHS TF@%%1\n\
+POPFRAME\n\
+RETURN\n");
+
     str_append(string, "\
 LABEL $$$adds\n\
 CREATEFRAME\n\
