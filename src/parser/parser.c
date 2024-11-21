@@ -1071,6 +1071,7 @@ void id_statement() {
 
         printi(format[_move], left_data->generatedId, string_buffer_value);
     } else {
+        current_context = CONTEXT_NONE;
         right_data = NULL;
         bool is_left = true;
         call(is_left); OK;
