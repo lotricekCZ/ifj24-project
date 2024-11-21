@@ -239,7 +239,12 @@ void parse_expression() {
 
             DLL_First(&sym_list);
             current_symtable = DLL_GetCurrent(&sym_list);
-            data_t* data = symtable_get_item(current_symtable, stringBuffer);
+            data_t* data = symtable_get_item(current_symtable, stringBuffer); OK;
+
+            if(data == NULL) {
+                error = err_undef;
+                return;
+            }
             if (data != NULL) {
                 sprintf(string_buffer, "LF@%%retval%i", counter_codegen_expression++);
                 printi(format[_defvar], string_buffer);
@@ -280,7 +285,7 @@ void parse_expression() {
             expect_type(tok_t_sym); OK;
             current_symtable = DLL_GetLast(&sym_list);
             while(sym_list.current != sym_list.first) {
-                result_data = symtable_get_item(current_symtable, current_token->attribute);
+                result_data = symtable_get_item(current_symtable, current_token->attribute); OK;
                 if(result_data == NULL){
                     DLL_Prev(&sym_list);
                     current_symtable = DLL_GetCurrent(&sym_list);
@@ -291,7 +296,8 @@ void parse_expression() {
             current_symtable = DLL_GetLast(&sym_list);
 
             if(sym_list.current == sym_list.first) {
-                // chyba -> nenalezená promněná
+                error = err_undef;
+                return;
             }
 
             if(!left_data->as_func){
@@ -325,7 +331,7 @@ void parse_expression() {
     }
 
     bool convert;
-    result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &convert);
+    result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &convert); OK;
     switch (current_context)
     {
     case CONTEXT_CONDITION:
@@ -551,7 +557,7 @@ void prolog() {
     expect_type(tok_t_semicolon); OK;
 
     // vložení všech built-in funkci do symtable
-    symtable_insert_builtin(current_symtable); //chyba když false
+    symtable_insert_builtin(current_symtable); OK;
 
     printi(".ifjcode24\n");
 
@@ -563,7 +569,7 @@ void prolog() {
 void function() {
     printi(format[_comment], "<function>");
     
-    current_symtable = DLL_Insert_last(&sym_list);
+    current_symtable = DLL_Insert_last(&sym_list); OK;
 
     expect_type(tok_t_pub); OK; // "pub"
 
@@ -574,7 +580,10 @@ void function() {
     expect_type(tok_t_sym); OK; // "ID"
     push(&stack_codegen, current_token);
 
-    function_data = symtable_get_item(current_symtable, current_token->attribute);
+    current_symtable = DLL_GetFirst(&sym_list);
+    function_data = symtable_get_item(current_symtable, current_token->attribute); OK;
+    DLL_Last(&sym_list);
+    current_symtable = DLL_GetLast(&sym_list);
 
     sprintf(string_buffer, "$%s", current_token->attribute);
     printi(format[_label], string_buffer);
@@ -605,11 +614,16 @@ void function() {
 
     expect_type(tok_t_rcbr); OK; // "}"
 
-    DLL_Delete_last(&sym_list);// chyba když false - nepoužitá promněná (u každého)
+    DLL_Delete_last(&sym_list); OK;
 
     DLL_First(&sym_list);
     current_symtable = DLL_GetCurrent(&sym_list);
-    data_t* data = symtable_get_item(current_symtable, pop(&stack_codegen)->attribute);
+    data_t* data = symtable_get_item(current_symtable, pop(&stack_codegen)->attribute); OK;
+
+    if(data == NULL) {
+        error = err_undef;
+        return;
+    }
     
     if (data->type != DATA_TYPE_VOID && depth_sequence.data[0] != -1) {
         fprintf(stderr, "Semantic error: Function must return a value\n");
@@ -617,6 +631,7 @@ void function() {
     }
     dynamic_array_clear(&depth_sequence);
     DLL_Last(&sym_list);
+    current_symtable = DLL_GetLast(&sym_list);
 
     printi("%s", format[_popframe]);
     printi("%s", format[_return]);
@@ -654,7 +669,7 @@ void parameter() {
         printi(format[_defvar], string_buffer);
         printi(format[_pops], string_buffer);
 
-        left_data = symtable_insert(current_symtable, current_token->attribute);
+        left_data = symtable_insert(current_symtable, current_token->attribute); OK;
 
         left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(string_buffer) + 1));
         strcpy(left_data->generatedId, string_buffer);
@@ -759,7 +774,7 @@ void statement() {
         next_token();
         expect_type(tok_t_sym); OK; // ID
 
-        left_data = symtable_insert(current_symtable, current_token->attribute); //když null, vnitřní chyba nebo stejný název promněné v jednou bloku
+        left_data = symtable_insert(current_symtable, current_token->attribute); OK;
         
         if(constFlag)
             left_data->isConst = true;
@@ -811,7 +826,7 @@ void statement() {
         
         printi_condition_jump(&string_tmp, "if", if_number);
 
-        current_symtable = DLL_Insert_last(&sym_list);
+        current_symtable = DLL_Insert_last(&sym_list); OK;
 
         next_token();
         sprintf(string_buffer, "LF@%%if%i", if_number);
@@ -825,11 +840,11 @@ void statement() {
         sprintf(string_buffer, "!$if%i", if_number);
         printi(format[_label], string_buffer);
 
-        DLL_Delete_last(&sym_list);
+        DLL_Delete_last(&sym_list); OK;
 
-        current_symtable = DLL_Insert_last(&sym_list);
+        current_symtable = DLL_Insert_last(&sym_list); OK;
         else_then(); OK;
-        DLL_Delete_last(&sym_list);
+        DLL_Delete_last(&sym_list); OK;
 
         sprintf(string_buffer, "*$if%i", if_number);
         printi(format[_label], string_buffer);
@@ -860,7 +875,7 @@ void statement() {
 
         printi_condition_jump(&string_tmp, "while", while_number);
 
-        current_symtable = DLL_Insert_last(&sym_list);
+        current_symtable = DLL_Insert_last(&sym_list); OK;
 
         next_token();
         sprintf(string_buffer, "LF@%%while%i", while_number);
@@ -875,12 +890,10 @@ void statement() {
         printi(format[_label], string_buffer);
         cycle = previous_cycle_while;
 
-        current_symtable = DLL_Insert_last(&sym_list);
+        current_symtable = DLL_Insert_last(&sym_list); OK;
 
         else_then(); OK;
-        DLL_Delete_last(&sym_list);
-
-        DLL_Delete_last(&sym_list);
+        DLL_Delete_last(&sym_list); OK;
 
         sprintf(string_buffer, "&$while%i", while_number);
         printi(format[_label], string_buffer);
@@ -914,7 +927,7 @@ void statement() {
 
         expect_type(tok_t_rpa); OK;
 
-        current_symtable = DLL_Insert_last(&sym_list);
+        current_symtable = DLL_Insert_last(&sym_list); OK;
 
         next_token();
         expect_type(tok_t_alias); OK;
@@ -927,7 +940,7 @@ void statement() {
             sprintf(destination, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
             printi(format[_defvar], destination);
 
-            left_data = symtable_insert(current_symtable, current_token->attribute);
+            left_data = symtable_insert(current_symtable, current_token->attribute); OK;
             left_data->type = DATA_TYPE_INT;
             left_data->canNull = false;
             left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(destination) + 1));
@@ -966,7 +979,7 @@ void statement() {
 
         cycle = previous_cycle_for;
 
-        DLL_Delete_last(&sym_list);
+        DLL_Delete_last(&sym_list); OK;
         break;
 
     case tok_t_return:
@@ -1032,7 +1045,7 @@ void id_statement() {
         DLL_Last(&sym_list);
         current_symtable = DLL_GetCurrent(&sym_list);
         while(sym_list.current != sym_list.first){
-            left_data = symtable_get_item(current_symtable, string_buffer);
+            left_data = symtable_get_item(current_symtable, string_buffer); OK;
             if (left_data != NULL){   
                 break;     
             }
@@ -1042,15 +1055,13 @@ void id_statement() {
         DLL_Last(&sym_list);
 
         if(sym_list.current == sym_list.first){
-            // chyba ->neexistující promněná
-        }
-
-        if(left_data != NULL){
-            //TODO: kontrola typů
-        }        
+            error = err_undef;
+            return;
+        }       
 
         if(left_data->isConst){
-            //chyba -> snaha přiřazení do konstanty
+            error = err_redef;
+            return;
         }
 
         next_token();
@@ -1059,6 +1070,7 @@ void id_statement() {
 
         printi(format[_move], left_data->generatedId, string_buffer_value);
     } else {
+        current_context = CONTEXT_NONE;
         right_data = NULL;
         bool is_left = true;
         call(is_left); OK;
@@ -1102,7 +1114,7 @@ void not_null_value() {
             sprintf(string_buffer, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
             printi(format[_defvar], string_buffer);
 
-            left_data = symtable_insert(current_symtable, current_token->attribute);
+            left_data = symtable_insert(current_symtable, current_token->attribute); OK;
             left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(string_buffer) + 1));
             strcpy(left_data->generatedId, string_buffer);
         } else {
@@ -1194,7 +1206,7 @@ void id_continue() {
         DLL_Last(&sym_list);
         current_symtable = DLL_GetCurrent(&sym_list);
         while(sym_list.current != sym_list.first) {
-            left_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute);
+            left_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute); OK;
             if(left_data == NULL){
                 DLL_Prev(&sym_list);
                 current_symtable = DLL_GetCurrent(&sym_list);
@@ -1205,7 +1217,8 @@ void id_continue() {
         DLL_Last(&sym_list);
 
         if(sym_list.current == sym_list.first) {
-            // chyba -> nenalezení v symtable
+            error = err_undef;
+            return;
         }
 
         sprintf(string_buffer_value, "%s", left_data->generatedId);
@@ -1222,7 +1235,8 @@ void return_value() {
 
     if (current_token->type != tok_t_semicolon) {
         if(function_data->type == DATA_TYPE_VOID){
-            //chyba 4 -> vracení špatného datového typu z funkce
+            error = err_param;
+            return;
         }
 
         value(); OK;
@@ -1253,15 +1267,14 @@ void call(bool is_left) {
         strcat(stringBuffer, ".");
         next_token();
         expect_type(tok_t_sym); OK;
-
         strcat(stringBuffer, current_token->attribute);
                 
-
         current_symtable = DLL_GetFirst(&sym_list);
-        right_data = symtable_get_item(current_symtable, stringBuffer);
+        right_data = symtable_get_item(current_symtable, stringBuffer); OK;
         current_symtable = DLL_GetLast(&sym_list);
         if(right_data == NULL){
-            error = err_undef; return;
+            error = err_undef; 
+            return;
         }
 
         if (is_left){
@@ -1286,7 +1299,11 @@ void call(bool is_left) {
         expect_type(tok_t_lpa); OK;
 
         current_symtable = DLL_GetFirst(&sym_list);
-        right_data = symtable_get_item(current_symtable, stringBuffer);
+        right_data = symtable_get_item(current_symtable, stringBuffer); OK;
+        if(right_data == NULL){
+            error = err_undef; 
+            return;
+        }
         current_symtable = DLL_GetLast(&sym_list);
         if(right_data == NULL){
             error = err_undef; return;
@@ -1409,13 +1426,6 @@ void call_value() {
     if (current_token->type == tok_t_str || current_token->type == tok_t_mstr) {
         strcpy(string_buffer_value, current_token->attribute);
         push(&stack_codegen, current_token);
-
-        //DymString_Insert_Char(right_data->parameters, 's');
-        
-        /*if(strcmp(right_data->parameters->data, "s") != 0 || strcmp(right_data->parameters->data, "q") != 0){
-            // chyba -> do funkce se přiřazuje nesprávný datový typ parametru
-        }*/
-
         next_token();
     } else {
         value(); OK;
@@ -1488,7 +1498,9 @@ void type() {
             left_data->canNull = true;
             break;
         
-        default:    //nemůže nastat kdyžtak chyba nevjem
+        default:    
+            error = err_internal;
+            return;
             break;
     }
     
@@ -1543,7 +1555,7 @@ void parse_fn_first() {
             next_token_initial(); OK;
             expect_type(tok_t_sym); OK;
 
-            left_data = symtable_insert(current_symtable, current_token->attribute); // když vrátí NULL chyba
+            left_data = symtable_insert(current_symtable, current_token->attribute); OK;
             
             next_token_initial(); OK;
             expect_type(tok_t_lpa); OK; // (
@@ -1558,7 +1570,7 @@ void parse_fn_first() {
                 next_token_initial(); OK;
                 expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
-                symtable_insert_params(left_data, current_token->type); //když false chyba
+                symtable_insert_params(left_data, current_token->type); OK;
                 
                 next_token_initial(); OK;
             }
@@ -1575,7 +1587,7 @@ void parse_fn_first() {
                 next_token_initial(); OK;
                 expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
-                symtable_insert_params(left_data, current_token->type); // když false chyba
+                symtable_insert_params(left_data, current_token->type); OK;
 
                 next_token_initial(); OK;
             }
@@ -1620,7 +1632,9 @@ void parse_fn_first() {
                     left_data->type = DATA_TYPE_VOID;
                     break;
                 
-                default:    //nemůže nastat kdyžtak chyba nevjem
+                default:
+                    error = err_internal;
+                    return;
                     break;
                 }
         }
@@ -1643,7 +1657,10 @@ err_codes parse() {
     parse_fn_first();
 
     left_data = symtable_get_item(current_symtable, "main");
-    // ve vnitř chyba 3, nedefinovaný main
+    
+    if(left_data == NULL) {
+        error = err_undef;
+    }
     
     if(left_data->type != DATA_TYPE_VOID || left_data->parameters->size != 0) {
         error = err_param;
