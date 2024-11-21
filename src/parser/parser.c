@@ -1111,6 +1111,8 @@ void not_null_value() {
             printi(format[_defvar], string_buffer);
 
             left_data = symtable_insert(current_symtable, current_token->attribute); OK;
+            left_data->type = result_data->type;
+            left_data->canNull = result_data->canNull;
             left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(string_buffer) + 1));
             strcpy(left_data->generatedId, string_buffer);
         } else {

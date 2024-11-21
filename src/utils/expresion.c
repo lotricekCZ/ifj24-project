@@ -71,6 +71,7 @@ data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLL
     }
     else if(popToken->type == tok_t_sym){
         sym = find(result, sym_list, popToken, symtable);
+        sym->used = true;
         result->type = sym->type;
         result->canNull = sym->canNull;
         return result;

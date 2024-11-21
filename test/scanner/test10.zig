@@ -1,12 +1,10 @@
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    recursion(10);
+    ifj.write(add(add(3, 2, 1), add(3, add(1,9,7), 5), 5));
+    ifj.write("\n");
 }
 
-pub fn recursion(n: i32) void {
-    if (n == 0) {
-        return;
-    }
-    recursion(n - 1);
+pub fn add(a: i32, b: i32, c: i32) i32 {
+    return a + b + c;
 }
