@@ -94,7 +94,7 @@ symtable_t * DLL_GetCurrent(DLList *list);
  *
  * @returns true, pokud se vše podařilo, jinak false
  */
-bool DLL_Delete_last(DLList *list);
+void DLL_Delete_last(DLList *list);
 
 /**
  * Posune aktivitu na následující prvek seznamu list.
@@ -128,7 +128,7 @@ bool DLL_isActive(DLList *list);
  * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  * @return true, pokud došlo k úspěšnému zrušení všech prvků, false jinak
  */
-bool DLL_Destroy(DLList *list);
+void DLL_Destroy(DLList *list);
 
 
 #endif

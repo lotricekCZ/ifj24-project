@@ -169,9 +169,8 @@ bool symtable_destroy(symtable_t *symtable){
         if (item == NULL)
             continue;
 
-        if (!item->data.used)
-        {
-            // chyba nepoužita promněná
+        if (!item->data.used){
+            error = err_dt_unused;
         }
 
         free(item->key);
@@ -368,8 +367,10 @@ bool symtable_insert_builtin(symtable_t *symtable){
     data->type = DATA_TYPE_INT;
     data->used = true;
     internal_err = symtable_insert_params(data, tok_t_i32);
-    if(!internal_err)
+    if(!internal_err){
+        error = err_internal;
         return false;
+    }
         
     return true;
 }

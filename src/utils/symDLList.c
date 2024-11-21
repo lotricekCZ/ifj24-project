@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "errno.h"
+
+err_codes error = err_none;
 
 void DLL_Init(DLList *list) {
     list->first = NULL;
@@ -39,27 +42,29 @@ bool DLL_isActive(DLList *list) {
     return list->current != NULL;
 }
 
-bool DLL_Destroy(DLList *list) {
+void DLL_Destroy(DLList *list) {
     while (list->first != NULL) {
         DLLElementPtr deleteElement = list->first;
         list->first = deleteElement->next;
         if (!symtable_destroy((symtable_t *)deleteElement->symtable)) {
-            return false;
+            return;
         }
         free(deleteElement);
         list->length--;
     }
-    return true;
+    return;
 }
 
 symtable_t * DLL_Insert_last(DLList *list) {
     DLLElementPtr new = (DLLElementPtr)malloc(sizeof(struct DLLElement));
     if (new == NULL) {
+        error = err_internal;
         return NULL;
     }
 
     new->symtable  = (symtable_t *)malloc(sizeof(symtable_t));
     if (new->symtable == NULL) {
+        error = err_internal;
         free(new);
         return NULL;
     }
@@ -99,7 +104,7 @@ symtable_t *DLL_GetCurrent(DLList *list) {
     return NULL;
 }
 
-bool DLL_Delete_last(DLList *list) {
+void DLL_Delete_last(DLList *list) {
     DLLElementPtr delete;
     if (list->last != NULL) {
         delete = list->last;
@@ -114,10 +119,9 @@ bool DLL_Delete_last(DLList *list) {
             list->last->next = NULL;
         }
         if (!symtable_destroy((symtable_t *)delete->symtable)) {
-            return false;
+            return;
         }
         free(delete);
         list->length--;
     }
-    return true;
 }
