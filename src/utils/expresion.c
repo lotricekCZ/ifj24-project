@@ -38,11 +38,6 @@ void check_operator(data_t *result_data, data_t *result){
 }
 
 void check_operator2(data_t *result_data, data_t *result){
-    if(result_data->canNull){
-        fprintf(stderr, "ERROR: ==, !=, <, <=, >, >= nemůže být null\n");
-        exit(2);
-    }
-
     if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE && result_data->type != DATA_TYPE_BOOLEAN){
         fprintf(stderr, "ERROR: ==, !=, <, <=, >, >= nelze emplicitně přetypovat\n");
         exit(2);
@@ -362,6 +357,15 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     popToken->type = tok_t_bool;
                     push(&stack, popToken);
                 }
+                else if(popToken2->type == tok_t_null){
+                    if(!result_data->canNull){
+                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
+                        exit(2);
+                    }
+                    result->type = DATA_TYPE_BOOLEAN;
+                    popToken->type = tok_t_bool;
+                    push(&stack, popToken);
+                }
                 else{
                     fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
                     exit(2);
@@ -437,6 +441,26 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
                     exit(2);
                 }
+                break;
+            case tok_t_null:
+                if(popToken2->type == tok_t_sym){
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable);
+                    check_operator2(result_data2, result);
+
+                    if(!result_data2->canNull){
+                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
+                        exit(2);
+                    }
+                    result->type = DATA_TYPE_BOOLEAN;
+                    popToken->type = tok_t_bool;
+                    push(&stack, popToken);
+                }
+                else{
+                    if(popToken2->type != tok_t_null){
+                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
+                        exit(2);
+                    }
+                }    
                 break;
             default:
                 fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
