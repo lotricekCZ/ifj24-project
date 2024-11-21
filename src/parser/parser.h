@@ -63,7 +63,7 @@ void definition();
 void for_value();
 
 // Precedence parsing
-extern char precedence_table[17][17];
+extern char precedence_table[19][19];
 int get_precedence_index(token_type type);
 int getPrecedence(token_type stackTop, token_type input);
 void push_operator(token_type op, token_type* operator_stack, int* operator_top);
