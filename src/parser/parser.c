@@ -101,7 +101,7 @@ char precedence_table[17][17] = {
     { '>', '>', '<', '<', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // -
     { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // *
     { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // /
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // ==
+    { '<', '<', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // ==
     { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // !=
     { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // <
     { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>' }, // >
@@ -161,11 +161,11 @@ void print_postfix_and_stack(char *postfix, int postfix_index, Stack *stack) {
  * Function to print postfix expression
  */
 void print_postfix(Token_ptr *postfix, int postfix_index) {
-    printf("Postfix expression: ");
+    fprintf(stderr ,"Postfix expression: ");
     for (int i = 0; i < postfix_index; i++) {
-        printf("%s ", tok_type_to_str(postfix[i]->type));
+        fprintf(stderr ,"%s ", tok_type_to_str(postfix[i]->type));
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 }
 
 /* 
@@ -312,6 +312,7 @@ void parse_expression() {
         default:
             expect_types(16, tok_t_plus, tok_t_minus, tok_t_times, tok_t_divide, tok_t_not, tok_t_eq, tok_t_neq, tok_t_lt, tok_t_gt, tok_t_leq, tok_t_geq, tok_t_and, tok_t_or, tok_t_not, tok_t_orelse, tok_t_orelse_un); OK;
             while (!isEmpty(&stack) && getPrecedence(peek(&stack)->type, current_token->type) != '<') {
+                // fprintf(stderr, "Precedence: %s %c %s\n", tok_type_to_str(peek(&stack)->type), getPrecedence(peek(&stack)->type, current_token->type), tok_type_to_str(current_token->type));
                 postfix[postfix_index++] = pop(&stack);
             }
             push(&stack, current_token);
@@ -325,6 +326,12 @@ void parse_expression() {
     while (!isEmpty(&stack)) {
         postfix[postfix_index++] = pop(&stack);
     }
+
+    // fprintf(stderr, "Postfix: ");
+    // for (int i = 0; i < postfix_index; i++) {
+    //     fprintf(stderr, "%s ", tok_type_to_str(postfix[i]->type));
+    // }
+    // fprintf(stderr, "\n");
 
     bool convert;
     result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &convert); OK;
@@ -1678,7 +1685,7 @@ err_codes parse() {
         program();
         
         if (error == err_none) {
-            str_printout(&string);
+        str_printout(&string);
         }
 
         str_destroy(&string);
