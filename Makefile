@@ -12,3 +12,6 @@ clean:
 
 run:
 	@cd build && ./ifj2024
+
+flat:
+	./flattener.sh

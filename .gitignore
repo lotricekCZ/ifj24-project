@@ -155,3 +155,4 @@ zig-out/
 build/
 build-*/
 docgen_tmp/
+flat/
