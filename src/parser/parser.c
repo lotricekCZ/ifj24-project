@@ -91,7 +91,6 @@ dynamic_array_t depth_sequence;
 char stringBuffer[MAX_STRING_LEN] = "\0";
 int param_count = -1;
 Stack stack_param;
-int kolo = 0;
 
 /*
  * Precedence table
@@ -431,7 +430,7 @@ void next_token() {
  */
 void expect_type(token_type type) {
     if (current_token->type != type) {
-        fprintf(stderr, "Syntax error1: Expected %s, got %s\n", tok_type_to_str(type), tok_type_to_str(current_token->type));
+        fprintf(stderr, "Syntax error: Expected %s, got %s\n", tok_type_to_str(type), tok_type_to_str(current_token->type));
         error = err_syntax;
     }
 }
@@ -476,11 +475,11 @@ void expect_types(int count, ...) {
 void expect_attribute(const char* attr) {
     printi("Expect_attribute: %s\n", attr);
     if (current_token->attribute == NULL) {
-        fprintf(stderr, "Syntax error2: Expected %s, but current token has no attribute\n", attr);
+        fprintf(stderr, "Syntax error: Expected %s, but current token has no attribute\n", attr);
         error = err_syntax;
     }
     if (strcmp(current_token->attribute, attr) != 0) {
-        fprintf(stderr, "Syntax error3: Expected %s, got %s\n", attr, current_token->attribute);
+        fprintf(stderr, "Syntax error: Expected %s, got %s\n", attr, current_token->attribute);
         error = err_syntax;
     }
 }
@@ -1318,7 +1317,6 @@ void call_params() {
         int param_count_save = param_count;
         strcpy(stringBuffer2, stringBuffer);
         call_value(); OK;
-        kolo++;
         strcpy(stringBuffer, stringBuffer2);
         param_count = param_count_save;
         right_data = data;
@@ -1636,7 +1634,7 @@ void parse_fn_first() {
 /******** End of grammar functions ******** 
  * Function to parse the source code
  */
-void parse() {
+err_codes parse() {
     // init dll and symtable
     DLL_Init(&sym_list);
     current_symtable = DLL_Insert_last(&sym_list);
@@ -1672,4 +1670,6 @@ void parse() {
         dynamic_array_destroy(&depth_sequence);
     }
     DLL_Destroy(&sym_list);
+
+    return error;
 }

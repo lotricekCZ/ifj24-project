@@ -10,6 +10,7 @@
 #include "../scanner/scanner.h"
 #include "../utils/token.h"
 #include "../utils/symtable.h"
+#include "../utils/errors.h"
 
 // Global variables
 extern Token_ptr current_token;
@@ -72,7 +73,7 @@ Token_ptr pop_operand(Token_ptr* operand_stack, int* operand_top);
 char get_precedence_relation(token_type stack_top, token_type current);
 void parse_expression();
 
-void parse();
+err_codes parse();
 void parse_fn_first();
 
 #endif // PARSER_H

@@ -5,21 +5,28 @@
 #include <stdio.h>
 #include "utils/token_types.h"
 #include "parser/parser.h"
+#include "utils/errors.h"
 
 int main(int argc, char *argv[])
 {
-    // Initialize the scanner with the source code file.
-    scanner = scn_init("../test/scanner/test10.zig");
+    if (argc >= 2) {
+        scanner = scn_init(argv[1]);
+    } else {
+        // Initialize the scanner with the source code file.
+        scanner = scn_init("../test/scanner/test10.zig");
+        //fprintf(stderr, "No source code file specified.\n");
+        //return err_internal;
+    }
     if (scanner == NULL) {
         fprintf(stderr, "Failed to initialize scanner.\n");
-        return 1;
+        return err_internal;
     }
 
     // Parse the source code.
-    parse();
+    err_codes error = parse();
 
     // Free the scanner.
     scn_free(scanner);
 
-    return 0;
+    return error;
 }
