@@ -241,10 +241,6 @@ void parse_expression() {
             current_symtable = DLL_GetCurrent(&sym_list);
             data_t* data = symtable_get_item(current_symtable, stringBuffer); OK;
 
-            if(data == NULL) {
-                error = err_undef;
-                return;
-            }
             if (data != NULL) {
                 sprintf(string_buffer, "LF@%%retval%i", counter_codegen_expression++);
                 printi(format[_defvar], string_buffer);
@@ -253,7 +249,7 @@ void parse_expression() {
                 strcpy(current_token->attribute, string_buffer_value);
                 push(&stack_functions, current_token);
             }
-            DLL_Last(&sym_list);
+            current_symtable = DLL_GetLast(&sym_list);
 
             tok_set_attribute(func_token, stringBuffer);
             postfix[postfix_index] = func_token;
@@ -1276,6 +1272,7 @@ void call(bool is_left) {
             error = err_undef; 
             return;
         }
+        right_data->used = true;
 
         if (is_left){
             if(right_data->type != DATA_TYPE_VOID){
@@ -1308,7 +1305,7 @@ void call(bool is_left) {
         if(right_data == NULL){
             error = err_undef; return;
         }
-
+        right_data->used = true;
 
         next_token();
         call_params(); OK;
@@ -1665,6 +1662,7 @@ err_codes parse() {
     if(left_data->type != DATA_TYPE_VOID || left_data->parameters->size != 0) {
         error = err_param;
     }
+    left_data->used = true;
 
     if (error == err_none) {
         // Initialize the stack for code generation

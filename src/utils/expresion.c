@@ -47,6 +47,12 @@ void check_operator2(data_t *result_data, data_t *result){
 
 data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLList sym_list){
     symtable = DLL_GetLast(&sym_list);
+    data_t *sym;
+    sym = malloc(sizeof(data_t));
+    if (sym == NULL){
+        // vnitřní chyba
+    }
+
     if(popToken->type == tok_t_int){
         result->type = DATA_TYPE_INT;
         return result;
@@ -64,7 +70,9 @@ data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLL
         return result;
     }
     else if(popToken->type == tok_t_sym){
-        result = find(result, sym_list, popToken, symtable);
+        sym = find(result, sym_list, popToken, symtable);
+        result->type = sym->type;
+        result->canNull = sym->canNull;
         return result;
     }
 }

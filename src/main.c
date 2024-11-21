@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Failed to initialize scanner.\n");
         return err_internal;
     }
-
+    
     // Parse the source code.
     err_codes error = parse();
 
