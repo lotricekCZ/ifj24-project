@@ -9,21 +9,16 @@
 #include "utils/memory_table.h"
 #include "scanner/scanner.h"
 
-int main(int argc, char *argv[])
+int main()
 {
     //safe_memory = true;
     //memory_ht_init(&_memory_table);
-    if (argc >= 2)
-    {
-        scanner = scn_init(argv[1]);
-    }
-    else
-    {
-        // Initialize the scanner with the source code file.
-        scanner = scn_init("../test/codegen/builtin.zig");
-        // fprintf(stderr, "No source code file specified.\n");
-        // return err_internal;
-    }
+    scanner = scn_init(NULL);
+    // Initialize the scanner with the source code file.
+    //scanner = scn_init("../test/codegen/builtin.zig");
+    // fprintf(stderr, "No source code file specified.\n");
+    // return err_internal;
+
     if (scanner == NULL)
     {
         fprintf(stderr, "Failed to initialize scanner.\n");
