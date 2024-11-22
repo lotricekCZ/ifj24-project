@@ -26,7 +26,6 @@ typedef enum {
     CONTEXT_NONE,
     CONTEXT_SYMBOL,
     CONTEXT_RETURN,
-    CONTEXT_PARAM,
     CONTEXT_CONDITION_FOR
 }context_t;
 

@@ -301,12 +301,15 @@ void parse_expression() {
             current_symtable = DLL_GetLast(&sym_list);
 
             if(sym_list.current == sym_list.first || result_data == NULL){ 
+                fprintf(stderr, "Semantic error: undefined id\n");
                 error = err_undef;
                 return;
             }
 
             if(!left_data->as_func){
-                // chyba -> promněná neni special promněná
+                fprintf(stderr, "Semantic error: isnt value |id|\n");
+                error = err_semantic;
+                return;
             }
 
 
@@ -341,51 +344,55 @@ void parse_expression() {
     {
     case CONTEXT_CONDITION:
         if(result_data->type == DATA_TYPE_STRING || result_data->type == DATA_TYPE_VOID || result_data->type == DATA_TYPE_UND ){
-            // chyba -> neplatný datový typ v podmínce if cyklu
+            fprintf(stderr, "Semantic error: Invalid if/while condition type\n");
+            error = err_dt_invalid;
+            return;
         }
 
-        if(result_data->type != DATA_TYPE_BOOLEAN && !result_data->canNull){
-            //chyba -> neplatný datový typ v podmínce if cyklu
+        if(result_data->type == DATA_TYPE_BOOLEAN && result_data->canNull){
+            fprintf(stderr, "Semantic error: Invalid if/while condition type\n");
+            error = err_dt_invalid;
+            return;
         }
     break;
 
     case CONTEXT_RETURN:// todo hlídat null
-        if((function_data->type != result_data->type)){
-            // chyba -> neplatný datový typ v return
-        }
-
-        if(function_data->canNull != result_data->canNull){
-            // chyba -> neplatný datový typ v return
-        }
-            
+        if((function_data->type != result_data->type && function_data->canNull != result_data->canNull)){
+            fprintf(stderr, "Semantic error: Invalid return type\n");
+            error = err_param;
+            return;
+        }    
     break;
 
     case CONTEXT_SYMBOL:
+        if(result_data->type == DATA_TYPE_VOID){
+            fprintf(stderr, "Semantic error: Cant assighn void value\n");
+            error = err_dt_invalid;
+            return;
+        }
+
         if(left_data->type == DATA_TYPE_UND){
-            if(result_data->type == -1){
+            if(result_data->type == DATA_TYPE_UND){
+                error = err_dt_unknown;
                 fprintf(stderr, "ERROR: nelze do nedefinovaného typu dát null\n");
-                exit(2);
+                return;
             }
             left_data->type = result_data->type;
             left_data->canNull = result_data->canNull;
         }
         else{
             if(!left_data->canNull){
-                if(result_data->type == -1){
-                    fprintf(stderr, "ERROR: nelze do nedefinovaného typu dát null\n");
-                    exit(2);
-                }
-
                 if(left_data->type != result_data->type){
+                    error = err_dt_invalid;
                     fprintf(stderr, "ERROR: neshodné datové typy\n");
-                    exit(2);
+                    return;
                 }
             }
             
-
             if(left_data->type != result_data->type && result_data->type != DATA_TYPE_UND){
+                error = err_dt_invalid;
                 fprintf(stderr, "ERROR: neshodné datové typy\n");
-                exit(2);
+                return;
             }
         }
 
@@ -393,16 +400,12 @@ void parse_expression() {
 
     case CONTEXT_CONDITION_FOR:
         if(result_data->type != DATA_TYPE_U8 && result_data->canNull != false){
-            // chyba ->neplatný datový typ v podmínce for cyklu
+            fprintf(stderr, "Semantic error: Invalid type in for condition\n");
+            error = err_dt_invalid;
+            return;
         }
     break;
 
-    case CONTEXT_PARAM:
-        if(result_data->canNull != false || result_data->canNull != true){
-            //result_data->canNull = right_data->parameters[param_count].data;
-        }
-    break;
-    
     default:
         break;
     }
@@ -804,6 +807,9 @@ void statement() {
 
         next_token();
         value(); OK;
+
+        left_data->type = result_data->type;
+        left_data->canNull = result_data->canNull;
         
         printi(format[_move], destination, string_buffer_value);
 
@@ -1092,7 +1098,7 @@ void id_statement() {
 void value() {
     printi(format[_comment], "<value>");
 
-    expect_types(8, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym, tok_t_lpa); OK;
+    expect_types(9, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym, tok_t_lpa, tok_t_not); OK;
 
     parse_expression(); OK;
     sprintf(string_buffer_value, "LF@%%expression%i", counter_codegen_expression++);
@@ -1109,7 +1115,9 @@ void not_null_value() {
 
     if (current_token->type == tok_t_alias) {
         if(result_data->type == DATA_TYPE_BOOLEAN){
-            // chyba -> výraz je bool ne ?TYPE
+            fprintf(stderr, "Semantic error: Cannot cast boolean to id_without_null\n");
+            error = err_semantic;
+            return;
         }
 
         next_token();
@@ -1138,7 +1146,9 @@ void not_null_value() {
     }
     else{
         if(result_data->type != DATA_TYPE_BOOLEAN){
-            // chyba -> když ?TYPE musí být |id|
+            fprintf(stderr, "Semantic error: Missing id_without_null\n");
+            error = err_semantic;
+            return;
         }
     }
 
@@ -1256,6 +1266,7 @@ void id_continue() {
             }
             id_save->used = true;
             sprintf(string_buffer_value, "%s", id_save->generatedId);
+            
         }
         
         pop(&stack_codegen)->attribute;
@@ -1271,7 +1282,7 @@ void return_value() {
 
     if (current_token->type != tok_t_semicolon) {
         if(function_data->type == DATA_TYPE_VOID){
-            error = err_param;
+            error = err_ret_val;
             return;
         }
 
@@ -1317,7 +1328,8 @@ void call(bool is_left) {
 
         if (is_left){
             if(right_data->type != DATA_TYPE_VOID){
-                //chyba -> funkce vrací hodnotu, ale není nikde přiřazena
+                error = err_param;
+                return;
             }
         }
         
@@ -1364,7 +1376,7 @@ void call(bool is_left) {
 void call_params() {
     printi(format[_comment], "<call_params>");
     char stringBuffer2[MAX_STRING_LEN];
-    current_context = CONTEXT_PARAM;
+    current_context = CONTEXT_NONE;
     
     if (current_token->type != tok_t_rpa) {
         param_count++;
@@ -1381,7 +1393,7 @@ void call_params() {
             error = err_param;
             return;
         } else if(peek(&stack_codegen)->type == tok_t_str || peek(&stack_codegen)->type == tok_t_mstr){
-            if (data->parameters->data[param_count] != peek(&stack_codegen)->type) {
+            if (data->parameters->data[param_count] != tok_t_str) {
                 found = false;
             }
         } else {
@@ -1389,6 +1401,7 @@ void call_params() {
                 case DATA_TYPE_INT:
                     if (result_data->canNull) {
                         if (data->parameters->data[param_count] != tok_t_i32_opt) {
+                            error = err_param;
                             found = false;
                         }
                     }
@@ -1396,6 +1409,7 @@ void call_params() {
                 case DATA_TYPE_DOUBLE:
                     if (result_data->canNull) {
                         if (data->parameters->data[param_count] != tok_t_f64_opt) {
+                            error = err_param;
                             found = false;
                         }
                     }
@@ -1403,14 +1417,17 @@ void call_params() {
                 case DATA_TYPE_U8:
                     if (result_data->canNull) {
                         if (data->parameters->data[param_count] != tok_t_u8_opt) {
+                            error = err_param;
                             found = false;
                         }
                     } else if (data->parameters->data[param_count] != tok_t_u8) {
+                        error = err_param;
                         found = false;
                     }
                     break;
                 case DATA_TYPE_BOOLEAN:
                     if (data->parameters->data[param_count] != tok_t_bool) {
+                        error = err_param;
                         found = false;
                     }
                     break;
