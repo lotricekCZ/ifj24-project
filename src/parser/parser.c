@@ -1690,10 +1690,11 @@ err_codes parse() {
     // Parse the source code for the first time.
     parse_fn_first();
 
-    left_data = symtable_get_item(current_symtable, "main", &error); OK error;
+    left_data = symtable_get_item(current_symtable, "main", &error);
     
     if(left_data == NULL) {
         error = err_undef;
+        return error; 
     }
     
     if(left_data->type != DATA_TYPE_VOID || left_data->parameters->size != 0) {
