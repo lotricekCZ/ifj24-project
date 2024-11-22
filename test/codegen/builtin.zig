@@ -39,14 +39,13 @@ pub fn main() void {
     ifj.write(d);
     ifj.write("\n");
 
-    const ee = ifj.string("123");
-    const eee = ifj.string("456\n");
-    const e: []u8 = ifj.concat(ee, eee);
+    const e: []u8 = ifj.concat(ifj.string("123"), ifj.string("456\n"));
     ifj.write(e);
     ifj.write("\n");
 
-    const ff = ifj.string("Stejene");
-    const f = ifj.strcmp(ff, ff);
+    const ff = ifj.string("123");
+    const fff = ifj.string("456\n");
+    const f = ifj.strcmp(ff, fff);
     ifj.write(f);
     ifj.write("\n");
 

@@ -12,7 +12,7 @@
 #include "token_types.h"
 #include "errors.h"
 
-#define SYMTABLE_SIZE 41  // velikost symbol table
+#define SYMTABLE_SIZE 4001  // velikost symbol table
 
 /**
  * @enum data type

@@ -1,7 +1,8 @@
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    if(5 + 2 == 3 + 9 and 2 and 3){
-
-    }
+    const b :i32 = 8;
+    const a :i32 = b;
+    _ = a;
+    _ = b;
 }
