@@ -160,7 +160,8 @@ void symtable_destroy(symtable_t *symtable, err_codes *error){
             continue;
 
         if (!item->data.used || !item->data.modified){
-            *error = err_dt_unused;
+            if(*error == err_none)
+                *error = err_dt_unused;
         }
 
         free(item->key);
