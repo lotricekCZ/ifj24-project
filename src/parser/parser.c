@@ -348,12 +348,6 @@ void parse_expression() {
             error = err_dt_invalid;
             return;
         }
-
-        if(result_data->type == DATA_TYPE_BOOLEAN && result_data->canNull){
-            fprintf(stderr, "Semantic error: Invalid if/while condition type\n");
-            error = err_dt_invalid;
-            return;
-        }
     break;
 
     case CONTEXT_RETURN:// todo hlídat null
@@ -1440,6 +1434,9 @@ void call_params() {
             fprintf(stderr, "Semantic error: Function parameter type mismatch\n");
             error = err_param;
             return;
+        }
+        else{
+            error = err_none;
         }
         char source[MAX_STRING_LEN];
         strcpy(source, string_buffer_value);
