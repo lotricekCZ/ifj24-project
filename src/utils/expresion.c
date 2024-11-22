@@ -610,7 +610,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 result->type = result_data->type;
             }
             else if (popToken2->type == tok_t_sym){
-                if(result_data->type != DATA_TYPE_INT || result_data->type != DATA_TYPE_DOUBLE || result_data->type != DATA_TYPE_U8){
+                if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE && result_data->type != DATA_TYPE_U8){
                     fprintf(stderr, "ERROR: orElse nepodporuje dané datové typy\n");
                     exit(2);
                 }
