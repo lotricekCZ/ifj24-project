@@ -1235,11 +1235,12 @@ void id_continue() {
             sprintf(string_buffer_value, "%s", param_data->generatedId);
         }
         else{
+            data_t *id_save;
             DLL_Last(&sym_list);
             current_symtable = DLL_GetCurrent(&sym_list);
             while(sym_list.current != sym_list.first) {
-                left_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
-                if(left_data == NULL){
+                id_save = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
+                if(id_save == NULL){
                     DLL_Prev(&sym_list);
                     current_symtable = DLL_GetCurrent(&sym_list);
                 } else {
@@ -1249,7 +1250,7 @@ void id_continue() {
             DLL_Last(&sym_list);
             DLL_GetLast(&sym_list);
 
-            if(sym_list.current == sym_list.first || left_data == NULL){ 
+            if(sym_list.current == sym_list.first || id_save == NULL){ 
                 error = err_undef;
                 return;
             }

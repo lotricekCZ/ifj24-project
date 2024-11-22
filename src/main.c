@@ -11,8 +11,8 @@
 
 int main(int argc, char *argv[])
 {
-    safe_memory = true;
-    memory_ht_init(&_memory_table);
+    //safe_memory = true;
+    //memory_ht_init(&_memory_table);
     if (argc >= 2)
     {
         scanner = scn_init(argv[1]);
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     else
     {
         // Initialize the scanner with the source code file.
-        scanner = scn_init("../test/codegen/funcs.zig");
+        scanner = scn_init("../test/scanner/test10.zig");
         // fprintf(stderr, "No source code file specified.\n");
         // return err_internal;
     }
@@ -35,6 +35,6 @@ int main(int argc, char *argv[])
 
     // Free the scanner.
     scn_free(scanner);
-    memory_ht_dispose(&_memory_table);
+    //memory_ht_dispose(&_memory_table);
     return error;
 }

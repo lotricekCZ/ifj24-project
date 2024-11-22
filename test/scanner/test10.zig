@@ -1,8 +1,8 @@
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    const b :i32 = 8;
-    const a :i32 = b;
-    _ = a;
-    _ = b;
+    const a = 5;
+    const b = 3;
+    var c = a + b;
+    ifj.write(c);
 }
