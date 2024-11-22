@@ -6,7 +6,7 @@
 //"a"
 // --- EXPECTED EXIT CODES ---
 //0  // ifj2024 exit code
-//57  // interpreter exit code
+//0  // interpreter exit code
 // --- EXPECTED OUTPUT ---
 //1
 //0

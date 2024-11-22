@@ -10,6 +10,13 @@
 //0x1p0
 //a
 //string
+//123456
+//0
+//1
+//-1
+//Sl
+//83
+//a
 //0x1p0
 //1
 //5
@@ -35,17 +42,16 @@ pub fn main() void {
     }
     ifj.write("\n");
 
-    const d = ifj.string("string\n");
+    const d = ifj.string("string");
     ifj.write(d);
     ifj.write("\n");
 
-    const e: []u8 = ifj.concat(ifj.string("123"), ifj.string("456\n"));
+    const e: []u8 = ifj.concat(ifj.string("123"), ifj.string("456"));
     ifj.write(e);
     ifj.write("\n");
 
-    const ff = ifj.string("123");
-    const fff = ifj.string("456\n");
-    const f = ifj.strcmp(ff, fff);
+    const ff = ifj.string("Stejne");
+    const f = ifj.strcmp(ff, ff);
     ifj.write(f);
     ifj.write("\n");
 
