@@ -42,7 +42,7 @@ target_link_libraries(keyword errors)
 
 target_link_libraries(scanner token errors scan_state keyword token_dll memory_table m)
 # target_link_libraries(scanner parser)
-target_link_libraries(ifj2024 errors token scanner parser codegen stack symtable sym_dll dym_string str dynamic_array expresion)
+target_link_libraries(ifj2024 errors token scanner parser codegen stack symtable sym_dll dym_string str dynamic_array expresion memory_table)
 
 # Enable testing
 enable_testing()
