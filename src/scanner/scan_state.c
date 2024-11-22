@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xramas01; Jakub Ramaseuski
+ */
+
 #include "scan_state.h"
 #include "../utils/errors.h"
 #include <stddef.h>

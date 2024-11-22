@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xramas01; Jakub Ramaseuski
+ */
+
 #include "hashtable.h"
 #include "sll.h"
 #include <stdlib.h>

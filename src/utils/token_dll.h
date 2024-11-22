@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xramas01; Jakub Ramaseuski
+ */
+
 #ifndef TOKEN_DLL_H
 #define TOKEN_DLL_H
 

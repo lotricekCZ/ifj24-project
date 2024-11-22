@@ -183,6 +183,7 @@ void parse_expression() {
     init(&stack);
     Stack stack_functions;
     init(&stack_functions);
+    context_t save_context = current_context;
 
     Token_ptr postfix[MAX];
     int postfix_index = 0;
@@ -193,7 +194,7 @@ void parse_expression() {
         case tok_t_rpa: // )
             paren_count--;
             // Ak máme 0 zátvoriek, skončíme spracovanie
-            if (paren_count <= 0) {
+            if (paren_count < 0) {
                 expression_continue = false;
                 break;  // Končíme spracovanie podmienky
             }
@@ -208,6 +209,7 @@ void parse_expression() {
         case tok_t_lpa: // (
             paren_count++;
             push(&stack, current_token);
+            next_token();
             break;
 
         case tok_t_int: //1
@@ -333,7 +335,6 @@ void parse_expression() {
     while (!isEmpty(&stack)) {
         postfix[postfix_index++] = pop(&stack);
     }
-
     printi_postfix(&string_tmp, postfix, postfix_index, &stack_functions, &sym_list, current_symtable, &error); OK;
     result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &error); OK;
     switch (current_context)
@@ -395,11 +396,17 @@ void parse_expression() {
             // chyba ->neplatný datový typ v podmínce for cyklu
         }
     break;
+
+    case CONTEXT_PARAM:
+        if(result_data->canNull != false || result_data->canNull != true){
+            //result_data->canNull = right_data->parameters[param_count].data;
+        }
+    break;
     
     default:
         break;
     }
-
+    current_context = save_context;
     //print_postfix(postfix, postfix_index);
     printi(format[_comment], "</expression>");
 }
@@ -1085,7 +1092,7 @@ void id_statement() {
 void value() {
     printi(format[_comment], "<value>");
 
-    expect_types(7, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym); OK;
+    expect_types(8, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym, tok_t_lpa); OK;
 
     parse_expression(); OK;
     sprintf(string_buffer_value, "LF@%%expression%i", counter_codegen_expression++);
@@ -1228,11 +1235,12 @@ void id_continue() {
             sprintf(string_buffer_value, "%s", param_data->generatedId);
         }
         else{
+            data_t *id_save;
             DLL_Last(&sym_list);
             current_symtable = DLL_GetCurrent(&sym_list);
             while(sym_list.current != sym_list.first) {
-                left_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
-                if(left_data == NULL){
+                id_save = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
+                if(id_save == NULL){
                     DLL_Prev(&sym_list);
                     current_symtable = DLL_GetCurrent(&sym_list);
                 } else {
@@ -1242,10 +1250,11 @@ void id_continue() {
             DLL_Last(&sym_list);
             DLL_GetLast(&sym_list);
 
-            if(sym_list.current == sym_list.first || left_data == NULL){ 
+            if(sym_list.current == sym_list.first || id_save == NULL){ 
                 error = err_undef;
                 return;
             }
+            left_data->used = true;
             sprintf(string_buffer_value, "%s", left_data->generatedId);
         }
         
@@ -1355,6 +1364,7 @@ void call(bool is_left) {
 void call_params() {
     printi(format[_comment], "<call_params>");
     char stringBuffer2[MAX_STRING_LEN];
+    current_context = CONTEXT_PARAM;
     
     if (current_token->type != tok_t_rpa) {
         param_count++;
@@ -1381,18 +1391,13 @@ void call_params() {
                         if (data->parameters->data[param_count] != tok_t_i32_opt) {
                             found = false;
                         }
-                    } else if (data->parameters->data[param_count] != tok_t_i32) {
-                        found = false;
                     }
                     break;
-                
                 case DATA_TYPE_DOUBLE:
                     if (result_data->canNull) {
                         if (data->parameters->data[param_count] != tok_t_f64_opt) {
                             found = false;
                         }
-                    } else if (data->parameters->data[param_count] != tok_t_f64) {
-                        found = false;
                     }
                     break;
                 case DATA_TYPE_U8:

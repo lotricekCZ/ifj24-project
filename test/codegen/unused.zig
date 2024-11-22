@@ -9,7 +9,7 @@
 //0  // interpreter exit code
 // --- EXPECTED OUTPUT ---
 //OK
-//OK,OK,OK,
+//OK,OK,OK,OK,
 //OK,OK,OK,
 // --- TEST CODE ---
 const ifj = @import("ifj24.zig");

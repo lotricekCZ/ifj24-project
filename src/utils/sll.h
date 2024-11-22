@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xramas01; Jakub Ramaseuski
+ */
+
 #ifndef SLL_H
 #define SLL_H
 #include <stdbool.h>

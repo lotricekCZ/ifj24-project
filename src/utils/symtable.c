@@ -355,7 +355,7 @@ void symtable_insert_builtin(symtable_t *symtable, err_codes *error){
     data->type = DATA_TYPE_U8;
     data->used = true;
     data->modified = true;
-    symtable_insert_params(data, tok_t_u8, error);
+    symtable_insert_params(data, tok_t_i32, error);
     if(*error != err_none)
         return;
 

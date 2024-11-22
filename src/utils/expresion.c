@@ -102,6 +102,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
         *error = err_internal;
         return NULL;
     }
+    result->canNull = false;
 
     result_data2 = imalloc(sizeof(data_t));
     if (result_data2 == NULL)
@@ -115,8 +116,6 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
 
     if (*error != err_none)
         return NULL;
-    
-    
 
     if(result == NULL){
         *error = err_internal;

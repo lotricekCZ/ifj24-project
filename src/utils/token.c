@@ -1,3 +1,7 @@
+/** IFJ2024
+ * xramas01; Jakub Ramaseuski
+ */
+
 #include "token.h"
 #include "memory_table.h"
 #include <stdio.h>
