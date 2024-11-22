@@ -391,31 +391,22 @@ DEFVAR TF@%%1\n\
 POPS TF@%%1\n\
 DEFVAR TF@%%type1\n\
 TYPE TF@%%type1 TF@%%1\n\
-JUMPIFEQ $$$$divs_float1 TF@%%type1 string@float\n\
-JUMPIFEQ $$$$divs_int1 TF@%%type1 string@int\n\
-JUMP $$$$divs_end\n\
-LABEL $$$$divs_int1\n\
-INT2FLOAT TF@%%1 TF@%%1\n\
-LABEL $$$$divs_float1\n\
 DEFVAR TF@%%0\n\
 POPS TF@%%0\n\
 DEFVAR TF@%%type0\n\
 TYPE TF@%%type0 TF@%%0\n\
-JUMPIFEQ $$$$divs_int2 TF@%%type0 string@int\n\
-JUMP $$$$divs_end\n\
-LABEL $$$$divs_int2\n\
-INT2FLOAT TF@%%0 TF@%%0\n\
-LABEL $$$$divs_end\n\
 PUSHS TF@%%0\n\
 PUSHS TF@%%1\n\
+JUMPIFNEQ $$$$divs_error TF@%%type1 TF@%%type0\n\
+JUMPIFEQ $$$$divs_int TF@%%type1 string@int\n\
 DIVS\n\
-JUMPIFNEQ $$$$divs_error TF@%%type0 TF@%%type1\n\
-JUMPIFNEQ $$$$divs_leave TF@%%type0 string@int\n\
-FLOAT2INTS\n\
-JUMP $$$$divs_leave\n\
+JUMP $$$$divs_end\n\
+LABEL $$$$divs_int\n\
+IDIVS\n\
+JUMP $$$$divs_end\n\
 LABEL $$$$divs_error\n\
 EXIT int@57\n\
-LABEL $$$$divs_leave\n\
+LABEL $$$$divs_end\n\
 POPFRAME\n\
 RETURN\n");
 
