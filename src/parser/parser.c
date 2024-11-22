@@ -1254,8 +1254,8 @@ void id_continue() {
                 error = err_undef;
                 return;
             }
-            left_data->used = true;
-            sprintf(string_buffer_value, "%s", left_data->generatedId);
+            id_save->used = true;
+            sprintf(string_buffer_value, "%s", id_save->generatedId);
         }
         
         pop(&stack_codegen)->attribute;
