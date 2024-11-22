@@ -321,14 +321,16 @@ Scanner_ptr scn_init(char *filename)
 		// TODO: throw error err_internal
 		exit_internal();
 	}
-	scanner->file_name = imalloc(strlen(filename) + 1);
-	if (scanner->file_name == NULL)
-	{
-		// TODO: throw error err_internal
-		exit_internal();
-	}
-	strcpy(scanner->file_name, filename);
 
+	// scanner->file_name = imalloc(strlen(filename) + 1);
+	// if (scanner->file_name == NULL)
+	// {
+	// 	// TODO: throw error err_internal
+	// 	exit_internal();
+	// }
+	// strcpy(scanner->file_name, filename);
+
+	scanner->file_name = NULL;
 	scanner->source = scn_open_file(scanner);
 	if (scanner->source == NULL)
 	{
@@ -816,27 +818,72 @@ Token_ptr scn_next(Scanner_ptr scanner)
  */
 char *scn_open_file(Scanner_ptr scanner)
 {
-	FILE *program = fopen(scanner->file_name, "r");
-	if (program == NULL)
-	{
-		// TODO: throw error err_internal
-		exit_internal();
-	}
+	// FILE *program = fopen(scanner->file_name, "r");
+	// if (program == NULL)
+	// {
+	// 	// TODO: throw error err_internal
+	// 	exit_internal();
+	// }
 
-	fseek(program, 0, SEEK_END);
-	size_t file_size = ftell(program) + 2;
-	fseek(program, 0, SEEK_SET);
+	// fseek(program, 0, SEEK_END);
+	// size_t file_size = ftell(program) + 2;
+	// fseek(program, 0, SEEK_SET);
 
-	char *source = imalloc(file_size);
-	fread(source, 1, file_size, program);
-	fclose(program);
-	// no newline on the end of the file
-	source[file_size - 1] = '\0';
-	if (source[file_size - 3] != '\n')
-	{
-		source[file_size - 2] = '\n';
-	}
-	return source;
+	// char *source = imalloc(file_size);
+	// fread(source, 1, file_size, program);
+	// fclose(program);
+	// // no newline on the end of the file
+	// source[file_size - 1] = '\0';
+	// if (source[file_size - 3] != '\n')
+	// {
+	// 	source[file_size - 2] = '\n';
+	// }
+
+	size_t buffer_size = 1024;
+    size_t used_size = 0;
+    char *buffer = imalloc(buffer_size);
+    
+    if (buffer == NULL)
+    {
+        exit_internal();
+    }
+
+    int c;
+
+    while ((c = getchar()) != EOF)
+    {
+        if (used_size + 2 >= buffer_size)
+        {
+            buffer_size *= 2;
+            char *new_buffer = realloc(buffer, buffer_size);
+            if (new_buffer == NULL)
+            {
+                ifree(buffer);
+                exit_internal();
+            }
+            buffer = new_buffer;
+        }
+        buffer[used_size++] = (char)c;
+    }
+
+    // Přidáme newline pokud chybí na konci
+    if (used_size == 0 || buffer[used_size - 1] != '\n')
+    {
+        buffer[used_size++] = '\n';
+    }
+    
+    // Přidáme ukončovací nulu
+    buffer[used_size] = '\0';
+
+    // Zmenšíme buffer na skutečně použitou velikost
+    char *final_buffer = realloc(buffer, used_size + 1);
+    if (final_buffer == NULL)
+    {
+        ifree(buffer);
+        exit_internal();
+    }
+
+    return final_buffer;
 }
 
 /**
