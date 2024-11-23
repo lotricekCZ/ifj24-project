@@ -1,9 +1,13 @@
-/** IFJ2024
- * xsidlil00; Lukáš Šidlík
+/** 
+ * Projekt IFJ2024
+ * 
+ * @brief Rozhraní symbolické tabulky
+ * 
+ * @author xsidlil00; Lukáš Šidlík
  */
 
-#ifndef SYMTABLE
-#define SYMTABLE
+#ifndef SYMTABLE_H
+#define SYMTABLE_H
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -15,7 +19,7 @@
 #define SYMTABLE_SIZE 4001  // velikost symbol table
 
 /**
- * @enum data type
+ * @enum Datové typy
  */
 typedef enum
 {
@@ -29,14 +33,14 @@ typedef enum
 } data_type_t;
 
 /**
- * @struct data
+ * @struct Rozhraní dat v položce symbolické tabulky
  */
 typedef struct data_t
 {
     data_type_t type;               // datový typ dat
     dynamic_array_t *parameters;    // parametry funkce
     char *id;                       // identifikátor
-    bool as_func;                   // as funkce
+    bool as_func;                   // funkce @as
     bool canNull;                   // nullability
     bool isConst;                   // konstanta
     bool used;                      // použití
@@ -45,7 +49,7 @@ typedef struct data_t
 } data_t;
 
 /**
- * @struct symtable polozka
+ * @struct Položka symbolické tabulky
  */
 typedef struct symtable_item_t
 {
@@ -55,61 +59,69 @@ typedef struct symtable_item_t
 } symtable_item_t;
 
 /**
- * @brief symbol table
+ * @brief Symbolická tabulka
  */
 typedef symtable_item_t *symtable_t[SYMTABLE_SIZE];
 
 /**
- * @brief Inicializuje symbol table.
+ * @brief Inicializuje symbolické tabulky.
  *
- * @param symtable symbol table, které chceme inicializovat
+ * Inicializuje symbol table tak, že nastaví všechny prvky pole na NULL.
  *
- * @return true, pokud byla inicializace úspěšná, false, pokud
- *     k nějaké chybě došlo.
+ * @param symtable Symbol table, které chceme inicializovat
+ * @param error místo, kam se uloží chybový kód v případě chyby
  */
 void symtable_init(symtable_t *symtable, err_codes *error);
 
 /**
- * @brief Najde a vráti polozku v symtable se zadanym jménem.
+ * @brief Najde a vráti ukazatel na položku v symbolické tabulce s daným jménem.
  *
  * @param symtable tabulka symbolů, ve které chceme hledat
- * @param name  jméno, které chceme najít
- * @return Najde polozku nebo NULL, pokud taková položka neexistuje.
+ * @param name jméno, které chceme najít
+ * @param error místo, kam se uloží chybový kód v případě chyby
+ * @return ukazatel na položku, nebo NULL, pokud nenalezen
  */
 data_t *symtable_get_item(symtable_t *table, char *name, err_codes *error);
 
 /**
- * @brief Vloží nový item do symtable
- * @param symtable Tabulka symbolů
- * @param name Jméno které chceme přidat
- * @return Ukazatel na nový item v symtable, pokud nastala vnitřní chyba, tak NULL
+ * @brief Vloží novou položku do tabulky symbolů.
+ *
+ * Pokud je položka s daným jménem již v symbolické tabulce, pak se vrací chyba err_redef.
+ * Pokud dojde k vnitřní chybě, pak se vrací chyba err_internal.
+ *
+ * @param symtable tabulka symbolů do které se má vložit prvek
+ * @param name jméno položky, která se má vložit
+ * @param error místo, kam se uloží chybový kód v případě chyby
+ * @return vložený item, nebo NULL v případě chyby
  */
 data_t *symtable_insert(symtable_t *symtable, char *name, err_codes *error);
 
 /**
- * @brief Přidá parametr do řetězce parametrů data_t.
+ * @brief Přidá parametr do seznamu parametrů daného prvku v tabulce symbolů.
  *
- * @param data data_t, do které chceme přidat parametr
- * @param type typ parametru, který chceme přidat 
- * @return true, pokud se podařilo přidat parametr, jinak false
+ * @param data Ukazatel na prvky v tabulce symbolů, do něhož má být parametr přidán.
+ * @param type Typ datového typu, který má být přidán.
+ * @param error místo, kam se uloží chybový kód v případě chyby
  */
 void symtable_insert_params(data_t *data, token_type type, err_codes *error);
 
 /**
- * @brief Zruší symbol table a dealokuje všechna alokovaná místa.
- * @param symtable Symbol table k zrušeni.
- * @return true, pokud se podařilo symbol table zrušit, jinak false.
+ * @brief Zruší tabulku symbolů a dealokuje všechny jeho položky.
+ *
+ * @param symtable Symbolická tabulka ke zničení
+ * @param error místo, kam se uloží chybový kód v případě chyby
  */
 void symtable_destroy(symtable_t *symtable, err_codes *error);
 
 /**
- * @brief Vloží builtin funkce do symbol table.
+ * @brief Vloží vestavěné funkce do symbolické tabulky.
  *
- * Funkce vloží všechny builtin funkce do symbol table a nastaví jejich parametry.
+ * Vloží vestavěné funkce do symtable. Pokud dojde k chybě, je
+ * chybový kód uložen do error.
  *
- * @param symtable Symbol table, do které chceme vložit builtin funkce
- * @return true, pokud se podařilo vložit builtin funkce, jinak false
+ * @param symtable tabulka symbolů
+ * @param error místo, kam se uloží chybový kód v případě chyby
  */
 void symtable_insert_builtin(symtable_t *symtable, err_codes *error);
 
-#endif
+#endif // SYMTABLE_H

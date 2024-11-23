@@ -8,8 +8,8 @@
 // Struktura pro dynamické pole
 typedef struct {
     int* data;          // Ukazatel na dynamicky alokovaná data
-    int size;        // Aktuální počet prvků v poli
-    int capacity;    // Celková kapacita alokované paměti
+    int size;           // Aktuální počet prvků v poli
+    int capacity;       // Celková kapacita alokované paměti
 } dynamic_array_t;
 
 // Inicializace dynamického pole

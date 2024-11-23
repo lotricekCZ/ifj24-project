@@ -1,5 +1,9 @@
-/** IFJ2024
- * xsidlil00; Lukáš Šidlík
+/** 
+ * Projekt IFJ2024
+ * 
+ * @brief Symbolická tabulka implementovaná hashovací tabulkou s implicitním zřetězením
+ * 
+ * @author xsidlil00; Lukáš Šidlík
  */
 
 #include <stdbool.h>
@@ -23,7 +27,6 @@ unsigned int getHash(char *str)
     }
     return hash % SYMTABLE_SIZE;
 }
-
 
 void symtable_init(symtable_t *symtable, err_codes *error){
     if(symtable == NULL){
@@ -109,7 +112,6 @@ data_t *symtable_insert(symtable_t *symtable, char *name, err_codes *error){
     new_item->data.generatedId = NULL;
     new_item->next = NULL;
 
-    //printf("Inserted %s\n", new_item->data.id);
     unsigned int hash = getHash(name);
 
     if ((*symtable)[hash] == NULL)

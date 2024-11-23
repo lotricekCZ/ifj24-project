@@ -1,6 +1,9 @@
-/**
- * DLList pro symtable
- * Vytvořil: Lukáš Šidlík (xsidlil00)
+/** 
+ * Projekt IFJ2024
+ * 
+ * @brief Implementace dvousměrně vázaného seznamu
+ * 
+ * @author xsidlil00; Lukáš Šidlík
  */
 
 #include "symDLList.h"
@@ -14,7 +17,6 @@ void DLL_Init(DLList *list) {
     list->first = NULL;
     list->current = NULL;
     list->last = NULL;
-    list->length = 0;
 }
 
 void DLL_First(DLList *list) {
@@ -50,7 +52,6 @@ void DLL_Destroy(DLList *list, err_codes *error) {
             return;
         
         free(deleteElement);
-        list->length--;
     }
     return;
 }
@@ -81,7 +82,6 @@ symtable_t * DLL_Insert_last(DLList *list, err_codes *error) {
         list->first = new;
     }
     list->last = new;
-    list->length++;
     
     return (symtable_t *)new->symtable;
 }
@@ -126,6 +126,5 @@ void DLL_Delete_last(DLList *list, err_codes *error) {
             return;
 
         free(delete);
-        list->length--;
     }
 }

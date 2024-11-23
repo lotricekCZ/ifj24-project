@@ -1,10 +1,13 @@
-/**
- * DLList pro symtable
- * Vytvořil: Lukáš Šidlík (xsidlil00)
+/** 
+ * Projekt IFJ2024
+ * 
+ * @brief Rozhraní dvousměrně vázaného seznamu
+ * 
+ * @author xsidlil00; Lukáš Šidlík
  */
 
-#ifndef SYMDLLIST
-#define SYMDLLIST
+#ifndef SYMDLLIST_H
+#define SYMDLLIST_H
 
 #include "symtable.h"
 #include <stdio.h>
@@ -13,108 +16,102 @@
 #include "errors.h"
 
 /**
- * @struct pro prvek dll seznamu
+ * @struct prvek dll seznamu
  */
 typedef struct DLLElement{
-    symtable_t *symtable;        //symbolická tabulka
+    symtable_t *symtable;               //symbolická tabulka
     struct DLLElement *next;            //ukazatel na následujíci prvek
     struct DLLElement *prev;            //ukazatel na predchozí prvek
 }*DLLElementPtr;
 
 /**
- * @struct pro dll seznam   
+ * @struct dll seznam   
  */
 typedef struct DLList{
     DLLElementPtr first;                //ukazatel na prvni prvek
     DLLElementPtr current;              //ukazatel na aktivní prvek
     DLLElementPtr last;                 //ukazatel na poslední prvek
-    int length;                         //délka seznamu
 }DLList;
 
 /**
- * Inicializuje seznam, tzn. nastaví všechny jeho ukazatele na NULL a délku na 0.
+ * @brief Inicializuje seznam, tzn. nastaví všechny jeho ukazatele na NULL.
  *
  * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  */
 void DLL_Init(DLList *list);
 
 /**
- * Nastaví aktuální prvek na začátek seznamu.
+ * @brief Nastaví aktuální prvek na začátek seznamu.
  *
  * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  */
 void DLL_First(DLList *list);
 
 /**
- * Nastaví poslední prvek seznamu list jako aktivní.
+ * @brief Nastaví poslední prvek seznamu list jako aktivní.
  *
- * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
+ * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  */
 void DLL_Last(DLList *list);
 
 /**
- * Vloží nový element na konec seznamu.
+ * @brief Vloží nový prvek na konec seznamu.
  *
- * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
- * @param symtable Ukazatel na strukturu symtable, kterou chceme vložit
- *
- * @return Vrací true, pokud se operace podařila, jinak false
+ * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
+ * @param error místo, kam se uloží chybový kód v případě chyby
+ * @return V případě úspěchu ukazatel na nově vloženou symbolickou tabulku, jinak NULL
  */
 symtable_t * DLL_Insert_last(DLList *list, err_codes *error);
 
 /**
- * Vrátí první prvek seznamu, nebo NULL, pokud je seznam prázdný.
+ * @brief Vrátí první prvek seznamu, nebo NULL, pokud je seznam prázdný.
  *
- * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
+ * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  * @return Prvek ze seznamu, nebo NULL
  */
 symtable_t * DLL_GetFirst(DLList *list);
 
 /**
- * Vrátí poslední prvek seznamu, nebo NULL, pokud je seznam prázdný.
+ * @brief Vrátí poslední prvek seznamu, nebo NULL, pokud je seznam prázdný.
  *
- * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
+ * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  * @return Poslední prvek ze seznamu, nebo NULL
  */
 symtable_t * DLL_GetLast(DLList *list);
 
 /**
- * Vrátí aktuální prvek ze seznamu, nebo NULL, pokud seznam nemá žádný aktivní prvek.
+ * @brief Vrátí aktuální prvek ze seznamu, nebo NULL, pokud seznam nemá žádný aktivní prvek.
  *
- * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
+ * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  * @return Aktuální prvek ze seznamu, nebo NULL
  */
 symtable_t * DLL_GetCurrent(DLList *list);
 
 /**
- * Zruší poslední prvek seznamu list.
+ * @brief Zruší poslední prvek seznamu list.
  * Pokud byl poslední prvek aktivní, aktivita seznamu se ztrácí.
  * Pokud byl seznam list prázdný, nic se neděje.
  *
- * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
- *
- * @returns true, pokud se vše podařilo, jinak false
+ * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  */
 void DLL_Delete_last(DLList *list, err_codes *error);
 
 /**
- * Posune aktivitu na následující prvek seznamu list.
- * Není-li seznam aktivní, nedělá nic.
+ * @brief Posune aktivitu na následující prvek seznamu list.
  *
- * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
+ * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  */
 void DLL_Next(DLList *list);
 
 /**
- * Posune aktivitu na předchozí prvek seznamu list.
- * Není-li seznam aktivní, nedělá nic.
+ * @brief Posune aktivitu na předchozí prvek seznamu list.
  *
- * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
+ * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  */
 void DLL_Prev(DLList *list);
 
 /**
- * Funkce kontroluje, zda je seznam aktivní.
+ * @brief Funkce kontroluje, zda je seznam aktivní.
  * 
  * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
  * 
@@ -123,13 +120,13 @@ void DLL_Prev(DLList *list);
 bool DLL_isActive(DLList *list);
 
 /**
- * Zruší všechny prvky v seznamu a uvolní jim alokovanou paměť.
- * Pokud se při mazání jednotlivých symtable vyskytne chyba, vrací se false.
+ * @brief Zruší všechny prvky seznamu list a uvede seznam do stavu, v jakém se nacházel po inicializaci.
+ * 
+ * Rušené prvky seznamu budou korektně uvolněny voláním operace free a symtable_destroy.
  *
- * @param list Ukazatel na strukturu dvousměrně vázaného seznamu
- * @return true, pokud došlo k úspěšnému zrušení všech prvků, false jinak
+ * @param list Ukazatel na inicializovanou strukturu dvousměrně vázaného seznamu
+ * @param error místo, kam se uloží chybový kód v případě chyby
  */
 void DLL_Destroy(DLList *list, err_codes *error);
 
-
-#endif
+#endif //SYMDLLIST_H
