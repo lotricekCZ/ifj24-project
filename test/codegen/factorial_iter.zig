@@ -4,7 +4,8 @@
 //0  // ifj2024 exit code
 //0  // interpreter exit code
 // --- EXPECTED OUTPUT ---
-//362880
+//Zadejte cislo pro vypocet faktorialu
+//Vysledek: 0x1.626p18 = 362880
 // --- TEST CODE ---
 // Program 1: Vypocet faktorialu (iterativne)
 const ifj = @import("ifj24.zig");

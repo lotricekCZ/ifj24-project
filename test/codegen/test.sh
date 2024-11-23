@@ -10,17 +10,46 @@ TEMP_EXPECTED="expected.tmp"
 TEMP_ACTUAL="actual.tmp"
 TEMP_INPUTS="inputs.tmp"
 
-XLOGIN="xsidlil00"
+SKIP_ZIG_CHECK=0
+RUN_MAKE=0
+
+# Zpracování parametrů
+while getopts "xm" opt; do
+    case $opt in
+        x) SKIP_ZIG_CHECK=1 ;;
+        m) RUN_MAKE=1 ;;
+        \?) echo "Invalid option: -$OPTARG" >&2; exit 1 ;;
+    esac
+done
+shift $((OPTIND-1))
+
+XLOGIN="xlogin00"
 SERVER="$XLOGIN@merlin.fit.vutbr.cz"
 REMOTE_TMP="/tmp/$USER_$(date +%s)"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$(cd "$SCRIPT_DIR/../../build" && pwd)"
 
+# Spuštění make pokud je požadováno
+if [ $RUN_MAKE -eq 1 ]; then
+    make -j16 > /dev/null
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}Make failed${NC}"
+        exit 1
+    fi
+fi
+
 check_file() {
     local zig_file="$1"
     [ "$(basename "$zig_file")" = "ifj24.zig" ] && return
     [ -f "$zig_file" ] || return
+
+    # Kontrola očekávaných návratových kódů
+    local expected_ifj=$(awk '/^\/\/ --- EXPECTED EXIT CODES ---/{flag=1;next} /^\/\/ ---/{flag=0} flag && /^\/\//{if(NR==FNR){match($0, /[0-9]+/);code=substr($0,RSTART,RLENGTH);exit}} END{print code}' "$zig_file")
+    local expected_server=$(awk '/^\/\/ --- EXPECTED EXIT CODES ---/{flag=1;next} /^\/\/ ---/{flag=0} flag && /^\/\//{if(++n==2){match($0, /[0-9]+/);print substr($0,RSTART,RLENGTH);exit}}' "$zig_file")
+    
+    # Pokud je některý z očekávaných kódů nenulový, přeskočit kontrolu
+    [ "$expected_ifj" != "0" ] || [ "$expected_server" != "0" ] && return
 
     zig_basename=$(basename "$zig_file")
     
@@ -43,24 +72,27 @@ check_file() {
 ssh $SERVER "mkdir -p $REMOTE_TMP"
 cat "$SCRIPT_DIR/ifj24.zig" | ssh $SERVER "cat > $REMOTE_TMP/ifj24.zig"
 
-echo "Checking if test files are compilable with zig..."
-if [ $# -eq 0 ]; then
-    for zig_file in "$SCRIPT_DIR"/*.zig; do
-        check_file "$zig_file"
-    done
-else
-    for test_name in "$@"; do
-        test_file="$SCRIPT_DIR/${test_name}.zig"
-        if [ -f "$test_file" ]; then
-            check_file "$test_file"
-        else
-            echo -e "${RED}Test file not found: ${test_name}${NC}"
-            exit 1
-        fi
-    done
+# Kontrola spustitelnosti pouze pokud není -x
+if [ $SKIP_ZIG_CHECK -eq 0 ]; then
+    echo "Checking if test files are compilable with zig..."
+    if [ $# -eq 0 ]; then
+        for zig_file in "$SCRIPT_DIR"/*.zig; do
+            check_file "$zig_file"
+        done
+    else
+        for test_name in "$@"; do
+            test_file="$SCRIPT_DIR/${test_name}.zig"
+            if [ -f "$test_file" ]; then
+                check_file "$test_file"
+            else
+                echo -e "${RED}Test file not found: ${test_name}${NC}"
+                exit 1
+            fi
+        done
+    fi
+    echo -e "${GREEN}All test files are compilable${NC}"
+    echo "----------------------------------------"
 fi
-echo -e "${GREEN}All test files are compilable${NC}"
-echo "----------------------------------------"
 
 TOTAL_TESTS=0
 PASSED_TESTS=0
@@ -82,7 +114,7 @@ run_test() {
     expected_ifj=${expected_ifj:-0}
     expected_server=${expected_server:-0}
     
-    "$BUILD_DIR/ifj2024" "$zig_file" > "$OUTPUT_FILE"
+    cat "$zig_file" | "$BUILD_DIR/ifj2024" > "$OUTPUT_FILE" 2>/dev/null
     ifj_exit_code=$?
     
     if [ $ifj_exit_code -eq 0 ]; then

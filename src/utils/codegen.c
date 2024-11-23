@@ -169,38 +169,46 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 DLL_Last(sym_list);
                 break;
             case tok_t_plus:
-                str_append(string, "CALL $$$adds\n");
+                str_append(string, "CALL $$$retype\n");
+                str_append(string, "%s", format[_adds]);
                 break;
             case tok_t_minus:
-                str_append(string, "CALL $$$subs\n");
+                str_append(string, "CALL $$$retype\n");
+                str_append(string, "%s", format[_subs]);
                 break;
             case tok_t_times:
-                str_append(string, "CALL $$$muls\n");
+                str_append(string, "CALL $$$retype\n");
+                str_append(string, "%s", format[_muls]);
                 break;
             case tok_t_divide:
-                //str_append(string, "%s", format[_divs]);
                 str_append(string, "CALL $$$divs\n");
                 break;
             case tok_t_eq:
+                str_append(string, "CALL $$$retype\n");
                 str_append(string, "CALL $$$null\n");
                 str_append(string, "%s", format[_eqs]);
                 break;
             case tok_t_neq:
+                str_append(string, "CALL $$$retype\n");
                 str_append(string, "CALL $$$null\n");
                 str_append(string, "%s", format[_eqs]);
                 str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_lt:
+                str_append(string, "CALL $$$retype\n");
                 str_append(string, "%s", format[_lts]);
                 break;
             case tok_t_gt:
+                str_append(string, "CALL $$$retype\n");
                 str_append(string, "%s", format[_gts]);
                 break;
             case tok_t_leq:
+                str_append(string, "CALL $$$retype\n");
                 str_append(string, "%s", format[_gts]);
                 str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_geq:
+                str_append(string, "CALL $$$retype\n");
                 str_append(string, "%s", format[_lts]);
                 str_append(string, "%s", format[_nots]);
                 break;
@@ -250,6 +258,41 @@ LABEL $$$$%s%i\n", name, number, name, number, name, number, name, number, name,
 
 void printi_builtin(str_t* string) {
     str_append(string, "\
+LABEL $$$retype\n\
+CREATEFRAME\n\
+PUSHFRAME\n\
+CREATEFRAME\n\
+DEFVAR TF@%%1\n\
+POPS TF@%%1\n\
+DEFVAR TF@%%type1\n\
+TYPE TF@%%type1 TF@%%1\n\
+DEFVAR TF@%%0\n\
+POPS TF@%%0\n\
+DEFVAR TF@%%type0\n\
+TYPE TF@%%type0 TF@%%0\n\
+JUMPIFEQ $$$$retype_ok1 TF@%%type1 string@float\n\
+JUMPIFEQ $$$$retype_ok1 TF@%%type1 string@int\n\
+JUMP $$$$retype_end\n\
+LABEL $$$$retype_ok1\n\
+JUMPIFNEQ $$$$retype_ok2 TF@%%type0 string@float\n\
+JUMPIFNEQ $$$$retype_ok2 TF@%%type0 string@int\n\
+JUMP $$$$retype_end\n\
+LABEL $$$$retype_ok2\n\
+JUMPIFNEQ $$$$retype_uncompatible TF@%%type0 TF@%%type1\n\
+JUMP $$$$retype_end\n\
+LABEL $$$$retype_uncompatible\n\
+JUMPIFEQ $$$$retype_float TF@%%type0 string@float\n\
+INT2FLOAT TF@%%0 TF@%%0\n\
+JUMP $$$$retype_end\n\
+LABEL $$$$retype_float\n\
+INT2FLOAT TF@%%1 TF@%%1\n\
+LABEL $$$$retype_end\n\
+PUSHS TF@%%0\n\
+PUSHS TF@%%1\n\
+POPFRAME\n\
+RETURN\n");
+
+    str_append(string, "\
 LABEL $$$null\n\
 CREATEFRAME\n\
 PUSHFRAME\n\
@@ -271,114 +314,6 @@ MOVE TF@%%1 TF@%%type1\n\
 LABEL $$$$null_no\n\
 PUSHS TF@%%0\n\
 PUSHS TF@%%1\n\
-POPFRAME\n\
-RETURN\n");
-
-    str_append(string, "\
-LABEL $$$adds\n\
-CREATEFRAME\n\
-PUSHFRAME\n\
-CREATEFRAME\n\
-DEFVAR TF@%%1\n\
-POPS TF@%%1\n\
-DEFVAR TF@%%type1\n\
-TYPE TF@%%type1 TF@%%1\n\
-JUMPIFEQ $$$$adds_ok1 TF@%%type1 string@float\n\
-JUMPIFEQ $$$$adds_ok1 TF@%%type1 string@int\n\
-JUMP $$$$adds_end\n\
-LABEL $$$$adds_ok1\n\
-DEFVAR TF@%%0\n\
-POPS TF@%%0\n\
-DEFVAR TF@%%type0\n\
-TYPE TF@%%type0 TF@%%0\n\
-JUMPIFNEQ $$$$adds_ok2 TF@%%type0 string@float\n\
-JUMPIFNEQ $$$$adds_ok2 TF@%%type0 string@int\n\
-JUMP $$$$adds_end\n\
-LABEL $$$$adds_ok2\n\
-JUMPIFNEQ $$$$adds_uncompatible TF@%%type0 TF@%%type1\n\
-JUMP $$$$adds_end\n\
-LABEL $$$$adds_uncompatible\n\
-JUMPIFEQ $$$$adds_float TF@%%type0 string@float\n\
-INT2FLOAT TF@%%0 TF@%%0\n\
-JUMP $$$$adds_end\n\
-LABEL $$$$adds_float\n\
-INT2FLOAT TF@%%1 TF@%%1\n\
-LABEL $$$$adds_end\n\
-PUSHS TF@%%0\n\
-PUSHS TF@%%1\n\
-ADDS\n\
-POPFRAME\n\
-RETURN\n");
-
-    str_append(string, "\
-LABEL $$$subs\n\
-CREATEFRAME\n\
-PUSHFRAME\n\
-CREATEFRAME\n\
-DEFVAR TF@%%1\n\
-POPS TF@%%1\n\
-DEFVAR TF@%%type1\n\
-TYPE TF@%%type1 TF@%%1\n\
-JUMPIFEQ $$$$subs_ok1 TF@%%type1 string@float\n\
-JUMPIFEQ $$$$subs_ok1 TF@%%type1 string@int\n\
-JUMP $$$$subs_end\n\
-LABEL $$$$subs_ok1\n\
-DEFVAR TF@%%0\n\
-POPS TF@%%0\n\
-DEFVAR TF@%%type0\n\
-TYPE TF@%%type0 TF@%%0\n\
-JUMPIFNEQ $$$$subs_ok2 TF@%%type0 string@float\n\
-JUMPIFNEQ $$$$subs_ok2 TF@%%type0 string@int\n\
-JUMP $$$$subs_end\n\
-LABEL $$$$subs_ok2\n\
-JUMPIFNEQ $$$$subs_uncompatible TF@%%type0 TF@%%type1\n\
-JUMP $$$$subs_end\n\
-LABEL $$$$subs_uncompatible\n\
-JUMPIFEQ $$$$subs_float TF@%%type0 string@float\n\
-INT2FLOAT TF@%%0 TF@%%0\n\
-JUMP $$$$subs_end\n\
-LABEL $$$$subs_float\n\
-INT2FLOAT TF@%%1 TF@%%1\n\
-LABEL $$$$subs_end\n\
-PUSHS TF@%%0\n\
-PUSHS TF@%%1\n\
-SUBS\n\
-POPFRAME\n\
-RETURN\n");
-
-    str_append(string, "\
-LABEL $$$muls\n\
-CREATEFRAME\n\
-PUSHFRAME\n\
-CREATEFRAME\n\
-DEFVAR TF@%%1\n\
-POPS TF@%%1\n\
-DEFVAR TF@%%type1\n\
-TYPE TF@%%type1 TF@%%1\n\
-JUMPIFEQ $$$$muls_ok1 TF@%%type1 string@float\n\
-JUMPIFEQ $$$$muls_ok1 TF@%%type1 string@int\n\
-JUMP $$$$muls_end\n\
-LABEL $$$$muls_ok1\n\
-DEFVAR TF@%%0\n\
-POPS TF@%%0\n\
-DEFVAR TF@%%type0\n\
-TYPE TF@%%type0 TF@%%0\n\
-JUMPIFNEQ $$$$muls_ok2 TF@%%type0 string@float\n\
-JUMPIFNEQ $$$$muls_ok2 TF@%%type0 string@int\n\
-JUMP $$$$muls_end\n\
-LABEL $$$$muls_ok2\n\
-JUMPIFNEQ $$$$muls_uncompatible TF@%%type0 TF@%%type1\n\
-JUMP $$$$muls_end\n\
-LABEL $$$$muls_uncompatible\n\
-JUMPIFEQ $$$$muls_float TF@%%type0 string@float\n\
-INT2FLOAT TF@%%0 TF@%%0\n\
-JUMP $$$$muls_end\n\
-LABEL $$$$muls_float\n\
-INT2FLOAT TF@%%1 TF@%%1\n\
-LABEL $$$$muls_end\n\
-PUSHS TF@%%0\n\
-PUSHS TF@%%1\n\
-MULS\n\
 POPFRAME\n\
 RETURN\n");
 
