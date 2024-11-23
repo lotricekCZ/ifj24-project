@@ -4,13 +4,14 @@
 //0  // ifj2024 exit code
 //0  // interpreter exit code
 // --- EXPECTED OUTPUT ---
-//362880
+//Zadejte cislo pro vypocet faktorialu
+//Vysledek: 362880
 // --- TEST CODE ---
 // Program 2: Vypocet faktorialu (rekurzivne)
 const ifj = @import("ifj24.zig");
 // Hlavni funkce
 pub fn main() void {
-    ifj.write("Zadejte cislo pro vypocet faktorialu: ");
+    ifj.write("Zadejte cislo pro vypocet faktorialu\n");
     const inp = ifj.readi32();
     if (inp) |INP| {
         if (INP < 0) {
