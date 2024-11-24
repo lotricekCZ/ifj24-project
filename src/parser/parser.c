@@ -341,6 +341,7 @@ void parse_expression() {
     }
     printi_postfix(&string_tmp, postfix, postfix_index, &stack_functions, &sym_list, current_symtable, &error); OK;
     result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &error); OK;
+    current_context = save_context;
     switch (current_context)
     {
     case CONTEXT_CONDITION:
@@ -404,10 +405,33 @@ void parse_expression() {
     default:
         break;
     }
-    current_context = save_context;
+
     //print_postfix(postfix, postfix_index);
     printi(format[_comment], "</expression>");
 }
+
+void check_redefinition() {
+    DLL_Last(&sym_list);
+    current_symtable = DLL_GetCurrent(&sym_list);
+    while(sym_list.current != sym_list.first) {
+        right_data = symtable_get_item(current_symtable, current_token->attribute, &error); OK;
+        if(right_data == NULL){
+            DLL_Prev(&sym_list);
+            current_symtable = DLL_GetCurrent(&sym_list);
+        } else {
+            break;
+        }
+    }
+    DLL_Last(&sym_list);
+    current_symtable = DLL_GetLast(&sym_list);
+
+    if(right_data != NULL){
+        fprintf(stderr, "Semantic error: Redefinition of id_without_null\n");
+        error = err_redef;
+        return;
+    }
+}
+
 /* 
  * Function to print the type and attribute of the current token
  */
@@ -685,7 +709,10 @@ void parameter() {
         printi(format[_defvar], string_buffer);
         printi(format[_pops], string_buffer);
 
+        check_redefinition(); OK;
+
         left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
+        left_data->isConst = true;
         left_data->modified = true;
 
         left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(string_buffer) + 1));
@@ -791,6 +818,8 @@ void statement() {
 
         next_token();
         expect_type(tok_t_sym); OK; // ID
+
+        check_redefinition();
 
         left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
         
@@ -953,6 +982,8 @@ void statement() {
         if (current_token->type == tok_t_sym) {
             sprintf(destination, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
             printi(format[_defvar], destination);
+
+            check_redefinition(); OK;
 
             left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
             left_data->type = DATA_TYPE_INT;
@@ -1132,6 +1163,8 @@ void not_null_value() {
         if (current_token->type == tok_t_sym) {
             sprintf(string_buffer, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
             printi(format[_defvar], string_buffer);
+
+            check_redefinition(); OK;
 
             left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
             left_data->type = result_data->type;
@@ -1623,6 +1656,8 @@ void parse_fn_first() {
         if (current_token->type == tok_t_fn) {
             next_token_initial(); OK;
             expect_type(tok_t_sym); OK;
+
+            check_redefinition(); OK;
 
             left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
             left_data->modified = true;
