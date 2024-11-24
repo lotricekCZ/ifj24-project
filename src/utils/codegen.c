@@ -421,21 +421,6 @@ LABEL $$$write\n\
 PUSHFRAME\n\
 DEFVAR LF@%%0\n\
 POPS LF@%%0\n\
-DEFVAR LF@%%type\n\
-TYPE LF@%%type LF@%%0\n\
-JUMPIFEQ $$$$write_nil LF@%%type string@nil\n\
-JUMPIFEQ $$$$write_int LF@%%type string@bool\n\
-JUMP $$$$write_end\n\
-LABEL $$$$write_nil\n\
-MOVE LF@%%0 string@null\n\
-JUMP $$$$write_end\n\
-LABEL $$$$write_bool\n\
-JUMPIFEQ $$$$write_true LF@%%0 bool@true\n\
-MOVE LF@%%0 string@false\n\
-JUMP $$$$write_end\n\
-LABEL $$$$write_true\n\
-MOVE LF@%%0 string@true\n\
-LABEL $$$$write_end\n\
 WRITE LF@%%0\n\
 POPFRAME\n\
 RETURN\n");

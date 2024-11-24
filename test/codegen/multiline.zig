@@ -4,7 +4,7 @@
 //0  // ifj2024 exit code
 //0  // interpreter exit code
 // --- EXPECTED OUTPUT ---
-
+//
 // --- TEST CODE ---
 const ifj = @import("ifj24.zig");
 
@@ -23,7 +23,7 @@ pub fn main() void {
     ifj.write(b);
 
     ifj.write(
-        \\Tohle je
+                \\Tohle je
         \\novy radek
     );
 
@@ -41,6 +41,15 @@ pub fn main() void {
         \\quacky
         \\quacky
     )));
+
+      const s1 : []u8 = ifj.string( 
+    \\Toto 
+    \\ je 
+    \\
+    \\ nejaky 
+                        \\ text  // ve viceradkovem retezcovem literalu nelze mit komentar
+    ); // ukoncujici uvozovky ovlivnuji implicitni odsazeni vnitrnich radku retezce
+  ifj.write(s1);
 }
 
 pub fn print(s: []u8) void {
