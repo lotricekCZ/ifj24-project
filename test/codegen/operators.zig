@@ -4,6 +4,7 @@
 //0  // ifj2024 exit code
 //0  // interpreter exit code
 // --- EXPECTED OUTPUT ---
+//false
 // --- TEST CODE ---
 const ifj = @import("ifj24.zig");
 
