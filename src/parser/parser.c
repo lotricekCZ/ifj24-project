@@ -542,6 +542,11 @@ void prolog() {
     // "ID"
     next_token();
     expect_type(tok_t_sym); OK;
+    if(strcmp(current_token->attribute, "ifj") != 0){
+        error = err_syntax;
+        return;
+    }
+
     push(&stack_codegen, current_token);
 
     // "="
@@ -558,7 +563,12 @@ void prolog() {
 
     // "STRING"
     next_token();
-    expect_types(2, tok_t_str, tok_t_mstr); OK;
+    expect_type(tok_t_str); OK;
+
+    if(strcmp(current_token->attribute, "ifj24.zig") != 0){
+        error = err_syntax;
+        return;
+    }
 
     // ")"
     next_token();
