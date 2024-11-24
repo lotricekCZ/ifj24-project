@@ -137,7 +137,7 @@ int get_precedence_index(token_type type) {
         case tok_t_or: return 11;
         case tok_t_orelse: return 12; 
         case tok_t_not: return 13;
-        case tok_t_unreach: return 14; 
+        case tok_t_orelse_un: return 14; 
         case tok_t_lpa: return 15;
         case tok_t_rpa: return 16;
         case tok_t_sym: return 17;
@@ -1110,7 +1110,7 @@ void not_null_value() {
     if (current_token->type == tok_t_alias) {
         if(result_data->type == DATA_TYPE_BOOLEAN){
             fprintf(stderr, "Semantic error: Cannot cast boolean to id_without_null\n");
-            error = err_semantic;
+            error = err_dt_invalid;
             return;
         }
 
@@ -1140,8 +1140,10 @@ void not_null_value() {
     }
     else{
         if(result_data->type != DATA_TYPE_BOOLEAN){
-            fprintf(stderr, "Semantic error: Missing id_without_null\n");
-            error = err_semantic;
+            if(!result_data->canNull){
+                fprintf(stderr, "Semantic error: Missing id_without_null\n");
+                error = err_dt_invalid;
+            }
             return;
         }
     }
