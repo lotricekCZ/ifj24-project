@@ -4,7 +4,6 @@
 //4
 //0
 // --- EXPECTED OUTPUT ---
-//
 // --- TEST CODE ---
 const ifj = @import("ifj24.zig");
 

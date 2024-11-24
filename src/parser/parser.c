@@ -352,7 +352,7 @@ void parse_expression() {
     break;
 
     case CONTEXT_RETURN:// todo hlídat null
-        if((function_data->type != result_data->type && function_data->canNull != result_data->canNull)){
+        if((function_data->type != result_data->type || function_data->canNull != result_data->canNull)){
             fprintf(stderr, "Semantic error: Invalid return type\n");
             error = err_param;
             return;
@@ -1290,7 +1290,7 @@ void return_value() {
 
     if (current_token->type != tok_t_semicolon) {
         if(function_data->type == DATA_TYPE_VOID){
-            error = err_ret_val;
+            error = err_param;
             return;
         }
 
@@ -1298,6 +1298,14 @@ void return_value() {
         sprintf(string_buffer, "LF@%%retval");
         printi(format[_move], string_buffer, string_buffer_value);
     }
+    else {
+        if(function_data->type != DATA_TYPE_VOID){
+            error = err_param;
+            return;
+        }
+    }
+
+
     for (int index = depth_sequence.size - 1; index >= 0; index--) {
         if (depth_sequence.data[index] > 0) {
             depth_sequence.data[index] *= -1;
