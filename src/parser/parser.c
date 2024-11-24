@@ -92,7 +92,7 @@ bool params = false;
  * Precedence table
  */
 char precedence_table[19][19] = {
-//     +    -    *    /    ==   !=   <    >    <=   >=  and   or   orelse !    .?   (    )    id   $
+//     +    -    *    /    ==   !=   <    >    <=   >=  and   or   orelse !  .?   (    )    id   $
     { '>', '>', '<', '<', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', '<', '>' }, // +
     { '>', '>', '<', '<', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', '<', '>' }, // -
     { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', '<', '>' }, // *
@@ -836,8 +836,8 @@ void statement() {
         next_token();
         value(); OK;
 
-        left_data->type = result_data->type;
-        left_data->canNull = result_data->canNull;
+        //left_data->type = result_data->type;
+        //left_data->canNull = result_data->canNull;
         
         printi(format[_move], destination, string_buffer_value);
 
