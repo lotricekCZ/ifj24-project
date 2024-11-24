@@ -306,9 +306,15 @@ void parse_expression() {
                 return;
             }
 
+            if(result_data->type != DATA_TYPE_INT && result_data->canNull){
+                fprintf(stderr, "Semantic error: id can't be null\n");
+                error = err_param;
+                return;
+            }
+
             if(!left_data->as_func){
                 fprintf(stderr, "Semantic error: isnt value |id|\n");
-                error = err_semantic;
+                error = err_param;
                 return;
             }
 
