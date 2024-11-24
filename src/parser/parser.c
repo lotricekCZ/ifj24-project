@@ -925,6 +925,7 @@ void statement() {
         not_null_value(); OK;
 
         then(); OK;
+        DLL_Delete_last(&sym_list, &error); OK;
 
         sprintf(string_buffer, "*$while%i", while_number);
         printi(format[_jump], string_buffer);
