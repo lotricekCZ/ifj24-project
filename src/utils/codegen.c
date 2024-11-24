@@ -158,7 +158,8 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                             if(*error != err_none)
                                 return;
                         if (data != NULL) {
-                            str_append(string, format[_pushs], data->generatedId);
+                            sprintf(buffer, "LF@%s", data->id);
+                            str_append(string, format[_pushs], buffer);
                             break;
                         } else {
                             DLL_Prev(sym_list);

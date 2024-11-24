@@ -45,7 +45,6 @@ typedef struct data_t
     bool isConst;                   // konstanta
     bool used;                      // použití
     bool modified;                  // modifikace
-    char* generatedId;              // generovaný identifikátor
 } data_t;
 
 /**

@@ -23,6 +23,7 @@
 #include "../utils/str.h"
 #include "../utils/dynamic_array.h"
 #include "../utils/expresion.h"
+#include "../utils/memory_table.h"
 
 
 #define OK if (error != err_none) return
@@ -44,7 +45,6 @@ Stack stack_codegen;
 int counter_codegen_if = 0;
 int counter_codegen_while = 0;
 int counter_codegen_for = 1;
-int counter_codegen_expression = 0;
 int counter_global = 0;
 int cycle = -1;
 char string_buffer[MAX_STRING_LEN];
@@ -244,10 +244,10 @@ void parse_expression() {
             data_t* data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
 
             if (data != NULL) {
-                sprintf(string_buffer, "LF@%%retval%i", counter_codegen_expression++);
+                sprintf(string_buffer, "LF@%%retval%i", counter_global++);
                 printi(format[_defvar], string_buffer);
                 printi(format[_move], string_buffer, "TF@%retval");
-                current_token->attribute = (char*)malloc(sizeof(char) * (strlen(string_buffer_value) + 1));
+                current_token->attribute = (char*)imalloc(sizeof(char) * (strlen(string_buffer_value) + 1));
                 strcpy(current_token->attribute, string_buffer_value);
                 push(&stack_functions, current_token);
             }
@@ -308,7 +308,7 @@ void parse_expression() {
             }
 
             if(!left_data->as_func){
-                fprintf(stderr, "Semantic error: isnt value |id|\n");
+                fprintf(stderr, "Semantic error: isn't value |id|\n");
                 error = err_param;
                 return;
             }
@@ -705,7 +705,7 @@ void parameter() {
     printi(format[_comment], "<parameter>");
 
     if (current_token->type == tok_t_sym) {
-        sprintf(string_buffer, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
+        sprintf(string_buffer, "LF@%s", current_token->attribute);
         printi(format[_defvar], string_buffer);
         printi(format[_pops], string_buffer);
 
@@ -714,9 +714,6 @@ void parameter() {
         left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
         left_data->isConst = true;
         left_data->modified = true;
-
-        left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(string_buffer) + 1));
-        strcpy(left_data->generatedId, string_buffer);
 
         next_token();
         expect_type(tok_t_colon); OK; // ":"
@@ -826,10 +823,7 @@ void statement() {
         left_data->isConst = constFlag;
         left_data->modified = constFlag;
 
-        sprintf(string_buffer, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
-
-        left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(string_buffer) + 1));
-        strcpy(left_data->generatedId, string_buffer);
+        sprintf(string_buffer, "LF@%s", current_token->attribute);
 
         printi(format[_defvar], string_buffer);
         strcpy(destination, string_buffer);
@@ -981,7 +975,7 @@ void statement() {
         printi(format[_comment], "</id_option>");
 
         if (current_token->type == tok_t_sym) {
-            sprintf(destination, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
+            sprintf(destination, "LF@%s", current_token->attribute);
             printi(format[_defvar], destination);
 
             check_redefinition(); OK;
@@ -990,8 +984,6 @@ void statement() {
             left_data->type = DATA_TYPE_INT;
             left_data->canNull = false;
             left_data->modified = true;
-            left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(destination) + 1));
-            strcpy(left_data->generatedId, destination);
         } else {
             sprintf(destination, "LF@_");
         }
@@ -1088,11 +1080,10 @@ void id_statement() {
     printi(format[_comment], "<id_statement>");
 
     if (current_token->type == tok_t_ass) {
-        strcpy(string_buffer, pop(&stack_codegen)->attribute);
         DLL_Last(&sym_list);
         current_symtable = DLL_GetCurrent(&sym_list);
         while(sym_list.current != sym_list.first){
-            left_data = symtable_get_item(current_symtable, string_buffer, &error); OK;
+            left_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
             if (left_data != NULL){   
                 break;     
             }
@@ -1117,7 +1108,8 @@ void id_statement() {
         stringBuffer[0] = '\0';
         value(); OK;
 
-        printi(format[_move], left_data->generatedId, string_buffer_value);
+        sprintf(string_buffer, "LF@%s", pop(&stack_codegen)->attribute);
+        printi(format[_move], string_buffer, string_buffer_value);
     } else {
         current_context = CONTEXT_NONE;
         right_data = NULL;
@@ -1138,7 +1130,7 @@ void value() {
     expect_types(9, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym, tok_t_lpa, tok_t_not); OK;
 
     parse_expression(); OK;
-    sprintf(string_buffer_value, "LF@%%expression%i", counter_codegen_expression++);
+    sprintf(string_buffer_value, "LF@%%expression%i", counter_global++);
     printi(format[_defvar], string_buffer_value);
     printi(format[_pops], string_buffer_value);
 
@@ -1162,7 +1154,7 @@ void not_null_value() {
         char source[MAX_STRING_LEN];
         strcpy(source, string_buffer);
         if (current_token->type == tok_t_sym) {
-            sprintf(string_buffer, "LF@%s?%s?%i?%i?%i", current_token->attribute, peek(&stack_codegen)->attribute, counter_codegen_if, counter_codegen_while, counter_codegen_for);
+            sprintf(string_buffer, "LF@%s", current_token->attribute);
             printi(format[_defvar], string_buffer);
 
             check_redefinition(); OK;
@@ -1171,8 +1163,6 @@ void not_null_value() {
             left_data->type = result_data->type;
             left_data->canNull = !result_data->canNull;
             left_data->modified = true;
-            left_data->generatedId = (char*)malloc(sizeof(char) * (strlen(string_buffer) + 1));
-            strcpy(left_data->generatedId, string_buffer);
         } else {
             sprintf(string_buffer, "LF@_");
         }
@@ -1284,7 +1274,7 @@ void id_continue() {
                 return;
             }
             param_data->used = true;
-            sprintf(string_buffer_value, "%s", param_data->generatedId);
+            sprintf(string_buffer_value, "LF@%s", pop(&stack_codegen)->attribute);
         }
         else{
             data_t *id_save;
@@ -1307,11 +1297,9 @@ void id_continue() {
                 return;
             }
             id_save->used = true;
-            sprintf(string_buffer_value, "%s", id_save->generatedId);
+            sprintf(string_buffer_value, "LF@%s", pop(&stack_codegen)->attribute);
             
         }
-        
-        pop(&stack_codegen)->attribute;
     }
 
     printi(format[_comment], "</id_continue>");
@@ -1634,7 +1622,7 @@ void for_value() {
         next_token();
         id_continue(); OK;
     } else {
-        sprintf(string_buffer_value, "LF@%%expression%i", counter_codegen_expression++);
+        sprintf(string_buffer_value, "LF@%%expression%i", counter_global++);
         printi(format[_defvar], string_buffer_value);
         printi("MOVE %s string@", string_buffer_value);
         printi_string(&string_tmp, current_token->attribute);
