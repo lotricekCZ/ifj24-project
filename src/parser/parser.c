@@ -31,9 +31,6 @@
  */
 Token_ptr current_token = NULL;
 Scanner_ptr scanner = NULL;
-token_type fn_ret_type;
-bool ifj_flag = false;
-int statement_index = 1;
 err_codes error = err_none; 
 
 #define printi(source, ...) if (strcmp(source, format[_defvar]) == 0) \
@@ -84,13 +81,11 @@ DLList sym_list;
 data_t *left_data;
 data_t *right_data;
 data_t *result_data;
-data_t *param_data;
 data_t *function_data;
 int depth = 0;
 dynamic_array_t depth_sequence;
 char stringBuffer[MAX_STRING_LEN] = "\0";
 int param_count = -1;
-Stack stack_param;
 bool params = false;
 
 /*
@@ -1235,6 +1230,7 @@ void id_continue() {
         next_token();
     } else {
         if(params){
+            data_t *param_data;
             DLL_Last(&sym_list);
             current_symtable = DLL_GetCurrent(&sym_list);
             while(sym_list.current != sym_list.first) {
