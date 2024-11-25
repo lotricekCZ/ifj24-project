@@ -1350,12 +1350,6 @@ void call(bool is_left) {
     if (current_token->type == tok_t_dot) { //a.a()
         pop(&stack_codegen);
 
-        if (is_left){
-            
-            error = err_param;
-            return;
-        }
-
         strcat(stringBuffer, ".");
         next_token();
         expect_type(tok_t_sym); OK;
@@ -1400,8 +1394,17 @@ void call(bool is_left) {
         }
         current_symtable = DLL_GetLast(&sym_list);
         if(right_data == NULL){
-            error = err_undef; return;
+            error = err_undef; 
+            return;
         }
+
+        if (is_left){
+            if(right_data->type != DATA_TYPE_VOID){
+                error = err_param;
+                return;
+            }
+        }
+        
         right_data->used = true;
 
         next_token();

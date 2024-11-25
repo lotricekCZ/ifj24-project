@@ -1,7 +1,7 @@
 // --- INPUT ---
 //
 // --- EXPECTED EXIT CODES ---
-//0
+//4
 //0
 // --- EXPECTED OUTPUT ---
 // --- TEST CODE ---
