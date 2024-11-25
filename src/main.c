@@ -11,8 +11,8 @@
 
 int main()
 {
-    //safe_memory = true;
-    //memory_ht_init(&_memory_table);
+    safe_memory = true;
+    memory_ht_init(&_memory_table);
     scanner = scn_init(NULL);
     // Initialize the scanner with the source code file.
     //scanner = scn_init("../test/codegen/builtin.zig");
@@ -30,6 +30,6 @@ int main()
 
     // Free the scanner.
     scn_free(scanner);
-    //memory_ht_dispose(&_memory_table);
+    memory_ht_dispose(&_memory_table);
     return error;
 }

@@ -52,7 +52,7 @@ void DLL_Destroy(DLList *list, err_codes *error) {
         if (*error != err_none) 
             return;
         
-        free(deleteElement);
+        ifree(deleteElement);
     }
     return;
 }
@@ -67,7 +67,7 @@ symtable_t * DLL_Insert_last(DLList *list, err_codes *error) {
     new->symtable  = (symtable_t *)imalloc(sizeof(symtable_t));
     if (new->symtable == NULL) {
         *error = err_internal;
-        free(new);
+        ifree(new);
         return NULL;
     }
 
@@ -132,6 +132,6 @@ void DLL_Delete_last(DLList *list, err_codes *error) {
         if (*error != err_none) 
             return;
 
-        free(delete);
+        ifree(delete);
     }
 }

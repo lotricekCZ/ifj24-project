@@ -79,23 +79,23 @@ data_t *symtable_insert(symtable_t *symtable, char *name, err_codes *error){
     new_item->data.parameters = (dynamic_array_t *)imalloc(sizeof(dynamic_array_t));
     if (new_item->data.parameters == NULL){
         *error = err_internal;
-        free(new_item);
+        ifree(new_item);
         return NULL;
     }
 
     err_codes aloc = dynamic_array_init(new_item->data.parameters);
     if (aloc != err_none){
         *error = err_internal;
-        free(new_item->data.parameters);
-        free(new_item);
+        ifree(new_item->data.parameters);
+        ifree(new_item);
         return NULL;
     }
 
     new_item->key = (char *)imalloc((strlen(name) + 1) * sizeof(char));
     if (new_item->key == NULL){
         *error = err_internal;
-        free(new_item->data.parameters);
-        free(new_item);
+        ifree(new_item->data.parameters);
+        ifree(new_item);
         return NULL;
     }
 
@@ -161,13 +161,13 @@ void symtable_destroy(symtable_t *symtable, err_codes *error, bool isFirst){
             }
         }
         
-        free(item->key);
+        ifree(item->key);
         if (item->data.parameters != NULL){
             dynamic_array_destroy(item->data.parameters);
-            free(item->data.parameters);
+            ifree(item->data.parameters);
         }
         
-        free(item);
+        ifree(item);
         (*symtable)[i] = NULL;
     }
 }
