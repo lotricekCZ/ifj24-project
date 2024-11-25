@@ -6,25 +6,26 @@
 #include "errors.h"
 #include "memory_table.h"
 
+/**
+ * @brief Kontrola jestli se vyskytl error
+ */
+#define OK if (*error != err_none) return NULL
+
 data_t *find(data_t *result_data, DLList sym_list, Token_ptr popToken, symtable_t *symtable, err_codes *error){
     DLL_Last(&sym_list);
     while(sym_list.current != NULL){
         symtable = DLL_GetCurrent(&sym_list);
-        result_data = symtable_get_item(symtable, popToken->attribute, error);
+        result_data = symtable_get_item(symtable, popToken->attribute, error); OK;
         if(result_data != NULL){
             break;
         }
         DLL_Prev(&sym_list);
     }
 
-    if(*error != err_none){
-        return NULL;
-    }
-
     if(result_data == NULL){
         fprintf(stderr, "ERROR: nenalezen v symtable\n");
-        exit(2);
-        // chyba -> nenalezení v symtable
+        *error = err_undef;
+        return NULL;
     }
     return result_data;
 }
@@ -80,10 +81,7 @@ data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLL
         return result;
     }
     else if(popToken->type == tok_t_sym){
-        sym = find(result, sym_list, popToken, symtable, error);
-        if(*error != err_none)
-            return NULL;
-        
+        sym = find(result, sym_list, popToken, symtable, error); OK;
         sym->used = true;
         result->type = sym->type;
         result->canNull = sym->canNull;
@@ -115,10 +113,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
     }
 
     result->type = DATA_TYPE_UND;
-    result = resultType(result, postfix[0], symtable, sym_list, error);
-
-    if (*error != err_none)
-        return NULL;
+    result = resultType(result, postfix[0], symtable, sym_list, error); OK;
 
     if(result == NULL){
         *error = err_internal;
@@ -148,26 +143,18 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             switch (popToken->type)
             {
             case tok_t_sym:
-                result_data = find(result_data, sym_list, popToken, symtable, error);
-                if(*error != err_none)
-                    return NULL;
-                check_operator(result_data, result, error);
-                if(*error != err_none)
-                    return NULL;
+                result_data = find(result_data, sym_list, popToken, symtable, error); OK;
+                check_operator(result_data, result, error); OK;
 
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator(result_data2, result, error); OK;
 
                     if(result_data->type != result_data2->type){
                         *error = err_dt_invalid;
                         fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
                         return NULL;
-                    }
+                    }       
                     push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_int){
@@ -196,12 +183,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
 
             case tok_t_int:
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator(result_data2, result, error); OK;
 
                     if(result_data2->type != DATA_TYPE_INT){
                         *error = err_dt_invalid;
@@ -227,12 +210,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
 
             case tok_t_flt:
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator(result_data2, result, error); OK;
 
                     if(result_data2->type != DATA_TYPE_DOUBLE){
                         *error = err_dt_invalid;
@@ -271,12 +250,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             switch (popToken->type)
             {
             case tok_t_sym:
-                result_data = find(result_data, sym_list, popToken, symtable, error);
-                if(*error != err_none)
-                    return NULL;
-                check_operator(result_data, result, error);
-                if(*error != err_none)
-                    return NULL;
+                result_data = find(result_data, sym_list, popToken, symtable, error); OK;
+                check_operator(result_data, result, error); OK;
 
                 if(popToken2->type == tok_t_sym){
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
@@ -318,12 +293,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             
             case tok_t_int:
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator(result_data2, result, error); OK;
 
                     if(result_data2->type != DATA_TYPE_INT){
                         *error = err_dt_invalid;
@@ -349,12 +320,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
 
             case tok_t_flt:
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator(result_data2, result, error); OK;
 
                     if(result_data2->type != DATA_TYPE_DOUBLE){
                         *error = err_dt_invalid;
@@ -399,20 +366,13 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             switch (popToken->type)
             {
             case tok_t_sym:
-                result_data = find(result_data, sym_list, popToken, symtable, error);
-                if(*error != err_none)
-                    return NULL;
-                check_operator2(result_data, result, error);
-                if(*error != err_none)
-                    return NULL;
+                result_data = find(result_data, sym_list, popToken, symtable, error); OK;
+                check_operator2(result_data, result, error); OK;
 
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator2(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator2(result_data2, result, error); OK;
+
                     if(result_data->type != result_data2->type){
                         *error = err_dt_invalid;
                         fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n"); 
@@ -471,12 +431,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             
             case tok_t_int:
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator2(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator2(result_data2, result, error); OK;
 
                     if(result_data2->type != DATA_TYPE_INT){
                         *error = err_dt_invalid;
@@ -501,12 +457,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             
             case tok_t_flt:
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator2(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator2(result_data2, result, error); OK;
 
                     if(result_data2->type != DATA_TYPE_DOUBLE){
                         *error = err_dt_invalid;
@@ -532,12 +484,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             case tok_t_true:
             case tok_t_false:
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator2(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator2(result_data2, result, error); OK;
 
                     if(result_data2->type != DATA_TYPE_BOOLEAN){
                         *error = err_dt_invalid;
@@ -559,12 +507,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 break;
             case tok_t_null:
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator2(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator2(result_data2, result, error); OK;
 
                     if(!result_data2->canNull){
                         *error = err_dt_invalid;
@@ -611,9 +555,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             }
 
             if(popToken->type == tok_t_sym){
-                result_data = find(result_data, sym_list, popToken, symtable, error);
-                if(*error != err_none)
-                    return NULL;
+                result_data = find(result_data, sym_list, popToken, symtable, error); OK;
 
                 if(result_data->type != DATA_TYPE_BOOLEAN){
                     *error = err_dt_invalid;
@@ -624,9 +566,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             }
 
             if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
 
                     if(result_data2->type != DATA_TYPE_BOOLEAN){
                         *error = err_dt_invalid;
@@ -655,9 +595,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             }
 
             if(popToken->type == tok_t_sym){
-                result_data = find(result_data, sym_list, popToken, symtable, error);
-                if(*error != err_none)
-                    return NULL;
+                result_data = find(result_data, sym_list, popToken, symtable, error); OK;
 
                 if(result_data->type != DATA_TYPE_BOOLEAN){
                     *error = err_dt_invalid;
@@ -687,9 +625,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 return NULL;
             }
 
-            result_data = find(result_data, sym_list, popToken, symtable, error);
-            if(*error != err_none)
-                return NULL;
+            result_data = find(result_data, sym_list, popToken, symtable, error); OK;
             result_data->used = true;
 
             if(!result_data->canNull){
@@ -701,6 +637,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             if(popToken2->type == tok_t_null){
                 result->canNull = true;
                 result->type = result_data->type;
+                push(&stack, popToken);
             }
             else if(popToken2->type == tok_t_int){
                 if(result_data->type != DATA_TYPE_INT){
@@ -711,6 +648,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
 
                 result->canNull = false;
                 result->type = DATA_TYPE_INT;
+                push(&stack, popToken2);
             }
             else if(popToken2->type == tok_t_flt){
                 if(result_data->type != DATA_TYPE_DOUBLE){
@@ -721,10 +659,29 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
 
                 result->canNull = false;
                 result->type = DATA_TYPE_DOUBLE;
+                push(&stack, popToken2);
             }
             else if(popToken2->type == tok_t_unreach){
                 result->canNull = false;
                 result->type = result_data->type;
+                if(popToken->type == DATA_TYPE_INT){
+                    popToken->type = tok_t_int;
+                    result->type = DATA_TYPE_INT;
+                    result->canNull = false;
+                    push(&stack, popToken);
+                }   
+                else if(popToken->type == DATA_TYPE_DOUBLE){
+                    popToken->type = tok_t_flt;
+                    result->type = DATA_TYPE_DOUBLE;
+                    result->canNull = false;
+                    push(&stack, popToken);
+                }
+                else if(popToken->type == DATA_TYPE_U8){
+                    popToken->type = tok_t_u8;
+                    result->type = DATA_TYPE_U8;
+                    result->canNull = false;
+                    push(&stack, popToken);
+                }
             }
             else if (popToken2->type == tok_t_sym){
                 if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE && result_data->type != DATA_TYPE_U8){
@@ -732,9 +689,18 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     fprintf(stderr, "ERROR: orElse nepodporuje dané datové typy\n");
                     return NULL;
                 }
-                result_data->used = true;
-                result->type = result_data->type;
-                result->canNull = result_data->canNull;
+
+                result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                if(result_data->type != result_data2->type){
+                    *error = err_dt_invalid;
+                    fprintf(stderr, "ERROR: orElse nepodporuje dané datové typy\n");
+                    return NULL;
+                }
+
+                result_data2->used = true;
+                result->type = result_data2->type;
+                result->canNull = result_data2->canNull;
+                push(&stack, popToken2);
             }
             continue;
         }
@@ -748,9 +714,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 return NULL;
             }
 
-            result_data = find(result_data, sym_list, popToken, symtable, error);
-            if(*error != err_none)
-                return NULL;
+            result_data = find(result_data, sym_list, popToken, symtable, error); OK;
             result_data->used = true;
 
             if(!result_data->canNull){
@@ -761,8 +725,27 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
 
             result->canNull = false;
             result->type = result_data->type;
+            if(result->type == DATA_TYPE_INT){
+                popToken->type = tok_t_int;
+                push(&stack, popToken);
+            }
+            else if(result->type == DATA_TYPE_DOUBLE){
+                popToken->type = tok_t_flt;
+                push(&stack, popToken);
+            }
+            else if(result->type == DATA_TYPE_U8){
+                popToken->type = tok_t_u8;
+                push(&stack, popToken);
+            }
             continue;
         }
+    }
+
+    pop(&stack);
+    if(!isEmpty(&stack)){
+        fprintf(stderr, "ERROR: neplatný výraz\n");
+        *error = err_syntax;
+        return NULL;
     }
     return result;
 }

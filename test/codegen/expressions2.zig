@@ -71,7 +71,7 @@ pub fn main() void {
     var float1: f64 = 5.0;
     var float2: f64 = 7.5;
     float1 = float1 + 0.0;
-    ifj.write(float1 + float2); // 0x1.9p3 -> tyto výrazy jsou je pro hexa hodnoty
+    ifj.write(float1 + float2); // 0x1.9p3 -> tyto vyrazy jsou je pro hexa hodnoty
     ifj.write("\n");
     float2 = float2 + 10.0;
 
