@@ -54,19 +54,19 @@
 // --- TEST CODE ---
 const ifj = @import("ifj24.zig");
 
-fn returnNumber() i32 {
+pub fn returnNumber() i32 {
     return 42;
 }
 
-fn returnFloat() f64 {
+pub fn returnFloat() f64 {
     return 3.14;
 }
 
-fn returnTrue() bool {
+pub fn returnTrue() bool {
     return true;
 }
 
-fn returnFalse() bool {
+pub fn returnFalse() bool {
     return false;
 }
 

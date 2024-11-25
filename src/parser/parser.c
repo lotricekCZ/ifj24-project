@@ -816,7 +816,7 @@ void statement() {
         next_token();
         expect_type(tok_t_sym); OK; // ID
 
-        check_redefinition();
+        check_redefinition(); OK;
 
         left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
         
@@ -1036,8 +1036,8 @@ void statement() {
 
     case tok_t_break:
         if (cycle == -1) {
-            error = err_syntax;
             fprintf(stderr, "Syntax error: Break statement outside of a loop\n");
+            error = err_syntax;
             return;
         } else if (cycle % 2 == 0) {
             sprintf(string_buffer, "&$while%i", cycle);
@@ -1055,8 +1055,8 @@ void statement() {
 
     case tok_t_continue:
         if (cycle == -1) {
-            error = err_syntax;
             fprintf(stderr, "Syntax error: Continue statement outside of a loop\n");
+            error = err_syntax;
             return;
         } else if (cycle % 2 == 0) {
             sprintf(string_buffer, "*$while%i", cycle);
@@ -1349,6 +1349,12 @@ void call(bool is_left) {
     printi("%s", format[_createframe]);
     if (current_token->type == tok_t_dot) { //a.a()
         pop(&stack_codegen);
+
+        if (is_left){
+            
+            error = err_param;
+            return;
+        }
 
         strcat(stringBuffer, ".");
         next_token();
