@@ -1404,7 +1404,6 @@ void call(bool is_left) {
                 return;
             }
         }
-        
         right_data->used = true;
 
         next_token();

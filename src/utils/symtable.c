@@ -148,7 +148,7 @@ void symtable_insert_params(data_t *data, token_type type, err_codes *error){
     }
 }
 
-void symtable_destroy(symtable_t *symtable, err_codes *error){
+void symtable_destroy(symtable_t *symtable, err_codes *error, bool isFirst){
     if(symtable == NULL){
         *error = err_internal;
     }
@@ -160,11 +160,13 @@ void symtable_destroy(symtable_t *symtable, err_codes *error){
         if (item == NULL)
             continue;
 
-        if (!item->data.used || !item->data.modified){
-            if(*error == err_none)
-                *error = err_dt_unused;
+        if(!isFirst){
+            if (!item->data.used || !item->data.modified){
+                if(*error == err_none)
+                    *error = err_dt_unused;
+            }
         }
-
+        
         free(item->key);
         if (item->data.parameters != NULL)
         {

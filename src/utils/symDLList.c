@@ -46,8 +46,9 @@ bool DLL_isActive(DLList *list) {
 void DLL_Destroy(DLList *list, err_codes *error) {
     while (list->first != NULL) {
         DLLElementPtr deleteElement = list->first;
+        bool isFirst = list->first == list->last;
         list->first = deleteElement->next;
-        symtable_destroy((symtable_t *)deleteElement->symtable, error);
+        symtable_destroy((symtable_t *)deleteElement->symtable, error, isFirst);
         if (*error != err_none) 
             return;
         
@@ -78,7 +79,8 @@ symtable_t * DLL_Insert_last(DLList *list, err_codes *error) {
     new->prev = list->last;
     if (list->last != NULL) {
         list->last->next = new;
-    } else {
+    } 
+    else {
         list->first = new;
     }
     list->last = new;
@@ -108,20 +110,25 @@ symtable_t *DLL_GetCurrent(DLList *list) {
 }
 
 void DLL_Delete_last(DLList *list, err_codes *error) {
+    bool isFirst = list->first == list->last;
     DLLElementPtr delete;
     if (list->last != NULL) {
         delete = list->last;
         if (list->current == list->last) {
             list->current = NULL;
         }
+
         if (list->first == list->last) {
             list->first = NULL;
             list->last = NULL;
-        } else {
+        } 
+        else {
             list->last = list->last->prev;
             list->last->next = NULL;
         }
-        symtable_destroy((symtable_t *)delete->symtable, error);
+
+        symtable_destroy((symtable_t *)delete->symtable, error, isFirst);
+
         if (*error != err_none) 
             return;
 
