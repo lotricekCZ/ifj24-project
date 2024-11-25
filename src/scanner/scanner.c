@@ -661,7 +661,7 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 	for (size_t i = scanner->source_index; i < index;)
 	{
 		char *startline = strchr(scanner->source + i, '\\'); // first ocurence of backslash
-		if (startline != NULL && startline[1] == '\\')
+		if (startline != NULL && startline[1] == '\\' && startline < &scanner->source[index])
 		{
 			char *endline = strchr(startline + 1, '\n');
 			if (endline == NULL)
@@ -772,6 +772,7 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				if (type == tok_t_error)
 				{
 					char *message = scn_compose_message(scanner);
+                    free(scanner->source);
 					exit_lexic(message);
 				}
 				return token;
@@ -835,7 +836,7 @@ char *scn_open_file(Scanner_ptr scanner)
 
 	size_t buffer_size = 1024;
     size_t used_size = 0;
-    char *buffer = imalloc(buffer_size);
+    char *buffer = malloc(buffer_size);
     
     if (buffer == NULL)
     {
@@ -852,7 +853,7 @@ char *scn_open_file(Scanner_ptr scanner)
             char *new_buffer = realloc(buffer, buffer_size);
             if (new_buffer == NULL)
             {
-                ifree(buffer);
+                free(buffer);
                 exit_internal();
             }
             buffer = new_buffer;
@@ -873,7 +874,7 @@ char *scn_open_file(Scanner_ptr scanner)
     char *final_buffer = realloc(buffer, used_size + 1);
     if (final_buffer == NULL)
     {
-        ifree(buffer);
+        free(buffer);
         exit_internal();
     }
 
