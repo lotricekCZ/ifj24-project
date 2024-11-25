@@ -73,8 +73,6 @@ typedef enum
 	sca_s_minus,
 	sca_s_plus,
 	sca_s_comma,
-	sca_s_hashtag,
-
 } scn_state_t;
 
 typedef struct

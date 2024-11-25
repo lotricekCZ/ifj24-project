@@ -124,7 +124,6 @@ char *tok_type_to_str(token_type type)
         {tok_t_geq, "tok_t_geq"},
         {tok_t_doc, "tok_t_doc"},
         {tok_t_dot, "tok_t_dot"},
-        {tok_t_hashtag, "tok_t_hashtag"},
         {tok_t_quot, "tok_t_quot"},
         {tok_t_colon, "tok_t_colon"},
         {tok_t_semicolon, "tok_t_semicolon"},
