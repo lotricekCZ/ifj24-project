@@ -329,7 +329,7 @@ void parse_expression() {
                 postfix[postfix_index++] = pop(&stack);
             }
             push(&stack, current_token);
-            
+
             next_token();
             break;
         }
@@ -1777,8 +1777,6 @@ err_codes parse() {
         str_init(&string_tmp);
         str_init(&string_defvar);
         dynamic_array_init(&depth_sequence);
-
-        fprintf(stdout, "Meow\n");
 
         // Start parsing second time from the <program> non-terminal.
         program();
