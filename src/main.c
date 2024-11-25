@@ -14,10 +14,6 @@ int main()
     safe_memory = true;
     memory_ht_init(&_memory_table);
     scanner = scn_init(NULL);
-    // Initialize the scanner with the source code file.
-    //scanner = scn_init("../test/codegen/builtin.zig");
-    // fprintf(stderr, "No source code file specified.\n");
-    // return err_internal;
 
     if (scanner == NULL)
     {

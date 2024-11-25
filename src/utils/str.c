@@ -1,4 +1,6 @@
 #include "str.h"
+#include "memory_table.h"
+#include "errors.h"
 
 // Inicializace řetězce
 void str_init(str_t* string_t) {
@@ -7,7 +9,7 @@ void str_init(str_t* string_t) {
     string_t->data = (char*)imalloc(string_t->capacity);
     if (string_t->data == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
-        exit(1);
+        exit_internal();
     }
     string_t->data[0] = '\0';
 }
