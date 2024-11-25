@@ -109,7 +109,6 @@ data_t *symtable_insert(symtable_t *symtable, char *name, err_codes *error){
     new_item->data.canNull = false;
     new_item->data.isConst = false;
     new_item->data.used = false;
-    new_item->data.generatedId = NULL;
     new_item->next = NULL;
 
     unsigned int hash = getHash(name);
@@ -172,11 +171,7 @@ void symtable_destroy(symtable_t *symtable, err_codes *error){
             dynamic_array_destroy(item->data.parameters);
             free(item->data.parameters);
         }
-
-        if (item->data.generatedId != NULL) {
-            free(item->data.generatedId);
-        }
-
+        
         free(item);
         (*symtable)[i] = NULL;
     }

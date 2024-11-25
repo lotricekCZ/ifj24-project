@@ -12,6 +12,15 @@
 #include "../utils/symtable.h"
 #include "../utils/errors.h"
 
+#include "../scanner/scanner.h"
+#include "../utils/token_types.h"
+#include "../utils/codegen.h"
+#include "../utils/stack.h"
+#include "../utils/symtable.h"
+#include "../utils/symDLList.h"
+#include "../utils/str.h"
+#include "../utils/dynamic_array.h"
+
 // Global variables
 extern Token_ptr current_token;
 extern Scanner_ptr scanner;
@@ -28,6 +37,37 @@ typedef enum {
     CONTEXT_RETURN,
     CONTEXT_CONDITION_FOR
 }context_t;
+
+// Contex enum
+typedef struct {
+    Token_ptr current_token;
+    Scanner_ptr scanner;
+
+    Stack stack_codegen;
+    int counter_codegen_if;
+    int counter_codegen_while;
+    int counter_codegen_for;
+    int counter_global;
+    int cycle;
+    char string_buffer[MAX_STRING_LEN];
+    char string_buffer_value[MAX_STRING_LEN];
+    str_t string;
+    str_t string_tmp;
+    str_t string_defvar;
+
+    symtable_t* current_symtable;
+    int current_context;
+    DLList sym_list;
+    data_t *left_data;
+    data_t *right_data;
+    data_t *result_data;
+    data_t *function_data;
+    int depth;
+    dynamic_array_t depth_sequence;
+    char stringBuffer[MAX_STRING_LEN];
+    int param_count;
+    bool params;
+} tools_t;
 
 // Function declarations
 void print_token();

@@ -4,7 +4,16 @@
 //0
 //0
 // --- EXPECTED OUTPUT ---
-//
+//ahoj
+//Sring and length: --after7
+//before--ahoj--after
+//0
+//bc
+//abeceda: ABCDEFGHIJKLMNOPQRSTUVWXYZ
+//97
+//104
+//111
+//106
 // --- TEST CODE ---
 const ifj = @import("ifj24.zig");
 
