@@ -67,7 +67,6 @@ typedef enum _token_type
 	tok_t_doc, // comment
 
 	tok_t_dot,		 // . dot
-	tok_t_hashtag,	 // #
 	tok_t_quot,		 // quote
 	tok_t_colon,	 // :
 	tok_t_semicolon, // ;

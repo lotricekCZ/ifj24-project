@@ -90,7 +90,7 @@ pub fn main() void {
     ifj.write("\n");
 
     const q: i32 = 5;
-    ifj.write(@as(i32, q) / 5);
+    ifj.write(5 / 5);
     ifj.write("\n");
 
     // Function calls

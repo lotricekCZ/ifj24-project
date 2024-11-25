@@ -123,7 +123,6 @@ Scan_node sca_asterisk = {.state = sca_s_asterisk, .children = NULL, .count = 0}
 Scan_node sca_minus = {.state = sca_s_minus, .children = NULL, .count = 0};
 Scan_node sca_plus = {.state = sca_s_plus, .children = NULL, .count = 0};
 Scan_node sca_comma = {.state = sca_s_comma, .children = NULL, .count = 0};
-Scan_node sca_hashtag = {.state = sca_s_hashtag, .children = NULL, .count = 0};
 
 // init to init
 SCA_PATH_DEF(sca_init, sca_init)
@@ -267,8 +266,6 @@ SCA_PATH_DEF(sca_init, sca_minus)
 // init to comma path
 SCA_PATH_DEF(sca_init, sca_comma)
 
-// init to hashtag path
-SCA_PATH_DEF(sca_init, sca_hashtag)
 
 /**
  * @brief dosadi cesty k Scan_node.
@@ -415,7 +412,7 @@ Scanner_ptr scn_init(char *filename)
 	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml5), sca_string, SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml2), SCA_MATCH(backslash))
 
-	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml_str), SCA_MATCH(backslash))
+	SCA_PATH_INIT(SCA_PATH(sca_ml1, sca_ml_str), SCA_MATCH(newline))
 	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml3), SCA_MATCH(x))
 	SCA_PATH_INIT(SCA_PATH(sca_ml2, sca_ml5), SCA_MATCH(r), SCA_MATCH(n), SCA_MATCH(t), SCA_MATCH(backslash), SCA_MATCH(quote))
 	SCA_PATH_INIT(SCA_PATH(sca_ml3, sca_ml_max1), isxdigit)
@@ -488,12 +485,9 @@ Scanner_ptr scn_init(char *filename)
 	// init to comma path
 	SCA_PATH_INIT(SCA_PATH(sca_init, sca_comma), SCA_MATCH(comma))
 
-	// init to hashtag path
-	SCA_PATH_INIT(SCA_PATH(sca_init, sca_hashtag), SCA_MATCH(hashtag))
-
 	/** scanner graph node config */
 	// scanner graph node config
-	sca_assign_children(&sca_init, 28, &SCA_PATH(sca_init, sca_init),
+	sca_assign_children(&sca_init, 27, &SCA_PATH(sca_init, sca_init),
 						&SCA_PATH(sca_init, sca_underscore), &SCA_PATH(sca_init, sca_lexeme), &SCA_PATH(sca_init, sca_qm),
 						&SCA_PATH(sca_init, sca_bro), &SCA_PATH(sca_init, sca_at), &SCA_PATH(sca_init, sca_dt),
 						&SCA_PATH(sca_init, sca_int), &SCA_PATH(sca_init, sca_s1), &SCA_PATH(sca_init, sca_backslash),
@@ -502,7 +496,7 @@ Scanner_ptr scn_init(char *filename)
 						&SCA_PATH(sca_init, sca_semicolon), &SCA_PATH(sca_init, sca_slash), &SCA_PATH(sca_init, sca_vertical),
 						&SCA_PATH(sca_init, sca_colon), &SCA_PATH(sca_init, sca_exclamation), &SCA_PATH(sca_init, sca_greater),
 						&SCA_PATH(sca_init, sca_assign), &SCA_PATH(sca_init, sca_less), &SCA_PATH(sca_init, sca_asterisk),
-						&SCA_PATH(sca_init, sca_minus), &SCA_PATH(sca_init, sca_plus), &SCA_PATH(sca_init, sca_hashtag));
+						&SCA_PATH(sca_init, sca_minus), &SCA_PATH(sca_init, sca_plus));
 
 	sca_assign_children(&sca_underscore, 1, &SCA_PATH(sca_underscore, sca_lexeme));
 	sca_assign_children(&sca_lexeme, 1, &SCA_PATH(sca_lexeme, sca_lexeme));
@@ -725,15 +719,15 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 			if (path != NULL)
 			{
 				node = path->to;
-				high++;
-				if (path->to == path->from && path->to == &sca_init)
-				{
-					scanner->source_index = high;
-				}
 				if ((scanner->source[high] == '\n'))
 				{
 					scanner->line++;
 					scanner->source_line = high + 1;
+				}
+				high++;
+				if (path->to == path->from && path->to == &sca_init)
+				{
+					scanner->source_index = high;
 				}
 			}
 			else
@@ -900,8 +894,8 @@ char *scn_compose_message(Scanner_ptr scanner)
 	char *preamble = "Lexical error on line";
 	// gathering the whole line
 	char *end = strchr(&scanner->source[scanner->source_line], '\n');
-	if (end != NULL)
-		*end = scanner->source[scanner->source_size - 2];
+	if (end == NULL)
+		end = &scanner->source[scanner->source_size - 2];
 	int len = end - &scanner->source[scanner->source_line];
 	if (len < 0)
 		exit_internal();
