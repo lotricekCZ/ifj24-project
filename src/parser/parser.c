@@ -223,7 +223,7 @@ void precedence_analysis(dynamic_array_t *precedence, token_type input) {
                     }
                     if (precedence->data[index] == tok_t_sym || precedence->data[index] == (int)'E') {
                         without_value = false;
-                    } else if (precedence->data[index] == precedence_top && without_value && precedence_top != tok_t_rpa) {
+                    } else if (precedence->data[index] == precedence_top && without_value && precedence_top != tok_t_rpa && precedence_top != tok_t_orelse_un) {
                         fprintf(stderr, "Syntax error: Error in expression.\n");
                         error = err_syntax;
                         return;

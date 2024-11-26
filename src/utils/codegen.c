@@ -140,7 +140,7 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 str_append(string, format[_pushs], "bool@false");
                 break;
             case tok_t_unreach:
-                str_append(string, format[_pushs], "string@panic:\\032reached\\032unreachable\\032code");
+                str_append(string, format[_pushs], "string@");
                 break;
             case tok_t_sym:
                 DLL_First(sym_list);
@@ -170,46 +170,46 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 DLL_Last(sym_list);
                 break;
             case tok_t_plus:
-                str_append(string, "CALL $$$retype\n");
+                str_append(string, format[_call], "$$$retype\n");
                 str_append(string, "%s", format[_adds]);
                 break;
             case tok_t_minus:
-                str_append(string, "CALL $$$retype\n");
+                str_append(string, format[_call], "$$$retype\n");
                 str_append(string, "%s", format[_subs]);
                 break;
             case tok_t_times:
-                str_append(string, "CALL $$$retype\n");
+                str_append(string, format[_call], "$$$retype\n");
                 str_append(string, "%s", format[_muls]);
                 break;
             case tok_t_divide:
-                str_append(string, "CALL $$$divs\n");
+                str_append(string, format[_call], "$$$divs\n");
                 break;
             case tok_t_eq:
-                str_append(string, "CALL $$$retype\n");
-                str_append(string, "CALL $$$null\n");
+                str_append(string, format[_call], "$$$retype\n");
+                str_append(string, format[_call], "$$$null\n");
                 str_append(string, "%s", format[_eqs]);
                 break;
             case tok_t_neq:
-                str_append(string, "CALL $$$retype\n");
-                str_append(string, "CALL $$$null\n");
+                str_append(string, format[_call], "$$$retype\n");
+                str_append(string, format[_call], "$$$null\n");
                 str_append(string, "%s", format[_eqs]);
                 str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_lt:
-                str_append(string, "CALL $$$retype\n");
+                str_append(string, format[_call], "$$$retype\n");
                 str_append(string, "%s", format[_lts]);
                 break;
             case tok_t_gt:
-                str_append(string, "CALL $$$retype\n");
+                str_append(string, format[_call], "$$$retype\n");
                 str_append(string, "%s", format[_gts]);
                 break;
             case tok_t_leq:
-                str_append(string, "CALL $$$retype\n");
+                str_append(string, format[_call], "$$$retype\n");
                 str_append(string, "%s", format[_gts]);
                 str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_geq:
-                str_append(string, "CALL $$$retype\n");
+                str_append(string, format[_call], "$$$retype\n");
                 str_append(string, "%s", format[_lts]);
                 str_append(string, "%s", format[_nots]);
                 break;
@@ -223,10 +223,11 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_orelse: //přetypovávat???
-                str_append(string, "CALL $$$orelse\n");
+                str_append(string, format[_call], "$$$orelse\n");
                 break;
             case tok_t_orelse_un:
-                str_append(string, "CALL $$$orelse_un\n");
+                str_append(string, format[_pushs], "string@");
+                str_append(string, format[_call], "$$$orelse\n");
                 break;
             default:
                 break;
@@ -357,39 +358,18 @@ DEFVAR TF@%%0\n\
 POPS TF@%%0\n\
 DEFVAR TF@%%type\n\
 TYPE TF@%%type TF@%%0\n\
-JUMPIFEQ $$$$orelse TF@%%type string@nil\n\
+JUMPIFEQ $$$$orelse_nil TF@%%type string@nil\n\
 PUSHS TF@%%0\n\
 JUMP $$$$orelse_end\n\
-LABEL $$$$orelse\n\
+LABEL $$$$orelse_nil\n\
 TYPE TF@%%type TF@%%1\n\
-JUMPIFEQ $$$$orelse_nil TF@%%type string@nil\n\
 JUMPIFEQ $$$$orelse_unreachable TF@%%type string@string\n\
 PUSHS TF@%%1\n\
 JUMP $$$$orelse_end\n\
 LABEL $$$$orelse_unreachable\n\
-WRITE TF@%%1\n\
-LABEL $$$$orelse_nil\n\
+WRITE string@string@panic:\\032reached\\032unreachable\\032code\n\
 EXIT int@57\n\
 LABEL $$$$orelse_end\n\
-POPFRAME\n\
-RETURN\n");
-
-    str_append(string, "\
-LABEL $$$orelse_un\n\
-CREATEFRAME\n\
-PUSHFRAME\n\
-CREATEFRAME\n\
-DEFVAR TF@%%0\n\
-POPS TF@%%0\n\
-DEFVAR TF@%%type\n\
-TYPE TF@%%type TF@%%0\n\
-JUMPIFEQ $$$$orelse_un_nil TF@%%type string@nil\n\
-PUSHS TF@%%0\n\
-JUMP $$$$orelse_un_end\n\
-LABEL $$$$orelse_un_nil\n\
-MOVE TF@%%0 string@panic:\\032reached\\032unreachable\\032code\n\
-EXIT int@57\n\
-LABEL $$$$orelse_un_end\n\
 POPFRAME\n\
 RETURN\n");
 
