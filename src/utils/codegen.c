@@ -71,42 +71,43 @@ const char *format[INSTRUCTION_COUNT] = {
     "# %s\n"                  // # ⟨string⟩
 };
 
-void printi_string(str_t* string, char* source) {
+void printi_string(str_t* string, char* source, token_type type) {
     for (int index = 0; index < strlen(source); index++) {
-        // Detekce sekvence \x následované 2 hex číslicemi
-        if (source[index] == 92 && source[index + 1] == 'x' && index + 3 < strlen(source)) {
-            if (isxdigit(source[index + 2]) && isxdigit(source[index + 3])) {
-                char high = source[index + 2];
-                char low = source[index + 3];
+        if (type == tok_t_str) {
+            // Detekce sekvence \x následované 2 hex číslicemi
+            if (source[index] == 92 && source[index + 1] == 'x' && index + 3 < strlen(source)) {
+                if (isxdigit(source[index + 2]) && isxdigit(source[index + 3])) {
+                    char high = source[index + 2];
+                    char low = source[index + 3];
 
-                int value;
-                if (isdigit(high))
-                    value = (high - '0') * 16;
-                else
-                    value = (toupper(high) - 'A' + 10) * 16;
+                    int value;
+                    if (isdigit(high))
+                        value = (high - '0') * 16;
+                    else
+                        value = (toupper(high) - 'A' + 10) * 16;
 
-                if (isdigit(low))
-                    value += low - '0';
-                else
-                    value += toupper(low) - 'A' + 10;
+                    if (isdigit(low))
+                        value += low - '0';
+                    else
+                        value += toupper(low) - 'A' + 10;
 
-                source[index + 3] = (char)value; // Uložení výsledné hodnoty
-                index += 3;                            // Přeskočení zpracovaných znaků
+                    source[index + 3] = (char)value; // Uložení výsledné hodnoty
+                    index += 3;                            // Přeskočení zpracovaných znaků
+                }
+            } else if (source[index] == 92 && source[index + 1] == 'n' && index + 1 < strlen(source)) {
+                source[index + 1] = (char)10;
+                index++;
+            } else if (source[index] == 92 && source[index + 1] == 't' && index + 1 < strlen(source)) {
+                source[index + 1] = (char)9;
+                index++;
+            } else if (source[index] == 92 && source[index + 1] == 92 && index + 1 < strlen(source)) {
+                source[index + 1] = (char)92;
+                index++;
+            } else if (source[index] == 92 && source[index + 1] == 34 && index + 1 < strlen(source)) {
+                source[index + 1] = (char)34;
+                index++;
             }
-        } else if (source[index] == 92 && source[index + 1] == 'n' && index + 1 < strlen(source)) {
-            source[index + 1] = (char)10;
-            index++;
-        } else if (source[index] == 92 && source[index + 1] == 't' && index + 1 < strlen(source)) {
-            source[index + 1] = (char)9;
-            index++;
-        } else if (source[index] == 92 && source[index + 1] == 92 && index + 1 < strlen(source)) {
-            source[index + 1] = (char)92;
-            index++;
-        } else if (source[index] == 92 && source[index + 1] == 34 && index + 1 < strlen(source)) {
-            source[index + 1] = (char)34;
-            index++;
         }
-
         if ((source[index] >= 0 && source[index] <= 32) || source[index] == 35 || source[index] == 92) {
             str_append(string, "\\%03d", source[index]);
         }
@@ -124,7 +125,6 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
             case tok_t_null:
                 str_append(string, format[_pushs], "nil@nil");
                 break;
-            case tok_t_as:
             case tok_t_int:
                 sprintf(buffer, "int@%i", atoi(postfix[index]->attribute));
                 str_append(string, format[_pushs], buffer);
@@ -140,7 +140,7 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 str_append(string, format[_pushs], "bool@false");
                 break;
             case tok_t_unreach:
-                str_append(string, format[_pushs], "string@");
+                str_append(string, format[_pushs], "string@panic:\\032reached\\032unreachable\\032code\n");
                 break;
             case tok_t_sym:
                 DLL_First(sym_list);
@@ -170,46 +170,46 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 DLL_Last(sym_list);
                 break;
             case tok_t_plus:
-                str_append(string, format[_call], "$$$retype\n");
+                str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_adds]);
                 break;
             case tok_t_minus:
-                str_append(string, format[_call], "$$$retype\n");
+                str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_subs]);
                 break;
             case tok_t_times:
-                str_append(string, format[_call], "$$$retype\n");
+                str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_muls]);
                 break;
             case tok_t_divide:
-                str_append(string, format[_call], "$$$divs\n");
+                str_append(string, format[_call], "$$$divs");
                 break;
             case tok_t_eq:
-                str_append(string, format[_call], "$$$retype\n");
-                str_append(string, format[_call], "$$$null\n");
+                str_append(string, format[_call], "$$$retype");
+                str_append(string, format[_call], "$$$null");
                 str_append(string, "%s", format[_eqs]);
                 break;
             case tok_t_neq:
-                str_append(string, format[_call], "$$$retype\n");
-                str_append(string, format[_call], "$$$null\n");
+                str_append(string, format[_call], "$$$retype");
+                str_append(string, format[_call], "$$$null");
                 str_append(string, "%s", format[_eqs]);
                 str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_lt:
-                str_append(string, format[_call], "$$$retype\n");
+                str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_lts]);
                 break;
             case tok_t_gt:
-                str_append(string, format[_call], "$$$retype\n");
+                str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_gts]);
                 break;
             case tok_t_leq:
-                str_append(string, format[_call], "$$$retype\n");
+                str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_gts]);
                 str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_geq:
-                str_append(string, format[_call], "$$$retype\n");
+                str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_lts]);
                 str_append(string, "%s", format[_nots]);
                 break;
@@ -223,11 +223,11 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
                 str_append(string, "%s", format[_nots]);
                 break;
             case tok_t_orelse: //přetypovávat???
-                str_append(string, format[_call], "$$$orelse\n");
+                str_append(string, format[_call], "$$$orelse");
                 break;
             case tok_t_orelse_un:
-                str_append(string, format[_pushs], "string@");
-                str_append(string, format[_call], "$$$orelse\n");
+                str_append(string, format[_pushs], "string@panic:\\032reached\\032unreachable\\032code\n");
+                str_append(string, format[_call], "$$$orelse");
                 break;
             default:
                 break;
@@ -364,11 +364,13 @@ JUMP $$$$orelse_end\n\
 LABEL $$$$orelse_nil\n\
 TYPE TF@%%type TF@%%1\n\
 JUMPIFEQ $$$$orelse_unreachable TF@%%type string@string\n\
-PUSHS TF@%%1\n\
-JUMP $$$$orelse_end\n\
+JUMP $$$$orelse_end2\n\
 LABEL $$$$orelse_unreachable\n\
-WRITE string@string@panic:\\032reached\\032unreachable\\032code\n\
+JUMPIFNEQ $$$$orelse_end2 TF@%%1 string@panic:\\032reached\\032unreachable\\032code\n\
+WRITE string@panic:\\032reached\\032unreachable\\032code\n\
 EXIT int@57\n\
+LABEL $$$$orelse_end2\n\
+PUSHS TF@%%1\n\
 LABEL $$$$orelse_end\n\
 POPFRAME\n\
 RETURN\n");

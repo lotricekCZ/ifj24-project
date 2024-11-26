@@ -194,7 +194,7 @@ void precedence_analysis(dynamic_array_t *precedence, token_type input) {
                 break;
             }
         }
-        precedence_analysis_print(precedence, input, precedence_top);
+        //precedence_analysis_print(precedence, input, precedence_top);
         action = precedence_tab[get_index(precedence_top)][get_index(input)];
         switch (action) {
             case '<':
@@ -470,9 +470,8 @@ void parse_expression() {
     while (!isEmpty(&stack_postfix)) {
         postfix[postfix_index++] = pop(&stack_postfix);
     }
-
-    printi_postfix(&string_tmp, postfix, postfix_index, &stack_functions, &sym_list, current_symtable, &error); OK;
     //print_postfix(postfix, postfix_index);
+    printi_postfix(&string_tmp, postfix, postfix_index, &stack_functions, &sym_list, current_symtable, &error); OK;
 
     result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &error); OK;
     current_context = save_context;
@@ -1632,6 +1631,7 @@ void call_params() {
             error = err_none;
         }
         char source[MAX_STRING_LEN];
+        token_type tmp_type = peek(&stack_codegen)->type;
         strcpy(source, string_buffer_value);
         bool string_value = false;
         if (peek(&stack_codegen)->type == tok_t_str || peek(&stack_codegen)->type == tok_t_mstr) {
@@ -1648,7 +1648,7 @@ void call_params() {
 
         if (string_value) {
             printi("PUSHS string@");
-            printi_string(&string_tmp, source);
+            printi_string(&string_tmp, source, tmp_type);
             printi("\n");
         } else {
             printi(format[_pushs], source);
@@ -1774,7 +1774,7 @@ void for_value() {
         sprintf(string_buffer_value, "LF@%%expression%i", counter_global++);
         printi(format[_defvar], string_buffer_value);
         printi("MOVE %s string@", string_buffer_value);
-        printi_string(&string_tmp, current_token->attribute);
+        printi_string(&string_tmp, current_token->attribute, current_token->type);
         printi("\n");
 
         next_token();
