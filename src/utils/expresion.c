@@ -546,15 +546,9 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             }
             popToken = pop(&stack);
 
-            if(popToken->type != tok_t_bool || popToken2->type != tok_t_bool){
-                if((popToken->type != tok_t_true && popToken->type != tok_t_false) || (popToken2->type != tok_t_true && popToken2->type != tok_t_false)){
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: and, or nepodporuje dané datové typy\n");
-                    return NULL;
-                }
-            }
-
-            if(popToken->type == tok_t_sym){
+            switch (popToken->type)
+            {
+            case tok_t_sym:
                 result_data = find(result_data, sym_list, popToken, symtable, error); OK;
 
                 if(result_data->type != DATA_TYPE_BOOLEAN){
@@ -563,9 +557,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     return NULL;
                 }
                 result_data->used = true;
-            }
 
-            if(popToken2->type == tok_t_sym){
+                if(popToken2->type == tok_t_sym){
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
 
                     if(result_data2->type != DATA_TYPE_BOOLEAN){
@@ -575,6 +568,57 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     }
                     result_data2->used = true;
                 }
+                else if(popToken2->type != tok_t_bool && popToken2->type != tok_t_true && popToken2->type != tok_t_false){
+                    *error = err_dt_invalid;
+                    fprintf(stderr, "ERROR: and, or nepodporuje dané datové typy\n");
+                    return NULL;
+                }
+            
+                break;
+
+            case tok_t_bool:
+                if(popToken2->type == tok_t_sym){
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+
+                    if(result_data2->type != DATA_TYPE_BOOLEAN){
+                        *error = err_dt_invalid;
+                        fprintf(stderr, "ERROR: and, or nelze emplicitně přetypovat\n");
+                        return NULL;
+                    }
+                    result_data2->used = true;
+                }
+                else if(popToken2->type != tok_t_bool && popToken2->type != tok_t_true && popToken2->type != tok_t_false){
+                    *error = err_dt_invalid;
+                    fprintf(stderr, "ERROR: and, or nepodporuje dané datové typy\n");
+                    return NULL;
+                }
+                break;
+
+            case tok_t_true:
+            case tok_t_false:
+                if(popToken2->type == tok_t_sym){
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+
+                    if(result_data2->type != DATA_TYPE_BOOLEAN){
+                        *error = err_dt_invalid;
+                        fprintf(stderr, "ERROR: and, or nelze emplicitně přetypovat\n");
+                        return NULL;
+                    }
+                    result_data2->used = true;
+                }
+                else if(popToken2->type != tok_t_bool && popToken2->type != tok_t_true && popToken2->type != tok_t_false){
+                    *error = err_dt_invalid;
+                    fprintf(stderr, "ERROR: and, or nepodporuje dané datové typy\n");
+                    return NULL;
+                }
+                break;
+            
+            default:
+                *error = err_dt_invalid;
+                fprintf(stderr, "ERROR: and, or nepodporuje dané datové typy\n");
+                return NULL;
+                break;
+            }
 
             popToken->type = tok_t_bool;
             push(&stack, popToken);
@@ -585,15 +629,6 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
         if(postfix[i]->type == tok_t_not){
             popToken = pop(&stack);
 
-            if(popToken->type != tok_t_bool){
-                // opravit
-                if((popToken->type != tok_t_true && popToken->type != tok_t_false) || (popToken2->type != tok_t_true && popToken2->type != tok_t_false)){
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: not nepodporuje dané datové typy\n");
-                    return NULL;
-                }
-            }
-
             if(popToken->type == tok_t_sym){
                 result_data = find(result_data, sym_list, popToken, symtable, error); OK;
 
@@ -603,6 +638,11 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     return NULL;
                 }
                 result_data->used = true;
+            }
+            else if(popToken->type != tok_t_bool && popToken->type != tok_t_true && popToken->type != tok_t_false){
+                *error = err_dt_invalid;
+                fprintf(stderr, "ERROR: not nepodporuje dané datové typy\n");
+                return NULL;
             }
 
             push(&stack, popToken);
