@@ -23,7 +23,6 @@ add_library(scan_state SHARED	 ${SCANNER}/scan_state.c)
 add_library(scanner SHARED    	 ${SCANNER}/scanner.c)
 add_library(token_dll SHARED 	 ${UTILS}/token_dll.c)
 add_library(sym_dll SHARED 	 	 ${UTILS}/symDLList.c)
-add_library(dym_string SHARED 	 ${UTILS}/dymString.c)
 add_library(parser SHARED 	 	 ${PARSER}/parser.c)
 add_library(stack SHARED 	     ${UTILS}/stack.c)
 add_library(symtable SHARED 	 ${UTILS}/symtable.c)
@@ -42,7 +41,7 @@ target_link_libraries(keyword errors)
 
 target_link_libraries(scanner token errors scan_state keyword token_dll memory_table m)
 # target_link_libraries(scanner parser)
-target_link_libraries(ifj2024 errors token scanner parser codegen stack symtable sym_dll dym_string str dynamic_array expresion memory_table)
+target_link_libraries(ifj2024 errors token scanner parser codegen stack symtable sym_dll str dynamic_array expresion memory_table)
 
 # Enable testing
 enable_testing()
