@@ -67,7 +67,7 @@ typedef symtable_item_t *symtable_t[SYMTABLE_SIZE];
  *
  * Inicializuje symbol table tak, že nastaví všechny prvky pole na NULL.
  *
- * @param symtable Symbol table, které chceme inicializovat
+ * @param symtable symbolická tabulka, které chceme inicializovat
  * @param error místo, kam se uloží chybový kód v případě chyby
  */
 void symtable_init(symtable_t *symtable, err_codes *error);
@@ -98,8 +98,8 @@ data_t *symtable_insert(symtable_t *symtable, char *name, err_codes *error);
 /**
  * @brief Přidá parametr do seznamu parametrů daného prvku v tabulce symbolů.
  *
- * @param data Ukazatel na prvky v tabulce symbolů, do něhož má být parametr přidán.
- * @param type Typ datového typu, který má být přidán.
+ * @param data ukazatel na prvky v tabulce symbolů, do něhož má být parametr přidán
+ * @param type typ datového typu, který má být přidán
  * @param error místo, kam se uloží chybový kód v případě chyby
  */
 void symtable_insert_params(data_t *data, token_type type, err_codes *error);
