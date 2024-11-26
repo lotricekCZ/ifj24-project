@@ -570,10 +570,10 @@ RETURN\n");
     str_append(string, "\
 LABEL $$$strcmp\n\
 PUSHFRAME\n\
-DEFVAR LF@%%0\n\
-POPS LF@%%0\n\
 DEFVAR LF@%%1\n\
 POPS LF@%%1\n\
+DEFVAR LF@%%0\n\
+POPS LF@%%0\n\
 DEFVAR LF@%%retval\n\
 DEFVAR LF@%%type\n\
 TYPE LF@%%type LF@%%0\n\
@@ -586,26 +586,24 @@ STRLEN LF@%%len1 LF@%%0\n\
 STRLEN LF@%%len2 LF@%%1\n\
 DEFVAR LF@%%cond\n\
 LT LF@%%cond LF@%%len1 LF@%%len2\n\
-JUMPIFEQ $$$$strcmp_1lt2 LF@%%cond bool@true\n\
-LT LF@%%cond LF@%%len2 LF@%%len1\n\
-JUMPIFEQ $$$$strcmp_2lt1 LF@%%cond bool@true\n\
+JUMPIFEQ $$$$strcmp_len LF@%%cond bool@true\n\
+MOVE LF@%%len1 LF@%%len2\n\
+LABEL $$$$strcmp_len\n\
 DEFVAR LF@tmp1\n\
 DEFVAR LF@tmp1_counter\n\
-MOVE LF@tmp1_counter int@0\n\
 DEFVAR LF@tmp2\n\
-DEFVAR LF@tmp2_counter\n\
-MOVE LF@tmp2_counter int@0\n\
+DEFVAR LF@tmp_counter\n\
+MOVE LF@tmp_counter int@0\n\
 LABEL $$$$strcmp_while_start\n\
 JUMPIFEQ $$$$strcmp_eq LF@%%len1 int@0\n\
 SUB LF@%%len1 LF@%%len1 int@1\n\
-STRI2INT LF@tmp1 LF@%%0 LF@tmp1_counter\n\
-STRI2INT LF@tmp2 LF@%%1 LF@tmp2_counter\n\
+STRI2INT LF@tmp1 LF@%%0 LF@tmp_counter\n\
+STRI2INT LF@tmp2 LF@%%1 LF@tmp_counter\n\
 LT LF@%%cond LF@tmp1 LF@tmp2\n\
 JUMPIFEQ $$$$strcmp_1lt2 LF@%%cond bool@true\n\
 LT LF@%%cond LF@tmp2 LF@tmp1\n\
 JUMPIFEQ $$$$strcmp_2lt1 LF@%%cond bool@true\n\
-ADD LF@tmp1_counter LF@tmp1_counter int@1\n\
-ADD LF@tmp2_counter LF@tmp2_counter int@1\n\
+ADD LF@tmp_counter LF@tmp_counter int@1\n\
 JUMP $$$$strcmp_while_start\n\
 LABEL $$$$strcmp_eq\n\
 MOVE LF@%%retval int@0\n\
