@@ -23,7 +23,7 @@ while getopts "xm" opt; do
 done
 shift $((OPTIND-1))
 
-XLOGIN="xlogin00"
+XLOGIN="xhubacv00"
 SERVER="$XLOGIN@merlin.fit.vutbr.cz"
 REMOTE_TMP="/tmp/$USER_$(date +%s)"
 

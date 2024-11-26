@@ -629,10 +629,10 @@ LABEL $$$$strcmp_eq\n\
 MOVE LF@%%retval int@0\n\
 JUMP $$$$strcmp_end\n\
 LABEL $$$$strcmp_1lt2\n\
-MOVE LF@%%retval int@-1\n\
+MOVE LF@%%retval int@1\n\
 JUMP $$$$strcmp_end\n\
 LABEL $$$$strcmp_2lt1\n\
-MOVE LF@%%retval int@1\n\
+MOVE LF@%%retval int@-1\n\
 JUMP $$$$strcmp_end\n\
 LABEL $$$$strcmp_other\n\
 MOVE LF@%%retval nil@nil\n\
