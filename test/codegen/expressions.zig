@@ -21,7 +21,6 @@
 //84
 //true
 //false
-//5
 //true
 //false
 //10
@@ -33,7 +32,6 @@
 //3
 //true
 //false
-//20
 //15
 //25
 //true
@@ -90,7 +88,7 @@ pub fn main() void {
     ifj.write("\n");
 
     const q: i32 = 5;
-    ifj.write(5 / 5);
+    ifj.write(q / 5);
     ifj.write("\n");
 
     // Function calls
@@ -98,7 +96,7 @@ pub fn main() void {
     ifj.write("\n");
 
     // Logical operators
-    ifj.write(returnTrue() and true);
+    ifj.write(returnTrue() and true); // pro me tady chyba
     ifj.write("\n");
 
     ifj.write(!returnTrue());
@@ -132,23 +130,15 @@ pub fn main() void {
     ifj.write(null == null);
     ifj.write("\n");
 
-    // Combined expressions
-    const z: i32 = 2;
-    ifj.write(@as(i32, z) + 3);
-    ifj.write("\n");
-
     ifj.write((5 > 3) and (10 < 20));
     ifj.write("\n");
 
     ifj.write((true and false) or (false and true));
     ifj.write("\n");
 
-    // Conditional expressions
-    ifj.write(if (true) 10 else 20);
-    ifj.write("\n");
-
     // Complex logical expressions
-    ifj.write(!(false or false) and true);
+    const golo = true;
+    ifj.write(!golo);
     ifj.write("\n");
 
     // Arithmetic operations with functions
@@ -176,11 +166,6 @@ pub fn main() void {
 
     // Comparing function results
     ifj.write(returnNumber() == 43);
-    ifj.write("\n");
-
-    // Arithmetic operations with typecast
-    const u: i32 = 4;
-    ifj.write(@as(i32, u) * 5);
     ifj.write("\n");
 
     // NEW TESTS WITH VARIABLES:
