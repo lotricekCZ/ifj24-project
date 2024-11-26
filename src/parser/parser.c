@@ -341,10 +341,6 @@ void parse_expression() {
             
             strcpy(stringBuffer, current_token->attribute);
 
-            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
-                postfix[postfix_index++] = pop(&stack_postfix);
-            }
-
             next_token();
             id_continue(); OK;
 
@@ -367,6 +363,10 @@ void parse_expression() {
             postfix[postfix_index] = func_token;
             postfix_index++;
             stringBuffer[0] = '\0';
+
+            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
+                postfix[postfix_index++] = pop(&stack_postfix);
+            }
             break;
 
         case tok_t_true: // true
