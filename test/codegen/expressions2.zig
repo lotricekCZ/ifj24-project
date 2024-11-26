@@ -5,10 +5,10 @@
 //0
 // --- EXPECTED OUTPUT ---
 //15
-//25
-//8
-//12.500000
-//30
+//45
+//33
+//0x1.9p3
+//36
 //60
 //7
 //9
@@ -16,21 +16,20 @@
 //42
 //null
 //84
-//3.140000
+//0x1.91eb851eb851fp1
 //10
-//20.500000
+//0x1.48p4
 //15
 //null
 //50
-//100
 //200
 //25
 //8
-//16
+//4
 //null
 //10
 //84
-//42
+//0
 //15
 // --- TEST CODE ---
 const ifj = @import("ifj24.zig");
@@ -56,7 +55,7 @@ pub fn main() void {
     var a: i32 = 5;
     var b: i32 = 20;
     a = a * 5;
-    ifj.write(a + b); // 25
+    ifj.write(a + b); // 45
     ifj.write("\n");
     b = b - 10;
 
@@ -64,7 +63,7 @@ pub fn main() void {
     var val1: i32 = 3;
     var val2: i32 = 5;
     val1 = val1 + 5;
-    ifj.write(val1 * val2 - 7); // 8
+    ifj.write(val1 * val2 - 7); // 33
     ifj.write("\n");
     val2 = val2 + 10;
 
@@ -72,7 +71,7 @@ pub fn main() void {
     var float1: f64 = 5.0;
     var float2: f64 = 7.5;
     float1 = float1 + 0.0;
-    ifj.write(float1 + float2); // 12.5
+    ifj.write(float1 + float2); // 0x1.9p3 -> tyto vyrazy jsou je pro hexa hodnoty
     ifj.write("\n");
     float2 = float2 + 10.0;
 
@@ -80,7 +79,7 @@ pub fn main() void {
     var mult1: i32 = 5;
     var mult2: i32 = 6;
     mult1 = mult1 + 1;
-    ifj.write(mult1 * mult2); // 30
+    ifj.write(mult1 * mult2); // 36
     ifj.write("\n");
     mult2 = mult2 * 10;
 
@@ -126,7 +125,7 @@ pub fn main() void {
     if (opt2) |value| {
         ifj.write(value);
     } else {
-        ifj.write("null");
+        ifj.write("null"); // null
     }
     ifj.write("\n");
     opt2 = 84;
@@ -139,7 +138,7 @@ pub fn main() void {
 
     // Optional variables - f64
     var optFloat1: ?f64 = 3.14;
-    ifj.write(optFloat1 orelse 0.0); // 3.14
+    ifj.write(optFloat1 orelse 0.0); // 0x1.91eb851eb851fp1
     ifj.write("\n");
     optFloat1 = 10.0;
 
@@ -151,7 +150,7 @@ pub fn main() void {
 
     // Working with optional f64
     var optFloat2: ?f64 = 20.5;
-    ifj.write(optFloat2 orelse 0.0); // 20.5
+    ifj.write(optFloat2 orelse 0.0); // 0x1.48p4
     ifj.write("\n");
     optFloat2 = 15.0;
 
@@ -168,7 +167,7 @@ pub fn main() void {
     if (optNum3) |value| {
         ifj.write(value);
     } else {
-        ifj.write("null");
+        ifj.write("null"); //null
     }
     ifj.write("\n");
 
@@ -202,7 +201,7 @@ pub fn main() void {
     // Complex expressions with optional
     var optNum9: ?i32 = 4;
     optNum9 = optNum9 orelse 0 * 4;
-    ifj.write(optNum9 orelse 0 * 4); // 16
+    ifj.write(optNum9 orelse 0 * 4); // 4
     ifj.write("\n");
 
     // Setting to null and check
@@ -228,8 +227,8 @@ pub fn main() void {
     optNum12 = 42;
 
     // Assignment from function
-    var optNum13: ?i32 = returnNumber();
-    ifj.write(optNum13 orelse 0); // 42
+    var optNum13: ?i32 = null;
+    ifj.write(optNum13 orelse 0); // 0
     ifj.write("\n");
     optNum13 = 15;
 

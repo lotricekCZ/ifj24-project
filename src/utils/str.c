@@ -1,13 +1,15 @@
 #include "str.h"
+#include "memory_table.h"
+#include "errors.h"
 
 // Inicializace řetězce
 void str_init(str_t* string_t) {
     string_t->length = 0;
     string_t->capacity = 16;  // Počáteční kapacita
-    string_t->data = (char*)malloc(string_t->capacity);
+    string_t->data = (char*)imalloc(string_t->capacity);
     if (string_t->data == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
-        exit(1);
+        exit_internal();
     }
     string_t->data[0] = '\0';
 }
@@ -30,7 +32,7 @@ void str_append(str_t* string, const char* source, ...) {
         while (new_capacity <= new_length) {
             new_capacity *= 2;
         }
-        char* new_data = (char*)realloc(string->data, new_capacity);
+        char* new_data = (char*)irealloc(string->data, new_capacity);
         if (new_data == NULL) {
             fprintf(stderr, "Memory reallocation failed\n");
             va_end(args);
@@ -72,7 +74,7 @@ void str_clear(str_t* string) {
 
 // Uvolnění paměti
 void str_destroy(str_t* string) {
-    free(string->data);
+    ifree(string->data);
     string->data = NULL;
     string->length = 0;
     string->capacity = 0;

@@ -651,7 +651,7 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 {
 	// assert(index >= scanner->source_index); // TODO: replace with something a bit safer, this is A MACRO
 
-	char *result = malloc(sizeof(char) * (index - scanner->source_index + 1));
+	char *result = imalloc(sizeof(char) * (index - scanner->source_index + 1));
 	if (result == NULL)
 	{
 		exit_internal();
@@ -661,12 +661,12 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 	for (size_t i = scanner->source_index; i < index;)
 	{
 		char *startline = strchr(scanner->source + i, '\\'); // first ocurence of backslash
-		if (startline != NULL && startline[1] == '\\')
+		if (startline != NULL && startline[1] == '\\' && startline < &scanner->source[index])
 		{
 			char *endline = strchr(startline + 1, '\n');
 			if (endline == NULL)
 			{ // means there is no ENDLINE => error
-				free(result);
+				ifree(result);
 				exit_internal();
 			}
 			size_t len = endline - startline;
@@ -680,10 +680,10 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 		}
 	}
 	size_t len = strlen(result);
-	char *tmp = realloc(result, len);
+	char *tmp = irealloc(result, len);
 	if (NULL == tmp)
 	{
-		free(result);
+		ifree(result);
 		exit_internal();
 	}
 	else
@@ -691,8 +691,8 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 		tmp[len-1] = '\0';
 		result = tmp;
 	}
-	if (safe_memory)
-		memory_ht_insert(&_memory_table, result);
+	// if (safe_memory)
+	// 	memory_ht_insert(&_memory_table, result);
 	return result;
 }
 
@@ -772,6 +772,7 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				if (type == tok_t_error)
 				{
 					char *message = scn_compose_message(scanner);
+                    // free(scanner->source);
 					exit_lexic(message);
 				}
 				return token;
@@ -849,7 +850,7 @@ char *scn_open_file(Scanner_ptr scanner)
         if (used_size + 2 >= buffer_size)
         {
             buffer_size *= 2;
-            char *new_buffer = realloc(buffer, buffer_size);
+            char *new_buffer = irealloc(buffer, buffer_size);
             if (new_buffer == NULL)
             {
                 ifree(buffer);
@@ -870,7 +871,7 @@ char *scn_open_file(Scanner_ptr scanner)
     buffer[used_size] = '\0';
 
     // Zmenšíme buffer na skutečně použitou velikost
-    char *final_buffer = realloc(buffer, used_size + 1);
+    char *final_buffer = irealloc(buffer, used_size + 1);
     if (final_buffer == NULL)
     {
         ifree(buffer);

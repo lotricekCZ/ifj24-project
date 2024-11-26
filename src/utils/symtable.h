@@ -105,12 +105,13 @@ data_t *symtable_insert(symtable_t *symtable, char *name, err_codes *error);
 void symtable_insert_params(data_t *data, token_type type, err_codes *error);
 
 /**
- * @brief Zruší tabulku symbolů a dealokuje všechny jeho položky.
+ * @brief Zruší tabulku symbolů a dealokuje všechna její položky.
  *
- * @param symtable Symbolická tabulka ke zničení
+ * @param symtable tabulka symbolů, kterou chceme zničit
  * @param error místo, kam se uloží chybový kód v případě chyby
+ * @param isFirst příznak, zda se jedná o tabulku funkcí (ovlivňuje kontrolu nepoužitých proměnných)
  */
-void symtable_destroy(symtable_t *symtable, err_codes *error);
+void symtable_destroy(symtable_t *symtable, err_codes *error, bool isFirst);
 
 /**
  * @brief Vloží vestavěné funkce do symbolické tabulky.

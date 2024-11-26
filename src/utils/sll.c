@@ -152,6 +152,8 @@
 		{                                                                \
 			prefix##_sll_element_ptr temp = sll->firstElement;           \
 			sll->firstElement = temp->next;                              \
+			if (temp == sll->activeElement)                              \
+				sll->activeElement = NULL;                               \
 			if (temp != NULL && temp->ptr != NULL)                       \
 			{                                                            \
 				deallocate(temp->ptr);                                   \
@@ -190,8 +192,8 @@
 			else                                                         \
 			{                                                            \
 				if (deallocate == nothing)                               \
-					free(target->ptr);                                     \
-				free(target);                                              \
+					free(target->ptr);                                   \
+				free(target);                                            \
 			}                                                            \
 			sll->currentLength--;                                        \
 		}                                                                \

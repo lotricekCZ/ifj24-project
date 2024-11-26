@@ -61,12 +61,12 @@ pub fn main() void {
     q = ifj.readi32() orelse 0;
     ifj.write(q);
 
-    const s: ?i32 = ifj.readi32() orelse unreachable;
-    ifj.write(s.?);
-    const t: ?f64 = ifj.readf64() orelse unreachable;
-    ifj.write(t.?);
-    const u: ?[]u8 = ifj.readstr() orelse unreachable;
-    ifj.write(u.?);
+    const s: i32 = ifj.readi32() orelse unreachable;
+    ifj.write(s);
+    const t: f64 = ifj.readf64() orelse unreachable;
+    ifj.write(t);
+    const u: []u8 = ifj.readstr() orelse unreachable;
+    ifj.write(u);
 
     //const r = ifj.readf64();
 

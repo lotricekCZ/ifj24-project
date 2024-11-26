@@ -427,12 +427,18 @@ void parse_expression() {
                 return;
             }
 
-            if(!left_data->as_func){
-                fprintf(stderr, "Semantic error: isn't value |id|\n");
-                error = err_param;
+            if(cycle != -1){
+                if(!left_data->as_func){
+                    fprintf(stderr, "Semantic error: isn't value |id|\n");
+                    error = err_param;
+                    return;
+                }
+            }
+            else{
+                fprintf(stderr, "Semantic error: Function @as isn't in cycle\n");
+                error = err_semantic;
                 return;
             }
-
 
             postfix[postfix_index++] = current_token;
 
@@ -1532,7 +1538,6 @@ void call(bool is_left) {
                 return;
             }
         }
-        
         right_data->used = true;
 
         next_token();
