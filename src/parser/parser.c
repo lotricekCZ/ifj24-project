@@ -667,6 +667,7 @@ void function() {
     data_t* data = symtable_get_item(current_symtable, pop(&stack_codegen)->attribute, &error); OK;
 
     if(data == NULL) {
+        fprintf(stderr, "Semantic error: Undefined function\n");
         error = err_undef;
         return;
     }
@@ -1100,11 +1101,13 @@ void id_statement() {
         current_symtable = DLL_GetLast(&sym_list);
 
         if(sym_list.current == sym_list.first || left_data == NULL){
+            fprintf(stderr, "Semantic error: %s is undefined variable\n", current_token->attribute);
             error = err_undef;
             return;
         }       
 
         if(left_data->isConst){
+            fprintf(stderr, "Semantic error: %s is constant\n", current_token->attribute);
             error = err_redef;
             return;
         }
@@ -1276,6 +1279,7 @@ void id_continue() {
             current_symtable = DLL_GetLast(&sym_list);
 
             if(sym_list.current == sym_list.first || param_data == NULL){ 
+                fprintf(stderr, "Semantic error: %s is undefined parameter\n", current_token->attribute);
                 error = err_undef;
                 return;
             }
@@ -1299,6 +1303,7 @@ void id_continue() {
             DLL_GetLast(&sym_list);
 
             if(sym_list.current == sym_list.first || id_save == NULL){ 
+                fprintf(stderr, "Semantic error: %s is undefined variable\n", current_token->attribute);
                 error = err_undef;
                 return;
             }
@@ -1318,7 +1323,8 @@ void return_value() {
 
     if (current_token->type != tok_t_semicolon) {
         if(function_data->type == DATA_TYPE_VOID){
-            error = err_param;
+            fprintf(stderr, "Semantic error: void function cannot return value\n");
+            error = err_ret_val;
             return;
         }
 
@@ -1328,7 +1334,8 @@ void return_value() {
     }
     else {
         if(function_data->type != DATA_TYPE_VOID){
-            error = err_param;
+            fprintf(stderr, "Semantic error: not void function must return value\n");
+            error = err_ret_val;
             return;
         }
     }
@@ -1365,6 +1372,7 @@ void call(bool is_left) {
         right_data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
         current_symtable = DLL_GetLast(&sym_list);
         if(right_data == NULL){
+            fprintf(stderr, "Semantic error: %s is undefined function\n", current_token->attribute);
             error = err_undef; 
             return;
         }
@@ -1372,6 +1380,7 @@ void call(bool is_left) {
 
         if (is_left){
             if(right_data->type != DATA_TYPE_VOID){
+                fprintf(stderr, "Semantic error: cannot discard the return value");
                 error = err_param;
                 return;
             }
@@ -1395,17 +1404,15 @@ void call(bool is_left) {
         current_symtable = DLL_GetFirst(&sym_list);
         right_data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
         if(right_data == NULL){
+            fprintf(stderr, "Semantic error: %s is undefined function\n", current_token->attribute);
             error = err_undef; 
             return;
         }
         current_symtable = DLL_GetLast(&sym_list);
-        if(right_data == NULL){
-            error = err_undef; 
-            return;
-        }
 
         if (is_left){
             if(right_data->type != DATA_TYPE_VOID){
+                fprintf(stderr, "Semantic error: cannot discard the return value");
                 error = err_param;
                 return;
             }
@@ -1767,11 +1774,13 @@ err_codes parse() {
     left_data = symtable_get_item(current_symtable, "main", &error);
     
     if(left_data == NULL) {
+        fprintf(stderr, "Semantic error: main is undefined function\n");
         error = err_undef;
         return error; 
     }
     
     if(left_data->type != DATA_TYPE_VOID || left_data->parameters->size != 0) {
+        fprintf(stderr, "Semantic error: main must be void and have no parameters\n");
         error = err_param;
     }
     left_data->used = true;
