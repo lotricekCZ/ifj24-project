@@ -6,15 +6,15 @@
 // --- EXPECTED OUTPUT ---
 //;;""\n\\\x60
 //NicNahore
-//  DoleTohle je
+//   DoleTohle je
 //novy radek971098quack
 //quackquacky
 //quackyre
 //turnToto
-//je
+// je
 //
-//nejaky
-//text  // ve viceradkovem retezcovem literalu nelze mit komentar
+// nejaky
+// text  // ve viceradkovem retezcovem literalu nelze mit komentar
 // --- TEST CODE ---
 const ifj = @import("ifj24.zig");
 
@@ -53,10 +53,10 @@ pub fn main() void {
     )));
 
     const s1: []u8 = ifj.string(
-        \\Toto 
-        \\ je 
+        \\Toto
+        \\ je
         \\
-        \\ nejaky 
+        \\ nejaky
         \\ text  // ve viceradkovem retezcovem literalu nelze mit komentar
     ); // ukoncujici uvozovky ovlivnuji implicitni odsazeni vnitrnich radku retezce
     ifj.write(s1);
