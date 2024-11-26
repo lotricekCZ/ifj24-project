@@ -670,7 +670,7 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 				exit_internal();
 			}
 			size_t len = endline - startline;
-			memcpy(result + strlen(result), startline + 2 + (startline[2] == ' '), len - 2 - (startline[2] == ' '));
+			memcpy(result + strlen(result), startline + 2, len - 2);
 			result[strlen(result)] = '\n';
 			i += endline - (scanner->source + i) + 1;
 		}
