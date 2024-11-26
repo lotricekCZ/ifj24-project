@@ -1,0 +1,13 @@
+## Implementace
+Skener se snaží co nejvíc přiblížit návrhu, je tedy zaveden jako orientovaný graf pod jmennými prostory scn (SCaNner) a sca (SCanner Auxiliary), z nichž scn je využit zejména pro komunikaci skeneru ven a sca pro jeho konfiguraci. V kódu sca tím vzniklo rozhraní pro konfiguraci orientovaného grafu, které dovoluje deklaraci hran s pomocí `SCA_PATH_DECL(src, dest)`, definici s `SCA_PATH_DEF(src, dest)` iniciaci `SCA_PATH_INIT(name, args...)`, kterýmž lze dosadit hraně se jménem name dosadit disjunktní podmínky (args), tedy stačí, aby z N podmínek platila jedna pro zvolení dané cesty, zmínění hrany `SCA_PATH(src, dest)` a deiniciaci orientovaných hran mezi uzly, které jsou sice deklarovány globálně, nicméně jim jsou hrany dosazeny až v rámci běhu programu pomocí funkce `sca_assign_children(Scan_node_ptr node, int argc, …)` s variabilním počtem argumentů. 
+Zde jsou uvedeny příklady užití. 
+
+Pro tento příklad uvažujme existenci hrany mezi uzlem, který v číslu představuje exponent (*sca_intexp*) a znaménko (*sca_intexpsign*). Průchod přes hranu je tedy dovolen pouze pokud je načtený symbol *plus* nebo *minus*. ![image](/assets/scanner_dfa_example.png)
+ - `SCA_PATH_DEF(sca_intexp, sca_intexpsign)`
+   - tímto je definována hrana mezi uzlem sca_intexp a sca_intexpsign
+ - `SCA_PATH_INIT(SCA_PATH(sca_intexp, sca_intexpsign), SCA_MATCH(plus), SCA_MATCH(minus))`
+   - tímto jsou za běhu hraně dosazeny podmínky požadující znaménka plus nebo minus
+ - `sca_assign_children(&sca_intexp, 2, &SCA_PATH(sca_intexp, sca_dec2), &SCA_PATH(sca_intexp, sca_intexpsign));`
+   - tímto jsou uzlu dosazeny hrany, které z něj vedou. Z uzlu tímto lze přejít do jiného s jiným stavem, zároveň je uzel zodpovědný za následnou deiniciaci hran při ukončení programu. V našem případu to znamená, že z uzlu vedou hrany do uzlů *sca_intexpsign* a terminálního *sca_dec2*
+
+Celý běh skeneru tím lze soustředit do funkce `scn_scan(Scanner_ptr scanner)`, jenž iterativně prochází řetězec dokud nenarazí na situaci, kdy pro načtený symbol nevede z daného uzlu přechod, tehdy je načtený řetězec nejdříve vyhodnocen dle toho, zda se automat zastavil na terminálu definovaném v tabulce `sca_translation_table[]`, pokud ano, na jakém, v opačném případě skener vyhodí chybu a ukončí program. V případě setkání se se symbolem konce řetězce (EOF) zastavuje načítání řetězce a v případě požadavku na další token jej pro usnadnění práce načte z dvousměrně vázaného seznamu.

@@ -691,8 +691,6 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 		tmp[len-1] = '\0';
 		result = tmp;
 	}
-	// if (safe_memory)
-	// 	memory_ht_insert(&_memory_table, result);
 	return result;
 }
 
@@ -772,7 +770,6 @@ Token_ptr scn_scan(Scanner_ptr scanner)
 				if (type == tok_t_error)
 				{
 					char *message = scn_compose_message(scanner);
-                    // free(scanner->source);
 					exit_lexic(message);
 				}
 				return token;
@@ -905,10 +902,10 @@ char *scn_compose_message(Scanner_ptr scanner)
 	// gathering the line number
 	size_t number_size = (size_t)(log(scanner->line) / log(10)) + 1;
 	// return message composition
-	char *message = imalloc((strlen(preamble) + number_size + 1 + len) * 2 + 1);
+	char *message = imalloc((strlen(preamble) + number_size + 3 + len) * 2 + 1);
 	size_t nl = sprintf(message, "%s %zu: %s\n", preamble, scanner->line, line);
 	ifree(line);
-	memset(message + nl, ' ', (strlen(preamble) + number_size + 1 + len));
+	memset(message + nl, ' ', (strlen(preamble) + number_size + len));
 	message[strlen(preamble) + number_size + len + nl] = '^';
 	message[strlen(preamble) + number_size + len + nl + 1] = '\0';
 	return message;

@@ -39,7 +39,7 @@ void memt_safe_deinit(void **src)
 	free(src);
 }
 
-bool memt_comp(void *src, void *other)
+size_t memt_comp(void *src, void *other)
 {
 	return src == other;
 }
