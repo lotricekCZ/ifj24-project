@@ -88,63 +88,79 @@ char stringBuffer[MAX_STRING_LEN] = "\0";
 int param_count = -1;
 bool params = false;
 
-/*
- * Precedence table
- */
-char precedence_table[19][19] = {
-//     +    -    *    /    ==   !=   <    >    <=   >=  and   or   orelse !  .?   (    )    id   $
-    { '>', '>', '<', '<', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '<', '<', '>', '<', '>' }, // +
-    { '>', '>', '<', '<', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '<', '<', '>', '<', '>' }, // -
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '<', '<', '>', '<', '>' }, // *
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '<', '<', '>', '<', '>' }, // /
-    { '<', '<', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', '<', '>' }, // ==
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', '<', '>' }, // !=
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', '<', '>' }, // <
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', '<', '>' }, // >
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', '<', '>' }, // <=
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', '<', '>' }, // >=
-    { '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '>', '<', '<', '>', '<', '>', '<', '>' }, // and
-    { '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '>', '<', '>', '<', '>' }, // or
-    { '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '>', '<', '>' }, // orelse
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', ' ', '<', '>', '<', '>', '<', '>' }, // !
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '<', '>', '>', '>', '<', '>' }, // .?
-    { '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '=', '<', ' ' }, // (
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', ' ', '>', '>', '>', '>', '>' }, // )
-    { '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', '>', ' ', '>', '>' }, // id
-    { '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', '<', ' ', '<', ' ' }  // $
+/*char precedence_tab[12][12] = {
+//     .?   !   * / orlse + -   r   and   or   (    )    ID   $
+    { '=', '=', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '=', '=', '>', }, // .?
+    { '=', '=', '>', '>', '>', '>', '>', '>', '=', '>', '=', '>', }, // !
+    { ' ', '<', '>', '<', '<', '<', '<', '<', '<', '>', '<', '>', }, // * /
+    { ' ', '<', '>', '>', '<', '<', '<', '<', '<', '>', '<', '>', }, // orelse
+    { ' ', '<', '>', '>', '>', '<', '<', '<', '<', '>', '<', '>', }, // + -
+    { ' ', '<', '>', '>', '>', '>', '<', '<', '<', '>', '<', '>', }, // relations
+    { ' ', '<', '>', '>', '>', '>', '>', '<', '<', '>', '<', '>', }, // and
+    { ' ', '<', '>', '>', '>', '>', '>', '>', '<', '>', '<', '>', }, // or
+    { ' ', '<', '<', '<', '<', '<', '<', '<', '<', '=', '<', ' ', }, // (
+    { '>', ' ', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // )
+    { '>', '>', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // ID
+    { '<', '<', '<', '<', '<', '<', '<', '<', '<', ' ', '<', ' ', }  // $
+}; */
+
+char precedence_tab[12][12] = {
+//     .?   !   * / orlse + -   r   and   or   (    )    ID   $
+    { '=', ' ', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // .?
+    { ' ', '=', ' ', ' ', ' ', ' ', ' ', ' ', '=', ' ', '=', ' ', }, // !
+    { ' ', '<', '>', '>', '>', '>', '>', '>', '<', '>', '<', '>', }, // * /
+    { ' ', '<', '<', '>', '>', '>', '>', '>', '<', '>', '<', '>', }, // orelse
+    { ' ', '<', '<', '<', '>', '>', '>', '>', '<', '>', '<', '>', }, // + -
+    { ' ', '<', '<', '<', '<', ' ', '>', '>', '<', '>', '<', '>', }, // relations
+    { ' ', '<', '<', '<', '<', '<', '>', '>', '<', '>', '<', '>', }, // and
+    { ' ', '<', '<', '<', '<', '<', '<', '>', '<', '>', '<', '>', }, // or
+    { ' ', '<', '<', '<', '<', '<', '<', '<', '<', '=', '<', ' ', }, // (
+    { '=', ' ', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // )
+    { '=', ' ', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // ID
+    { ' ', '<', '<', '<', '<', '<', '<', '<', '<', ' ', '<', ' ', }  // $
 };
-/* 
- * Function to get the precedence index of the operator
- */
-int get_precedence_index(token_type type) {
+
+int get_index(token_type type) {
     switch (type) {
-        case tok_t_plus: return 0;
-        case tok_t_minus: return 1;
-        case tok_t_times: return 2;
-        case tok_t_divide: return 3;
-        case tok_t_eq: return 4;
-        case tok_t_neq: return 5;
-        case tok_t_lt: return 6;
-        case tok_t_gt: return 7;
-        case tok_t_leq: return 8;
-        case tok_t_geq: return 9;
-        case tok_t_and: return 10;
-        case tok_t_or: return 11;
-        case tok_t_orelse: return 12; 
-        case tok_t_not: return 13;
-        case tok_t_orelse_un: return 14; 
-        case tok_t_lpa: return 15;
-        case tok_t_rpa: return 16;
-        case tok_t_sym: return 17;
-        case tok_t_eof: return 18;
-        default: return -1;
+        case tok_t_orelse_un: return 0;
+        case tok_t_not: return 1; 
+        case tok_t_times:
+        case tok_t_divide: return 2;
+        case tok_t_orelse: return 3;
+        case tok_t_plus:
+        case tok_t_minus: return 4;
+        case tok_t_eq:
+        case tok_t_neq:
+        case tok_t_lt:
+        case tok_t_gt:
+        case tok_t_leq:
+        case tok_t_geq: return 5;
+        case tok_t_and: return 6;
+        case tok_t_or: return 7;
+        case tok_t_lpa: return 8;
+        case tok_t_rpa: return 9;
+        case tok_t_sym: return 10;
+        case tok_t_eof: return 11;
+        default: return type;
     }
 }
+
+void precedence_analysis_print (dynamic_array_t *precedence, token_type input, int precedence_top) {
+    for (int i = 0; i < precedence->size; i++) {
+        if (precedence->data[i] == (int)'>' || precedence->data[i] == (int)'<' || precedence->data[i] == (int)'E') {
+            fprintf(stderr, "%c ", precedence->data[i]);
+        } else
+        fprintf(stderr, "%s ", tok_type_to_str(precedence->data[i]));
+    }
+    fprintf(stderr, "| %c | ", precedence_tab[get_index(precedence_top)][get_index(input)]);
+    fprintf(stderr, "%s\n", tok_type_to_str(input));
+}
+
 /* 
  * Function to get the precedence of the operator
  */
 int getPrecedence(token_type stackTop, token_type input) {
-    return precedence_table[get_precedence_index(stackTop)][get_precedence_index(input)];
+    return precedence_tab[get_index(stackTop)][get_index(input)];
 }
 void print_postfix_and_stack(char *postfix, int postfix_index, Stack *stack) {
     printf("Postfix: ");
@@ -168,17 +184,96 @@ void print_postfix(Token_ptr *postfix, int postfix_index) {
     fprintf(stderr, "\n");
 }
 
+void precedence_analysis(dynamic_array_t *precedence, token_type input) {
+    int action;
+    do {
+        int precedence_top;
+        for (int index = precedence->size - 1; index >= 0; index--) {
+            if (precedence->data[index] != (int)'E') {
+                precedence_top = precedence->data[index];
+                break;
+            }
+        }
+        precedence_analysis_print(precedence, input, precedence_top);
+        action = precedence_tab[get_index(precedence_top)][get_index(input)];
+        switch (action) {
+            case '<':
+                dynamic_array_insert(precedence, input);
+                for (int index = precedence->size - 2; index >= 0; index--) {
+                    if (precedence->data[index] == precedence_top) {
+                        precedence->data[index + 1] = (int)'<';
+                        break;
+                    } else {
+                        precedence->data[index + 1] = precedence->data[index];
+                    }
+                }
+                break;
+    
+            case '>':
+                if (precedence->data[precedence->size - 1] == (int)'<') {
+                    fprintf(stderr, "Syntax error: Wrong expression.\n");
+                    error = err_syntax;
+                    return;
+                }
+                bool without_value = true;
+                for (int index = precedence->size - 1; index >= 0; index--) {
+                    if (precedence->data[index] == (int)'<') {
+                        precedence->data[index] = (int)'E';
+                        break;
+                    }
+                    if (precedence->data[index] == tok_t_sym || precedence->data[index] == (int)'E') {
+                        without_value = false;
+                    } else if (precedence->data[index] == precedence_top && without_value && precedence_top != tok_t_rpa) {
+                        fprintf(stderr, "Syntax error: Error in expression.\n");
+                        error = err_syntax;
+                        return;
+                    }
+                    precedence->size--;
+                    if (index == 0) {
+                        fprintf(stderr, "Syntax error: Error in expression.\n");
+                        error = err_syntax;
+                        return;
+                    }
+                }
+                if (without_value) {
+                    fprintf(stderr, "Syntax error: Error in expression.\n");
+                    error = err_syntax;
+                    return;
+                }
+                break;
+
+            case ' ':
+                if (action == ' ' && (input != tok_t_eof || precedence_top != tok_t_eof)) {
+                    fprintf(stderr, "Syntax error: Error in expression.\n");
+                    error = err_syntax;
+                    return;
+                } else if (precedence->size != 2) {
+                    fprintf(stderr, "Syntax error: Error in expression.\n");
+                    error = err_syntax;
+                    return;
+                }
+                break;
+        }
+    } while (action == (int)'>');
+    dynamic_array_insert(precedence, input);
+}
+
 /* 
  * Function to parse the expression
  */
 void parse_expression() {
     printi(format[_comment], "<expression>");
 
-    Stack stack;
-    init(&stack);
+    Stack stack_postfix;
+    init(&stack_postfix);
+    
     Stack stack_functions;
     init(&stack_functions);
     context_t save_context = current_context;
+
+    dynamic_array_t precedence;
+    dynamic_array_init(&precedence);
+    dynamic_array_insert(&precedence, tok_t_eof);
 
     Token_ptr postfix[MAX];
     int postfix_index = 0;
@@ -193,41 +288,51 @@ void parse_expression() {
                 expression_continue = false;
                 break;  // Končíme spracovanie podmienky
             }
+            precedence_analysis(&precedence, current_token->type); OK;
             // Inak pokračujeme v spracovaní výrazu
-            while (!isEmpty(&stack) && peek(&stack)->type != tok_t_lpa) {
-                postfix[postfix_index++] = pop(&stack);
+            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type != tok_t_lpa) {
+                postfix[postfix_index++] = pop(&stack_postfix);
             }
-            pop(&stack); // Discard the left parenthesis
+            pop(&stack_postfix); // Discard the left parenthesis
+            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
+                postfix[postfix_index++] = pop(&stack_postfix);
+            }
             next_token();
             break;
 
         case tok_t_lpa: // (
+            precedence_analysis(&precedence, current_token->type); OK;
             paren_count++;
-            push(&stack, current_token);
+            push(&stack_postfix, current_token);
             next_token();
             break;
 
         case tok_t_int: //1
+            precedence_analysis(&precedence, tok_t_sym); OK;
             postfix[postfix_index++] = current_token;
             next_token();
             break;
 
         case tok_t_flt: //1.0
+            precedence_analysis(&precedence, tok_t_sym); OK;
             postfix[postfix_index++] = current_token;
             next_token();
             break;
 
         case tok_t_null: // null
+            precedence_analysis(&precedence, tok_t_sym); OK;
             postfix[postfix_index++] = current_token;
             next_token();
             break;
 
         case tok_t_unreach: // unreachable
+            precedence_analysis(&precedence, tok_t_sym); OK;
             postfix[postfix_index++] = current_token;
             next_token();
             break;
 
         case tok_t_sym: // id
+            precedence_analysis(&precedence, tok_t_sym); OK;
             postfix[postfix_index] = current_token;
             push(&stack_codegen, current_token);
 
@@ -258,19 +363,34 @@ void parse_expression() {
             postfix[postfix_index] = func_token;
             postfix_index++;
             stringBuffer[0] = '\0';
+
+            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
+                postfix[postfix_index++] = pop(&stack_postfix);
+            }
             break;
 
         case tok_t_true: // true
+            precedence_analysis(&precedence, tok_t_sym); OK;
             postfix[postfix_index++] = current_token;
+            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
+                postfix[postfix_index++] = pop(&stack_postfix);
+            }
+
             next_token();
             break;
 
         case tok_t_false: // false
+            precedence_analysis(&precedence, tok_t_sym); OK;
             postfix[postfix_index++] = current_token;
+            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
+                postfix[postfix_index++] = pop(&stack_postfix);
+            }
+
             next_token();
             break;
         
         case tok_t_as: // @as
+            precedence_analysis(&precedence, tok_t_sym); OK;
             next_token();
             expect_type(tok_t_lpa); OK;
 
@@ -330,22 +450,30 @@ void parse_expression() {
 
         default:
             expect_types(16, tok_t_plus, tok_t_minus, tok_t_times, tok_t_divide, tok_t_not, tok_t_eq, tok_t_neq, tok_t_lt, tok_t_gt, tok_t_leq, tok_t_geq, tok_t_and, tok_t_or, tok_t_not, tok_t_orelse, tok_t_orelse_un); OK;
-            while (!isEmpty(&stack) && getPrecedence(peek(&stack)->type, current_token->type) != '<') {
-                // fprintf(stderr, "Precedence: %s %c %s\n", tok_type_to_str(peek(&stack)->type), getPrecedence(peek(&stack)->type, current_token->type), tok_type_to_str(current_token->type));
-                postfix[postfix_index++] = pop(&stack);
+            precedence_analysis(&precedence, current_token->type); OK;
+            if (current_token->type == tok_t_not){
+                push(&stack_postfix, current_token);
+            } else {
+                while (!isEmpty(&stack_postfix) && get_index(peek(&stack_postfix)->type) <= get_index(current_token->type)) {
+                    postfix[postfix_index++] = pop(&stack_postfix);
+                }
+                push(&stack_postfix, current_token);
             }
-            push(&stack, current_token);
 
             next_token();
             break;
         }
     }
+    precedence_analysis(&precedence, tok_t_eof); OK;
 
     // Pop remaining operators
-    while (!isEmpty(&stack)) {
-        postfix[postfix_index++] = pop(&stack);
+    while (!isEmpty(&stack_postfix)) {
+        postfix[postfix_index++] = pop(&stack_postfix);
     }
+
     printi_postfix(&string_tmp, postfix, postfix_index, &stack_functions, &sym_list, current_symtable, &error); OK;
+    //print_postfix(postfix, postfix_index);
+
     result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &error); OK;
     current_context = save_context;
     switch (current_context)
