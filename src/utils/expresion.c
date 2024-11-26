@@ -382,8 +382,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     popToken->type = tok_t_bool;
                     push(&stack, popToken);
                 }
-                else if(1){
-                    if(popToken2->type != tok_t_int && popToken2->type != tok_t_flt && popToken2->type != tok_t_bool){
+                else if(popToken2->type == tok_t_int){
+                    if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE){
                         *error = err_dt_invalid;
                         fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
                         return NULL;
@@ -525,6 +525,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                         fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
                         return NULL;
                     }
+                    popToken->type = tok_t_bool;
+                    push(&stack, popToken);
                 }    
                 break;
             default:
@@ -704,19 +706,19 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             else if(popToken2->type == tok_t_unreach){
                 result->canNull = false;
                 result->type = result_data->type;
-                if(popToken->type == DATA_TYPE_INT){
+                if(result_data->type == DATA_TYPE_INT){
                     popToken->type = tok_t_int;
                     result->type = DATA_TYPE_INT;
                     result->canNull = false;
                     push(&stack, popToken);
                 }   
-                else if(popToken->type == DATA_TYPE_DOUBLE){
+                else if(result_data->type == DATA_TYPE_DOUBLE){
                     popToken->type = tok_t_flt;
                     result->type = DATA_TYPE_DOUBLE;
                     result->canNull = false;
                     push(&stack, popToken);
                 }
-                else if(popToken->type == DATA_TYPE_U8){
+                else if(result_data->type == DATA_TYPE_U8){
                     popToken->type = tok_t_u8;
                     result->type = DATA_TYPE_U8;
                     result->canNull = false;
