@@ -32,37 +32,66 @@ data_t *find(data_t *result_data, DLList sym_list, Token_ptr popToken, symtable_
     return result_data;
 }
 
-void check_operator_calc(data_t *result_data, data_t *result, err_codes *error){
+err_codes error_found(){
+    fprintf(stderr, "Semantic error: incompatible data types\n");
+    return err_dt_invalid;
+}
+
+void check_type(data_t *result_data, data_type_t type, err_codes *error){
+    if(result_data->type != type){
+        *error = error_found();
+        return;
+    }
+}
+
+void check_two_types(data_t *result_data, data_type_t type, data_type_t type2, err_codes *error){
+    if(result_data->type != type && result_data->type != type2){
+        *error = error_found();
+        return;
+    }
+}
+
+void check_not_canNull(data_t *result_data, err_codes *error){
     if(result_data->canNull){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: +,-,*,/ nemůže být null\n");
+        *error = error_found();
         return;
     }
+}
 
-    if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: +,-,*,/ nelze emplicitně přetypovat\n");
+void check_canNull(data_t *result_data, err_codes *error){
+    if(!result_data->canNull){
+        *error = error_found();
         return;
     }
+}
 
+void check_operator_calc(data_t *result_data, data_t *result, err_codes *error){
+    check_not_canNull(result_data, error); OK2;
+    check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
     result_data->used = true;
+}
+
+void check_second_symbol(data_t *result_data, data_t *result_data2, err_codes *error){
+    if(result_data->type != result_data2->type){
+        *error = error_found();
+        return;
+    }  
 }
 
 void check_operator_bool(data_t *result_data, data_t *result, err_codes *error){
     if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE && result_data->type != DATA_TYPE_BOOLEAN){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: ==, !=, <, <=, >, >= nelze emplicitně přetypovat\n");
+        *error = error_found();
         return;
     }
     result_data->used = true;
 }
+
 
 data_t *check_bool_first(data_t *result_data, Token_ptr popToken, DLList sym_list, symtable_t *symtable, err_codes *error){
     result_data = find(result_data, sym_list, popToken, symtable, error); OK;
 
     if(result_data->type != DATA_TYPE_BOOLEAN){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: and, or nelze emplicitně přetypovat\n");
+        *error = error_found();
         return NULL;
     }
     result_data->used = true;
@@ -73,17 +102,96 @@ void check_bool_second(data_t *result_data, Token_ptr popToken, DLList sym_list,
     if(popToken->type == tok_t_sym){
         result_data = find(result_data, sym_list, popToken, symtable, error); OK2;
 
-        if(result_data->type != DATA_TYPE_BOOLEAN){
-            *error = err_dt_invalid;
-            fprintf(stderr, "ERROR: and, or nelze emplicitně přetypovat\n");
-            return;
-        }
+        check_type(result_data, DATA_TYPE_BOOLEAN, error); OK2;
         result_data->used = true;
     }
     else if(popToken->type != tok_t_bool && popToken->type != tok_t_true && popToken->type != tok_t_false){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: and, or nepodporuje dané datové typy\n");
+        *error = error_found();
         return;
+    }
+}
+
+void check_bool(data_t *result_data, data_t *result_data2, Token_ptr popToken, Token_ptr popToken2, DLList sym_list, symtable_t *symtable, data_t *result, err_codes *error){
+    switch (popToken->type)
+    {
+    case tok_t_sym:
+        result_data = find(result_data, sym_list, popToken, symtable, error); OK2;
+        check_operator_bool(result_data, result, error); OK2;
+
+        if(popToken2->type == tok_t_sym){
+            result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK2;
+            check_operator_bool(result_data2, result, error); OK2;
+            check_second_symbol(result_data, result_data2, error); OK2;
+        }
+        else if(popToken2->type == tok_t_int){
+            check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
+        }
+        else if(popToken2->type == tok_t_flt){
+            check_type(result_data, DATA_TYPE_DOUBLE, error); OK2;
+        }
+        else if(popToken2->type == tok_t_true || popToken2->type == tok_t_false){
+            check_type(result_data, DATA_TYPE_BOOLEAN, error); OK2;
+        }
+        else if(popToken2->type == tok_t_null){
+            check_canNull(result_data, error); OK2;
+        }
+        else{
+            *error = error_found();
+            return;
+        }
+        break;
+    
+    case tok_t_int:
+        if(popToken2->type == tok_t_sym){
+            result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK2;
+            check_operator_bool(result_data2, result, error); OK2;
+            check_two_types(result_data2, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
+        }
+        else if(popToken2->type != tok_t_flt && popToken2->type != tok_t_int){
+            *error = error_found();
+            return;
+        }
+        break;
+    
+    case tok_t_flt:
+        if(popToken2->type == tok_t_sym){
+            result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK2;
+            check_operator_bool(result_data2, result, error); OK2;
+            check_type(result_data2, DATA_TYPE_DOUBLE, error); OK2;
+        }
+        else if(popToken2->type != tok_t_flt && popToken2->type != tok_t_int){
+            *error = error_found();
+            return;
+        }
+        break;
+
+    case tok_t_true:
+    case tok_t_false:
+        if(popToken2->type == tok_t_sym){
+            result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK2;
+            check_operator_bool(result_data2, result, error); OK2;
+            check_type(result_data2, DATA_TYPE_BOOLEAN, error); OK2;
+        }
+        else if(popToken2->type != tok_t_true && popToken2->type != tok_t_false){
+            *error = error_found();
+            return;
+        }
+        break;
+    case tok_t_null:
+        if(popToken2->type == tok_t_sym){
+            result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK2;
+            check_operator_bool(result_data2, result, error); OK2;
+            check_canNull(result_data2, error);
+        }
+        else if(popToken2->type != tok_t_null){
+            *error = error_found();
+            return;
+        }    
+        break;
+    default:
+        *error = error_found();
+        return;
+        break;
     }
 }
 
@@ -103,8 +211,7 @@ Token_ptr check_and_or(Token_ptr popToken, Token_ptr popToken2, data_t *result_d
         break;
     
     default:
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: and, or nepodporuje dané datové typy\n");
+        *error = error_found();
         return NULL;
         break;
     }
@@ -113,8 +220,7 @@ Token_ptr check_and_or(Token_ptr popToken, Token_ptr popToken2, data_t *result_d
 
 data_t *check_first_orelse(Token_ptr popToken, data_t *result_data, DLList sym_list, symtable_t *symtable, err_codes *error){
     if(popToken->type != tok_t_sym){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: orElse nepodporuje dané datové typy\n");
+        *error = error_found();
         return NULL;
     }
 
@@ -122,8 +228,7 @@ data_t *check_first_orelse(Token_ptr popToken, data_t *result_data, DLList sym_l
     result_data->used = true;
 
     if(!result_data->canNull){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: ORELSE musí být null\n");
+        *error = error_found();
         return NULL;
     }
     return result_data;
@@ -131,26 +236,13 @@ data_t *check_first_orelse(Token_ptr popToken, data_t *result_data, DLList sym_l
 
 data_t *check_second_orelse(data_t *result_data, data_t *result_data2, Token_ptr popToken2, DLList sym_list, symtable_t *symtable, err_codes *error){
     if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE && result_data->type != DATA_TYPE_U8){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: orElse nepodporuje dané datové typy\n");
+        *error = error_found();
         return NULL;
     }
 
     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
-    if(result_data->type != result_data2->type){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: orElse nepodporuje dané datové typy\n");
-        return NULL;
-    }
+    check_second_symbol(result_data, result_data2, error); OK;
     return result_data2;
-}
-
-void check_orelse_type(data_t *result_data, data_type_t type, err_codes *error){
-    if(result_data->type != type){
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: orElse nepodporuje dané datové typy\n");
-        return;
-    }
 }
 
 Token_ptr unreachble_type(Token_ptr popToken, data_t *result, err_codes *error){
@@ -164,8 +256,7 @@ Token_ptr unreachble_type(Token_ptr popToken, data_t *result, err_codes *error){
         popToken->type = tok_t_u8;
     }
     else{
-        *error = err_dt_invalid;
-        fprintf(stderr, "ERROR: datové typy nejsou kompatibilni\n");
+        *error = error_found();
         return NULL;
     }
     return popToken;
@@ -265,33 +356,19 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 if(popToken2->type == tok_t_sym){
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, result, error); OK;
-
-                    if(result_data->type != result_data2->type){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }       
+                    check_second_symbol(result_data, result_data2, error);
                     push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_int){
-                    if(result_data->type != DATA_TYPE_INT){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
+                    check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK;
                     push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_flt){
-                    if(result_data->type != DATA_TYPE_DOUBLE){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
+                    check_type(result_data, DATA_TYPE_DOUBLE, error); OK;
                     push(&stack, popToken);
                 }
                 else{
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: +, -, * nepodporuje dané datové typy\n");
+                    *error = error_found();
                     return NULL;
                 }
                 
@@ -301,12 +378,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 if(popToken2->type == tok_t_sym){
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, result, error); OK;
-
-                    if(result_data2->type != DATA_TYPE_INT){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
+                    check_two_types(result_data2, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK;
                     push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_flt){
@@ -317,8 +389,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     push(&stack, popToken);
                 }
                 else{
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: +, -, * nepodporuje dané datové typy\n");
+                    *error = error_found();
                     return NULL;
                 }
 
@@ -328,27 +399,20 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 if(popToken2->type == tok_t_sym){
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, result, error); OK;
-
-                    if(result_data2->type != DATA_TYPE_DOUBLE){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
+                    check_type(result_data2, DATA_TYPE_DOUBLE, error); OK;
                     push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_int || popToken2->type == tok_t_flt){
                     push(&stack, popToken);
                 }
                 else{
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: +, -, * nepodporuje dané datové typy\n");
+                    *error = error_found();
                     return NULL;
                 }
                 break;
             
             default:
-                *error = err_dt_invalid;
-                fprintf(stderr, "ERROR: +, -, * nepodporuje dané datové typy\n");
+                *error = error_found();
                 return NULL;
                 break;
             }
@@ -370,39 +434,21 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 check_operator_calc(result_data, result, error); OK;
 
                 if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error);
-                    if(*error != err_none)
-                        return NULL;
-                    check_operator_calc(result_data2, result, error);
-                    if(*error != err_none)
-                        return NULL;
-
-                    if(result_data->type != result_data2->type){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
+                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
+                    check_operator_calc(result_data2, result, error); OK;
+                    check_second_symbol(result_data, result_data2, error); OK;
                     push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_int){
-                    if(result_data->type != DATA_TYPE_INT){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
+                    check_type(result_data, DATA_TYPE_INT, error); OK;
                     push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_flt){
-                    if(result_data->type != DATA_TYPE_DOUBLE){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
+                    check_type(result_data, DATA_TYPE_DOUBLE, error); OK;
                     push(&stack, popToken);
                 }
                 else{
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: +, -, * nepodporuje dané datové typy\n");
+                    *error = error_found();
                     return NULL;
                 }
                 break;
@@ -411,25 +457,18 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 if(popToken2->type == tok_t_sym){
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, result, error); OK;
-
-                    if(result_data2->type != DATA_TYPE_INT){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
+                    check_type(result_data2, DATA_TYPE_INT, error); OK;
                     push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_flt){
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
+                    *error = error_found();
                     return NULL;
                 }
                 else if(popToken2->type == tok_t_int){
                     push(&stack, popToken);
                 }
                 else{
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: / nepodporuje dané datové typy\n");
+                    *error = error_found();
                     return NULL;
                 }
                 break;
@@ -438,39 +477,32 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 if(popToken2->type == tok_t_sym){
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, result, error); OK;
-
-                    if(result_data2->type != DATA_TYPE_DOUBLE){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
+                    check_type(result_data2, DATA_TYPE_DOUBLE, error); OK;
                     push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_int){
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: nelze emplicitně přetypovat\n");
+                    *error = error_found();
                     return NULL;
                 }
                 else if(popToken2->type == tok_t_flt){
                     push(&stack, popToken);
                 }
                 else{
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: / nepodporuje dané datové typy\n");
+                    *error = error_found();
                     return NULL;
                 }
                 break;
             
             default:
-                *error = err_dt_invalid;
-                fprintf(stderr, "ERROR: / nepodporuje dané datové typy\n");
+                *error = error_found();
                 return NULL;
                 break;
             }
             continue;
         }
 
-        if(postfix[i]->type == tok_t_neq || postfix[i]->type == tok_t_eq || postfix[i]->type == tok_t_lt || postfix[i]->type == tok_t_gt || postfix[i]->type == tok_t_leq || postfix[i]->type == tok_t_geq){
+        if(postfix[i]->type == tok_t_neq || postfix[i]->type == tok_t_eq || postfix[i]->type == tok_t_lt || 
+           postfix[i]->type == tok_t_gt || postfix[i]->type == tok_t_leq || postfix[i]->type == tok_t_geq){
             popToken2 = pop(&stack);
             if(isEmpty(&stack)){
                 *error = err_semantic;
@@ -478,137 +510,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 return NULL;
             }
             popToken = pop(&stack);
-
-            switch (popToken->type)
-            {
-            case tok_t_sym:
-                result_data = find(result_data, sym_list, popToken, symtable, error); OK;
-                check_operator_bool(result_data, result, error); OK;
-
-                if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
-                    check_operator_bool(result_data2, result, error); OK;
-
-                    if(result_data->type != result_data2->type){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n"); 
-                        return NULL;
-                    }
-                }
-                else if(popToken2->type == tok_t_int){
-                    if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
-                }
-                else if(popToken2->type == tok_t_flt){
-                    if(result_data->type != DATA_TYPE_DOUBLE){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
-                }
-                else if(popToken2->type == tok_t_true || popToken2->type == tok_t_false){
-                    if(result_data->type != DATA_TYPE_BOOLEAN){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
-                }
-                else if(popToken2->type == tok_t_null){
-                    if(!result_data->canNull){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
-                }
-                else{
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
-                    return NULL;
-                }
-                break;
-            
-            case tok_t_int:
-                if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
-                    check_operator_bool(result_data2, result, error); OK;
-
-                    if(result_data2->type != DATA_TYPE_INT){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
-                }
-                else if(popToken2->type != tok_t_flt && popToken2->type != tok_t_int){
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
-                    return NULL;
-                }
-                break;
-            
-            case tok_t_flt:
-                if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
-                    check_operator_bool(result_data2, result, error); OK;
-
-                    if(result_data2->type != DATA_TYPE_DOUBLE){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
-                }
-                else if(popToken2->type != tok_t_flt && popToken2->type != tok_t_int){
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
-                    return NULL;
-                }
-                break;
-
-            case tok_t_true:
-            case tok_t_false:
-                if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
-                    check_operator_bool(result_data2, result, error); OK;
-
-                    if(result_data2->type != DATA_TYPE_BOOLEAN){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
-                }
-                else if(popToken2->type != tok_t_true && popToken2->type != tok_t_false){
-                    *error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
-                    return NULL;
-                }
-                break;
-            case tok_t_null:
-                if(popToken2->type == tok_t_sym){
-                    result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
-                    check_operator_bool(result_data2, result, error); OK;
-
-                    if(!result_data2->canNull){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nelze emplicitně přetypovat\n");
-                        return NULL;
-                    }
-                }
-                else{
-                    if(popToken2->type != tok_t_null){
-                        *error = err_dt_invalid;
-                        fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
-                        return NULL;
-                    }
-                }    
-                break;
-            default:
-                *error = err_dt_invalid;
-                fprintf(stderr, "ERROR: ==, !=, <, >, <=, >= nepodporuje dané datové typy\n");
-                return NULL;
-                break;
-            }
+            check_bool(result_data, result_data2, popToken, popToken2, sym_list, symtable, result, error); OK;
             result->canNull = false;
             result->type = DATA_TYPE_BOOLEAN;
             popToken->type = tok_t_bool;
@@ -655,13 +557,13 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 push(&stack, popToken);
             }
             else if(popToken2->type == tok_t_int){
-                check_orelse_type(result_data, DATA_TYPE_INT, error); OK;
+                check_type(result_data, DATA_TYPE_INT, error); OK;
                 result->canNull = false;
                 result->type = DATA_TYPE_INT;
                 push(&stack, popToken2);
             }
             else if(popToken2->type == tok_t_flt){
-                check_orelse_type(result_data, DATA_TYPE_DOUBLE, error); OK;
+                check_type(result_data, DATA_TYPE_DOUBLE, error); OK;
                 result->canNull = false;
                 result->type = DATA_TYPE_DOUBLE;
                 push(&stack, popToken2);

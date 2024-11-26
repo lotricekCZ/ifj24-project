@@ -66,6 +66,7 @@ data_t *symtable_insert(symtable_t *symtable, char *name, err_codes *error){
         return NULL;
     }
     if(symtable_get_item(symtable, name, error) != NULL){
+        fprintf(stderr, "Semantic error: %s is already defined\n", name);
         *error = err_redef;
         return NULL;
     }
@@ -156,8 +157,10 @@ void symtable_destroy(symtable_t *symtable, err_codes *error, bool isFirst){
 
         if(!isFirst){
             if (!item->data.used || !item->data.modified){
-                if(*error == err_none)
+                if(*error == err_none){
                     *error = err_dt_unused;
+                    fprintf(stderr, "Semantic error: %s is not used\n", item->key);
+                }
             }
         }
         
