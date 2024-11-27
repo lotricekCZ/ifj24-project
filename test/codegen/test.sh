@@ -28,7 +28,7 @@ SERVER="$XLOGIN@merlin.fit.vutbr.cz"
 REMOTE_TMP="/tmp/$USER_$(date +%s)"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-BUILD_DIR="$(cd "$SCRIPT_DIR/../../build" && pwd)"
+BUILD_DIR="$(cd "$SCRIPT_DIR/../../novy" && pwd)"
 
 # Spuštění make pokud je požadováno
 if [ $RUN_MAKE -eq 1 ]; then

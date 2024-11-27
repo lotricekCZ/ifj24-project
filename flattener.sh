@@ -30,6 +30,10 @@ if [ -f ../rozsireni ]; then
 	cp -v ../rozsireni .
 fi
 
+if [ -f ../rozdeleni ]; then
+	cp -v ../rozdeleni .
+fi
+
 sed -i '/enable_testing()/,$d' CMakeLists.txt
 sed -i '/add_library/s/\${.*}\///g' CMakeLists.txt
 sed -i '/add_executable/s/\${.*}\///g' CMakeLists.txt
