@@ -21,6 +21,8 @@
  *
  * @param str řetězec, pro který chceme vypočítat hash
  * @return hash jako unsigned int
+ * 
+ * @link https://theartincode.stanis.me/008-djb2/
  */
 unsigned int getHash(char *str)
 {
