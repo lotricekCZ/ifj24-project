@@ -118,4 +118,12 @@ void parse_expression();
 err_codes parse();
 void parse_fn_first();
 
+/**
+ * @brief Zkontroluje, id, které je právě vkládáno, není redefinováno.
+ *
+ * Projde se od současné symbolické tabulky až k té první.
+ * Pokud najde stejné id, tak nastane chyba.
+ */
+void check_redefinition();
+
 #endif // PARSER_H

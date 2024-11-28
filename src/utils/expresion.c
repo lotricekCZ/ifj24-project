@@ -224,7 +224,7 @@ void check_bool(data_t *result_data, data_t *result_data2, Token_ptr popToken, T
         else if(popToken2->type == tok_t_flt){
             check_type(result_data, DATA_TYPE_DOUBLE, error); OK2;
         }
-        else if(popToken2->type == tok_t_true || popToken2->type == tok_t_false){
+        else if(popToken2->type == tok_t_true || popToken2->type == tok_t_false || popToken2->type == tok_t_bool){
             check_type(result_data, DATA_TYPE_BOOLEAN, error); OK2;
         }
         else if(popToken2->type == tok_t_null){
