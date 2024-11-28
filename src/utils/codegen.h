@@ -14,7 +14,7 @@
 #include "symDLList.h"
 #include "errors.h"
 
-#define MAX_STRING_LEN 150
+#define MAX_STRING_LEN 1000
 
 #define INSTRUCTION_COUNT 57
 /** Výčet instrukcí strojového kódu */

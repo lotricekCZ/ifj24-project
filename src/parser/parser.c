@@ -144,9 +144,6 @@ void precedence_analysis_print (dynamic_array_t *precedence, token_type input, i
 /* 
  * Function to get the precedence of the operator
  */
-int getPrecedence(token_type stackTop, token_type input) {
-    return precedence_tab[get_index(stackTop)][get_index(input)];
-}
 void print_postfix_and_stack(char *postfix, int postfix_index, Stack *stack) {
     printf("Postfix: ");
     for (int i = 0; i < postfix_index; i++) {
@@ -179,7 +176,7 @@ void precedence_analysis(dynamic_array_t *precedence, token_type input) {
                 break;
             }
         }
-        //precedence_analysis_print(precedence, input, precedence_top);
+        precedence_analysis_print(precedence, input, precedence_top);
         action = precedence_tab[get_index(precedence_top)][get_index(input)];
         switch (action) {
             case '<':
@@ -243,218 +240,204 @@ void precedence_analysis(dynamic_array_t *precedence, token_type input) {
     dynamic_array_insert(precedence, input);
 }
 
+void expression_processing(Token_ptr (*postfix)[MAX], int* postfix_index, Stack* stack_functions) {
+    Stack stack_postfix;
+    init(&stack_postfix);
+
+    dynamic_array_t precedence;
+    dynamic_array_init(&precedence);
+    dynamic_array_insert(&precedence, tok_t_eof);
+
+    int paren_count = 0;  // Na sledovanie počtu otvorených zátvoriek
+    bool expression_continue = true;
+    while (current_token->type != tok_t_semicolon && current_token->type != tok_t_com && expression_continue) {
+        switch (current_token->type) {
+            case tok_t_rpa: // )
+                paren_count--;
+                // Ak máme 0 zátvoriek, skončíme spracovanie
+                if (paren_count < 0) {
+                    expression_continue = false;
+                    break;  // Končíme spracovanie podmienky
+                }
+                precedence_analysis(&precedence, current_token->type); OK;
+                // Inak pokračujeme v spracovaní výrazu
+                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type != tok_t_lpa) {
+                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                }
+                pop(&stack_postfix); // Discard the left parenthesis
+                next_token();
+                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
+                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                }
+                break;
+
+            case tok_t_lpa: // (
+                precedence_analysis(&precedence, current_token->type); OK;
+                paren_count++;
+                push(&stack_postfix, current_token);
+                next_token();
+                break;
+
+            case tok_t_int: //1
+            case tok_t_flt: //1.0
+            case tok_t_null: // null
+            case tok_t_unreach: // unreachable
+            case tok_t_true: // true
+            case tok_t_false: // false
+                precedence_analysis(&precedence, tok_t_sym); OK;
+                (*postfix)[(*postfix_index)++] = current_token;
+                next_token();
+
+                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
+                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                }
+                break;
+
+            case tok_t_sym: // id
+                precedence_analysis(&precedence, tok_t_sym); OK;
+                (*postfix)[(*postfix_index)] = current_token;
+                push(&stack_codegen, current_token);
+
+                Token_ptr func_token = NULL;
+                func_token = tok_init(current_token->type);
+            
+                strcpy(stringBuffer, current_token->attribute);
+
+                next_token();
+                id_continue(); OK;
+
+                DLL_First(&sym_list);
+                current_symtable = DLL_GetCurrent(&sym_list);
+                data_t* data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
+
+                if (data != NULL) {
+                    sprintf(string_buffer, "LF@%%retval%i", counter_global++);
+                    printi(format[_defvar], string_buffer);
+                    printi(format[_move], string_buffer, "TF@%retval");
+                    current_token->attribute = (char*)imalloc(sizeof(char) * (strlen(string_buffer_value) + 1));
+                    strcpy(current_token->attribute, string_buffer_value);
+                    push(stack_functions, current_token);
+                }
+                DLL_Last(&sym_list);
+                current_symtable = DLL_GetLast(&sym_list);
+
+                tok_set_attribute(func_token, stringBuffer);
+                (*postfix)[(*postfix_index)] = func_token;
+                (*postfix_index)++;
+                stringBuffer[0] = '\0';
+
+                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
+                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                }
+                break;
+        
+            case tok_t_as: // @as
+                precedence_analysis(&precedence, tok_t_sym); OK;
+                next_token();
+                expect_type(tok_t_lpa); OK;
+
+                next_token();
+                expect_type(tok_t_i32); OK;
+
+                next_token();
+                expect_type(tok_t_com); OK;
+
+                next_token();
+                expect_type(tok_t_sym); OK;
+                current_symtable = DLL_GetLast(&sym_list);
+                while(sym_list.current != sym_list.first) {
+                    result_data = symtable_get_item(current_symtable, current_token->attribute, &error); OK;
+                    if(result_data == NULL){
+                        DLL_Prev(&sym_list);
+                        current_symtable = DLL_GetCurrent(&sym_list);
+                    } else {
+                        break;
+                    }
+                }
+                DLL_Last(&sym_list);
+                current_symtable = DLL_GetLast(&sym_list);
+
+                if(sym_list.current == sym_list.first || result_data == NULL){ 
+                    fprintf(stderr, "Semantic error: undefined id\n");
+                    error = err_undef;
+                    return;
+                }
+
+                if(result_data->type != DATA_TYPE_INT && result_data->canNull){
+                    fprintf(stderr, "Semantic error: id can't be null\n");
+                    error = err_param;
+                    return;
+                }
+
+                if(cycle != -1){
+                    if(!left_data->as_func){
+                        fprintf(stderr, "Semantic error: isn't value |id|\n");
+                        error = err_param;
+                        return;
+                    }
+                }
+                else{
+                    fprintf(stderr, "Semantic error: Function @as isn't in cycle\n");
+                    error = err_semantic;
+                    return;
+                }
+
+                (*postfix)[(*postfix_index)++] = current_token;
+
+                next_token();
+                expect_type(tok_t_rpa); OK;
+
+                next_token();
+
+                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
+                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                }
+                break;
+
+            default:
+                expect_types(16, tok_t_plus, tok_t_minus, tok_t_times, tok_t_divide, tok_t_not, tok_t_eq, tok_t_neq, tok_t_lt, tok_t_gt, tok_t_leq, tok_t_geq, tok_t_and, tok_t_or, tok_t_not, tok_t_orelse, tok_t_orelse_un); OK;
+                precedence_analysis(&precedence, current_token->type); OK;
+                if (current_token->type == tok_t_not) {
+                    push(&stack_postfix, current_token);
+                    next_token();
+                } else if (current_token->type == tok_t_orelse_un) {
+                    (*postfix)[(*postfix_index)++] = current_token;
+                    next_token();
+                    while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
+                        (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                    }
+                } else {
+                    while (!isEmpty(&stack_postfix) && get_index(peek(&stack_postfix)->type) <= get_index(current_token->type)) {
+                        (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                    }
+                    push(&stack_postfix, current_token);
+                    next_token();
+                }
+                break;
+        }
+    }
+    precedence_analysis(&precedence, tok_t_eof); OK; 
+
+    // Pop remaining operators
+    while (!isEmpty(&stack_postfix)) {
+        (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+    }
+}
+
 /* 
  * Function to parse the expression
  */
 void parse_expression() {
     printi(format[_comment], "<expression>");
 
-    Stack stack_postfix;
-    init(&stack_postfix);
-    
-    Stack stack_functions;
-    init(&stack_functions);
-    context_t save_context = current_context;
-
-    dynamic_array_t precedence;
-    dynamic_array_init(&precedence);
-    dynamic_array_insert(&precedence, tok_t_eof);
-
     Token_ptr postfix[MAX];
     int postfix_index = 0;
-    int paren_count = 0;  // Na sledovanie počtu otvorených zátvoriek
-    bool expression_continue = true;
-    while (current_token->type != tok_t_semicolon && current_token->type != tok_t_com && expression_continue) {
-        switch (current_token->type) {
-        case tok_t_rpa: // )
-            paren_count--;
-            // Ak máme 0 zátvoriek, skončíme spracovanie
-            if (paren_count < 0) {
-                expression_continue = false;
-                break;  // Končíme spracovanie podmienky
-            }
-            precedence_analysis(&precedence, current_token->type); OK;
-            // Inak pokračujeme v spracovaní výrazu
-            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type != tok_t_lpa) {
-                postfix[postfix_index++] = pop(&stack_postfix);
-            }
-            pop(&stack_postfix); // Discard the left parenthesis
-            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
-                postfix[postfix_index++] = pop(&stack_postfix);
-            }
-            next_token();
-            break;
+    Stack stack_functions;
+    init(&stack_functions);
 
-        case tok_t_lpa: // (
-            precedence_analysis(&precedence, current_token->type); OK;
-            paren_count++;
-            push(&stack_postfix, current_token);
-            next_token();
-            break;
+    context_t save_context = current_context;
+    expression_processing(&postfix, &postfix_index, &stack_functions);
 
-        case tok_t_int: //1
-            precedence_analysis(&precedence, tok_t_sym); OK;
-            postfix[postfix_index++] = current_token;
-            next_token();
-            break;
-
-        case tok_t_flt: //1.0
-            precedence_analysis(&precedence, tok_t_sym); OK;
-            postfix[postfix_index++] = current_token;
-            next_token();
-            break;
-
-        case tok_t_null: // null
-            precedence_analysis(&precedence, tok_t_sym); OK;
-            postfix[postfix_index++] = current_token;
-            next_token();
-            break;
-
-        case tok_t_unreach: // unreachable
-            precedence_analysis(&precedence, tok_t_sym); OK;
-            postfix[postfix_index++] = current_token;
-            next_token();
-            break;
-
-        case tok_t_sym: // id
-            precedence_analysis(&precedence, tok_t_sym); OK;
-            postfix[postfix_index] = current_token;
-            push(&stack_codegen, current_token);
-
-            Token_ptr func_token = NULL;
-            func_token = tok_init(current_token->type);
-            
-            strcpy(stringBuffer, current_token->attribute);
-
-            next_token();
-            id_continue(); OK;
-
-            DLL_First(&sym_list);
-            current_symtable = DLL_GetCurrent(&sym_list);
-            data_t* data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
-
-            if (data != NULL) {
-                sprintf(string_buffer, "LF@%%retval%i", counter_global++);
-                printi(format[_defvar], string_buffer);
-                printi(format[_move], string_buffer, "TF@%retval");
-                current_token->attribute = (char*)imalloc(sizeof(char) * (strlen(string_buffer_value) + 1));
-                strcpy(current_token->attribute, string_buffer_value);
-                push(&stack_functions, current_token);
-            }
-            DLL_Last(&sym_list);
-            current_symtable = DLL_GetLast(&sym_list);
-
-            tok_set_attribute(func_token, stringBuffer);
-            postfix[postfix_index] = func_token;
-            postfix_index++;
-            stringBuffer[0] = '\0';
-
-            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
-                postfix[postfix_index++] = pop(&stack_postfix);
-            }
-            break;
-
-        case tok_t_true: // true
-            precedence_analysis(&precedence, tok_t_sym); OK;
-            postfix[postfix_index++] = current_token;
-            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
-                postfix[postfix_index++] = pop(&stack_postfix);
-            }
-
-            next_token();
-            break;
-
-        case tok_t_false: // false
-            precedence_analysis(&precedence, tok_t_sym); OK;
-            postfix[postfix_index++] = current_token;
-            while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not) {
-                postfix[postfix_index++] = pop(&stack_postfix);
-            }
-
-            next_token();
-            break;
-        
-        case tok_t_as: // @as
-            precedence_analysis(&precedence, tok_t_sym); OK;
-            next_token();
-            expect_type(tok_t_lpa); OK;
-
-            next_token();
-            expect_type(tok_t_i32); OK;
-
-            next_token();
-            expect_type(tok_t_com); OK;
-
-            next_token();
-            expect_type(tok_t_sym); OK;
-            current_symtable = DLL_GetLast(&sym_list);
-            while(sym_list.current != sym_list.first) {
-                result_data = symtable_get_item(current_symtable, current_token->attribute, &error); OK;
-                if(result_data == NULL){
-                    DLL_Prev(&sym_list);
-                    current_symtable = DLL_GetCurrent(&sym_list);
-                } else {
-                    break;
-                }
-            }
-            DLL_Last(&sym_list);
-            current_symtable = DLL_GetLast(&sym_list);
-
-            if(sym_list.current == sym_list.first || result_data == NULL){ 
-                fprintf(stderr, "Semantic error: undefined id\n");
-                error = err_undef;
-                return;
-            }
-
-            if(result_data->type != DATA_TYPE_INT && result_data->canNull){
-                fprintf(stderr, "Semantic error: id can't be null\n");
-                error = err_param;
-                return;
-            }
-
-            if(cycle != -1){
-                if(!left_data->as_func){
-                    fprintf(stderr, "Semantic error: isn't value |id|\n");
-                    error = err_param;
-                    return;
-                }
-            }
-            else{
-                fprintf(stderr, "Semantic error: Function @as isn't in cycle\n");
-                error = err_semantic;
-                return;
-            }
-
-            postfix[postfix_index++] = current_token;
-
-            next_token();
-            expect_type(tok_t_rpa); OK;
-
-            next_token();
-            break;
-
-        default:
-            expect_types(16, tok_t_plus, tok_t_minus, tok_t_times, tok_t_divide, tok_t_not, tok_t_eq, tok_t_neq, tok_t_lt, tok_t_gt, tok_t_leq, tok_t_geq, tok_t_and, tok_t_or, tok_t_not, tok_t_orelse, tok_t_orelse_un); OK;
-            precedence_analysis(&precedence, current_token->type); OK;
-            if (current_token->type == tok_t_not){
-                push(&stack_postfix, current_token);
-            } else {
-                while (!isEmpty(&stack_postfix) && get_index(peek(&stack_postfix)->type) <= get_index(current_token->type)) {
-                    postfix[postfix_index++] = pop(&stack_postfix);
-                }
-                push(&stack_postfix, current_token);
-            }
-
-            next_token();
-            break;
-        }
-    }
-    precedence_analysis(&precedence, tok_t_eof); OK;
-
-    // Pop remaining operators
-    while (!isEmpty(&stack_postfix)) {
-        postfix[postfix_index++] = pop(&stack_postfix);
-    }
     //print_postfix(postfix, postfix_index);
     printi_postfix(&string_tmp, postfix, postfix_index, &stack_functions, &sym_list, current_symtable, &error); OK;
 
@@ -509,18 +492,14 @@ void parse_expression() {
                 return;
             }
         }
+        break;
 
-    break;
-
-    case CONTEXT_CONDITION_FOR:
-        if(result_data->type != DATA_TYPE_U8 && result_data->canNull != false){
-            fprintf(stderr, "Semantic error: Invalid type in for condition\n");
-            error = err_dt_invalid;
-            return;
-        }
-    break;
-
-    default:
+        case CONTEXT_CONDITION_FOR:
+            if(result_data->type != DATA_TYPE_U8 && result_data->canNull != false){
+                fprintf(stderr, "Semantic error: Invalid type in for condition\n");
+                error = err_dt_invalid;
+                return;
+            }
         break;
     }
 

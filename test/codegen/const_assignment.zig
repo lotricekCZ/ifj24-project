@@ -9,6 +9,6 @@ const ifj = @import("ifj24.zig");
 
 pub fn main() void {
     const a = 5;
-    a = 10;
+    a = 10 + 4;
     ifj.write(a);
 }

@@ -42,6 +42,7 @@ typedef enum {
 typedef struct {
     Token_ptr current_token;
     Scanner_ptr scanner;
+    err_codes error;
 
     Stack stack_codegen;
     int counter_codegen_if;
@@ -67,7 +68,7 @@ typedef struct {
     char stringBuffer[MAX_STRING_LEN];
     int param_count;
     bool params;
-} tools_t;
+} parser_tools_t;
 
 // Function declarations
 void print_token();
@@ -112,6 +113,7 @@ void push_operand(Token_ptr operand, Token_ptr* operand_stack, int* operand_top)
 Token_ptr pop_operand(Token_ptr* operand_stack, int* operand_top);
 char get_precedence_relation(token_type stack_top, token_type current);
 void parse_expression();
+//void expression_processing(Token_ptr (*postfix)[MAX], int* postfix_index, Stack* stack_functions);
 
 err_codes parse();
 void parse_fn_first();
