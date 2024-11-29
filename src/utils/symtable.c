@@ -1,9 +1,10 @@
-/** 
- * Projekt IFJ2024
- * 
- * @brief Symbolická tabulka implementovaná hashovací tabulkou s implicitním zřetězením
- * 
+/**
+ * @addtogroup IFJ2024
+ * @file symtable.c
+ * @brief Implementace symbolické tabulky
  * @author xsidlil00; Lukáš Šidlík
+ * 
+ * Symbolická tabulka implementovaná hashovací tabulkou s implicitním zřetězením.
  */
 
 #include <stdbool.h>

@@ -1,11 +1,19 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/** 
+ * @addtogroup IFJ2024
+ * @file scan_state.c
+ * @brief Implementace překladu interního stavu skeneru na typ tokenu
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Implementace překladu interního stavu skeneru na typ tokenu.
  */
 
 #include "scan_state.h"
 #include "../utils/errors.h"
 #include <stddef.h>
 
+/**
+ * @brief Překladová tabulka pro překlad interního stavu skeneru na typ tokenu
+ */
 State_type_pair sca_translation_table[] =
 	{
 		{sca_s_underscore, tok_t_unused},
@@ -76,3 +84,5 @@ token_type scn_get_tok_type(scn_state_t state, char *lexeme)
 	// error-worthy: ?[]i32, ?[ ]u8 and states that do not have a translation
 	return tok_t_error;
 }
+
+/*** Konec souboru scan_state.c ***/

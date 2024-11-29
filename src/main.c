@@ -1,5 +1,8 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @defgroup IFJ2024
+ * @file main.c
+ * @brief Hlavní soubor programu
+ * @author xramas01; Jakub Ramaseuski
  */
 
 #include <stdio.h>
@@ -9,23 +12,34 @@
 #include "utils/memory_table.h"
 #include "scanner/scanner.h"
 
+/**
+ * @brief Hlavní funkce programu
+ * 
+ * Hlavní soubor programu, který inicializuje scanner a spouští parsování zdrojového kódu.
+ * Inicializace memory_ht pro hlídání alokované paměti a bezpečné uvolnění při chybě.
+ * 
+ * @return Návratový kód programu
+ */
 int main()
 {
+    // Aktivace bezpečného uvolňování paměti
     safe_memory = true;
     memory_ht_init(&_memory_table);
-    scanner = scn_init(NULL);
 
-    if (scanner == NULL)
-    {
+    // Inicializace scanneru
+    scanner = scn_init(NULL);
+    if (scanner == NULL) {
         fprintf(stderr, "Failed to initialize scanner.\n");
         return err_internal;
     }
 
-    // Parse the source code.
+    // Spuštění parsování
     err_codes error = parse();
 
-    // Free the scanner.
+    // Uvolnění paměti
     scn_free(scanner);
     memory_ht_dispose(&_memory_table);
     return error;
 }
+
+/*** Konec souboru main.c ***/

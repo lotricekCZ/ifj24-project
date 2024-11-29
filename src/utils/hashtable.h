@@ -1,5 +1,10 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @addtogroup IFJ2024
+ * @file hashtable.h
+ * @brief Hashovaci tabulka
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Knihovna hasovaci tabulky.
  */
 
 #ifndef HASHTABLE_H
@@ -44,5 +49,7 @@ size_t nothing_size()
 {
 	return 0;
 }
-#endif
-#endif
+#endif /* SIZE_NOTHING */
+#endif /* HASHTABLE_H */
+
+/*** Konec souboru hashtable.h ***/

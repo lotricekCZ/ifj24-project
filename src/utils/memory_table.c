@@ -1,5 +1,10 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @addtogroup IFJ2024
+ * @file memory_table.c
+ * @brief Implementace paměťové tabulky
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Implementace funkcí pro práci s paměťovou tabulkou.
  */
 
 #include <stdint.h>
@@ -143,3 +148,5 @@ void *irealloc(void *ptr, size_t size)
 	}
 	return newptr;
 }
+
+/*** Konec souboru memory_table.c ***/

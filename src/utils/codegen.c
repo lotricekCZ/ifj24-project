@@ -1,7 +1,10 @@
-/** IFJ2024 xhubacv00
- * @file instructions.c
+/**
+ * @addtogroup IFJ2024
+ * @file codegen.c
  * @brief Implementace zpracování instrukcí strojového kódu
- * @author Vojtěch Hubacek (xhubacv00)
+ * @author xhubacv00; Vojtěch Hubáček
+ * 
+ * Implementace funkcí pro zpracování instrukcí strojového kódu.
  */
 
 #include <string.h>
@@ -10,7 +13,9 @@
 #include <ctype.h>
 #include "codegen.h"
 
-/** Formáty jednotlivých instrukcí */
+/**
+ * @brief Pole formátů instrukcí strojového kódu
+ */
 const char *format[INSTRUCTION_COUNT] = {
     "MOVE %s %s\n",         // MOVE ⟨var⟩ ⟨symb⟩
     "CREATEFRAME\n",        // CREATEFRAME
@@ -68,14 +73,24 @@ const char *format[INSTRUCTION_COUNT] = {
     "EXIT %s\n",            // EXIT ⟨symb⟩
     "BREAK\n",              // BREAK
     "DPRINT %s\n",          // DPRINT ⟨symb⟩
-    "# %s\n"                  // # ⟨string⟩
+    "# %s\n"                // # ⟨string⟩
 };
 
+/**
+ * @brief Funkce pro výpis instrukce strojového kódu
+ * 
+ * Funkce pro výpis řetězce s ohledem na speciální znaky a escape sekvence v závislosti na typu tokenu.
+ * 
+ * @param string Ukazatel na strukturu řetězce s generovaným kódem
+ * @param source Vypisovaný řetězec
+ * @param type Typ tokenu řetězce
+ */
 void printi_string(str_t* string, char* source, token_type type) {
     for (int index = 0; index < strlen(source); index++) {
         if (type == tok_t_str) {
-            // Detekce sekvence \x následované 2 hex číslicemi
-            if (source[index] == 92 && source[index + 1] == 'x' && index + 3 < strlen(source)) {
+
+            // Převod speciálních sekvencí na odpovídající znaky pro výpis
+            if (source[index] == 92 && source[index + 1] == 'x' && index + 3 < strlen(source)) { // Detekce sekvence \x následované 2 hex číslicemi
                 if (isxdigit(source[index + 2]) && isxdigit(source[index + 3])) {
                     char high = source[index + 2];
                     char low = source[index + 3];
@@ -92,35 +107,48 @@ void printi_string(str_t* string, char* source, token_type type) {
                         value += toupper(low) - 'A' + 10;
 
                     source[index + 3] = (char)value; // Uložení výsledné hodnoty
-                    index += 3;                            // Přeskočení zpracovaných znaků
+                    index += 3; // Přeskočení zpracovaných znaků
                 }
-            } else if (source[index] == 92 && source[index + 1] == 'n' && index + 1 < strlen(source)) {
+            } else if (source[index] == '\\' && source[index + 1] == 'n' && index + 1 < strlen(source)) { // Detekce sekvence \n
                 source[index + 1] = (char)10;
                 index++;
-            } else if (source[index] == 92 && source[index + 1] == 't' && index + 1 < strlen(source)) {
+            } else if (source[index] == '\\' && source[index + 1] == 't' && index + 1 < strlen(source)) { // Detekce sekvence \t
                 source[index + 1] = (char)9;
                 index++;
-            } else if (source[index] == 92 && source[index + 1] == 92 && index + 1 < strlen(source)) {
+            } else if (source[index] == '\\' && source[index + 1] == '\\' && index + 1 < strlen(source)) { // Detekce sekvence \\    
                 source[index + 1] = (char)92;
                 index++;
-            } else if (source[index] == 92 && source[index + 1] == 34 && index + 1 < strlen(source)) {
+            } else if (source[index] == '\\' && source[index + 1] == '\"' && index + 1 < strlen(source)) {
                 source[index + 1] = (char)34;
                 index++;
             }
         }
-        if ((source[index] >= 0 && source[index] <= 32) || source[index] == 35 || source[index] == 92) {
+
+        // Výpis znaku v závislosti na jeho hodnotě (vybrané znaky jsou vypisovány jako sekvence \xxx)
+        if ((source[index] >= '\0' && source[index] <= ' ') || source[index] == '#' || source[index] == '\\') {
             str_append(string, "\\%03d", source[index]);
-        }
-        else {
+        } else {
             str_append(string, "%c", source[index]);
         }
     }
 }
 
-void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack *stack, DLList* sym_list, symtable_t* symtable, err_codes *error) {
-    int counter = 0;
+/**
+ * @brief Výpis instrukce strojového kódu
+ * 
+ * Funkce pro výpis posloupnosti instrukcí vyhodnocení výrazu na zásobníku v postfixové notaci.
+ * 
+ * @param string Ukazatel na strukturu řetězce s generovaným kódem
+ * @param postfix Pole tokenů v postfixové notaci
+ * @param postfix_index Index posledního prvku v poli
+ * @param stack Ukazatel na zásobník s názvy generovaných proměnných s hodnotymi návratů funkcí
+ * @param sym_list Ukazatel na seznam tabulek symbolů
+ * @param symtable Ukazatel na tabulku symbolů
+ * @param error Ukazatel na chybový kód
+ */
+void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, dynamic_array_t* functions_retval, DLList* sym_list, symtable_t* symtable, err_codes *error) {
     for (size_t index = 0; index < postfix_index; index++) {
-        char buffer[MAX_STRING_LEN];
+        char buffer[MAX_STRING_LEN]; // Pomocný buffer pro výpis generovaných řetězců
         switch (postfix[index]->type) {
             case tok_t_null:
                 str_append(string, format[_pushs], "nil@nil");
@@ -145,23 +173,28 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
             case tok_t_sym:
                 DLL_First(sym_list);
                 symtable = DLL_GetCurrent(sym_list);
+
+                // Vyhledání proměnné v tabulce symbolů
                 data_t* data = symtable_get_item(symtable, postfix[index]->attribute, error);
-                if(*error != err_none)
+                if(*error != err_none) {
                     return;
-                if (data != NULL) {
-                    str_append(string, format[_pushs], pop(stack)->attribute);
-                } else {
+                }
+                if (data != NULL) { // Pokud je symbol nalezen jedná se o funkci a její návratová hodnota je přidána na zásobník
+                    sprintf(buffer, "LF@%%retval%i", functions_retval->data[functions_retval->size - 1]);
+                    str_append(string, format[_pushs], buffer);
+                    functions_retval->size--;
+                } else { 
                     DLL_Last(sym_list);
                     symtable = DLL_GetCurrent(sym_list);
-                    while(sym_list->current != sym_list->first){
+                    while(sym_list->current != sym_list->first){ // Vyhledání proměnné v mezi tabulkami symbolů
                         data = symtable_get_item(symtable, postfix[index]->attribute, error);
                             if(*error != err_none)
                                 return;
-                        if (data != NULL) {
+                        if (data != NULL) { // Přidání hodnoty dané proměnné na zásobník
                             sprintf(buffer, "LF@%s", data->id);
                             str_append(string, format[_pushs], buffer);
                             break;
-                        } else {
+                        } else { // Přechod na tabulku symbolů vyšší úrovně
                             DLL_Prev(sym_list);
                             symtable = DLL_GetCurrent(sym_list);
                         }
@@ -222,7 +255,7 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
             case tok_t_not:
                 str_append(string, "%s", format[_nots]);
                 break;
-            case tok_t_orelse: //přetypovávat???
+            case tok_t_orelse:
                 str_append(string, format[_call], "$$$orelse");
                 break;
             case tok_t_orelse_un:
@@ -235,18 +268,39 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, Stack 
     }
 }
 
+/**
+ * @brief Výpis instrukce strojového kódu
+ * 
+ * Funkce pro přednostní výpis instrukcí definicí proměnných, pokud ještě nebyly definovány.
+ * 
+ * @param string Ukazatel na strukturu řetězce s generovaným kódem
+ * @param defvar Ukazatel na strukturu řetězce s již definovanými proměnnými
+ * @param source Formátovaný řetězec
+ * @param ... Argumenty pro formátovaný řetězec
+ */
 void printi_defvar(str_t* string, str_t* defvar, const char* source, ...) {
-    char definition[MAX_STRING_LEN + 30];
+    char definition[MAX_STRING_LEN + 30]; // Pomocný buffer pro výpis generovaných řetězců
+    char definition_search[MAX_STRING_LEN + 35]; // Pomocný buffer pro vyhledávání již definovaných proměnných
     va_list args;
     va_start(args, source);
     vsprintf(definition, source, args);
-    va_end(args); 
-    if (!str_search(defvar, definition)) {
-        str_append(defvar, ",%s,", definition);
+    va_end(args);
+    sprintf(definition_search, ",%s,", definition);
+    if (!str_search(defvar, definition_search)) {
+        str_append(defvar, "%s", definition_search);
         str_append(string, "%s", definition);
     }
 }
 
+/**
+ * @brief Výpis podmíněného skoku
+ * 
+ * Funkce pro výpis posloupnosti instrukcí pro vyhodnocení podmínky skoku v programu.
+ * 
+ * @param string Ukazatel na strukturu řetězce s generovaným kódem
+ * @param name Název návěští
+ * @param number Číslo návěští
+ */
 void printi_condition_jump(str_t* string, const char *name, int number) {
     str_append(string, "\
 CREATEFRAME\n\
@@ -258,6 +312,13 @@ JUMPIFEQ !$%s%i LF@%%%s%i bool@false\n\
 LABEL $$$$%s%i\n", name, number, name, number, name, number, name, number, name, number, name, number);
 }
 
+/**
+ * @brief Výpis posloupnosti instrukcí vestavěných funkcí a pomocných funkcí vyhodnocení výrazu.
+ * 
+ * Funkce pro výpis posloupnosti instrukcí vestavěných funkcí a pomocných funkcí vyhodnocení výrazu.
+ * 
+ * @param string Ukazatel na strukturu řetězce s generovaným kódem
+ */
 void printi_builtin(str_t* string) {
     str_append(string, "\
 LABEL $$$retype\n\
@@ -678,21 +739,4 @@ POPFRAME\n\
 RETURN\n");
 }
 
-
-/**
- * @brief Zápis předávané instrukce
- * @param type Typ instrukce
- * @param ... Argumenty instrukce
- * @return char* Vraci retezec s instrukci
- */
-/*
-void printi(instruction type, ...) {
-  if (type > _comment) {
-      return "Unknown instruction type.";
-  }
-  va_list args;
-  va_start(args, format[type]);
-  vprintf(format[type], args);
-  va_end(args);
-  return;
-}*/
+/*** Konec souboru codegen.c ***/

@@ -1,5 +1,10 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @addtogroup IFJ2024
+ * @file token.c
+ * @brief Implementace tokenu
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Implementace funkcí pro práci s tokenem.
  */
 
 #include "token.h"
@@ -22,6 +27,12 @@ Token_ptr tok_init(token_type type)
     new_lex->attribute = NULL;
     return new_lex;
 }
+
+void tok_init_no_ret(Token_ptr* tok)
+{
+    *tok = tok_init(tok_t_init);
+}
+
 /**
  * @brief Inicializace lexemu
  *
@@ -31,26 +42,6 @@ Token_ptr tok_init(token_type type)
 Token_ptr tok_init_no_type()
 {
     return tok_init(tok_t_init);
-}
-
-void tok_init_no_ret(Token_ptr* tok)
-{
-    *tok = tok_init(tok_t_init);
-}
-
-/**
- * @brief Uvolni pamet, kterou zabira token
- *
- * Funkce uvolni pamet, kterou zabira a jeho atribut.
- * @param tok ukazatel na lexem, ktery  chceme uvolnit
- */
-void tok_free(Token_ptr tok)
-{
-    if (tok->attribute != NULL)
-    {
-        ifree(tok->attribute);
-    }
-    ifree(tok);
 }
 
 /**
@@ -67,6 +58,21 @@ void tok_copy(Token_ptr dst, Token tok)
     {
         tok_set_attribute(dst, tok.attribute);
     }
+}
+
+/**
+ * @brief Uvolni pamet, kterou zabira token
+ *
+ * Funkce uvolni pamet, kterou zabira a jeho atribut.
+ * @param tok ukazatel na lexem, ktery  chceme uvolnit
+ */
+void tok_free(Token_ptr tok)
+{
+    if (tok->attribute != NULL)
+    {
+        ifree(tok->attribute);
+    }
+    ifree(tok);
 }
 
 void tok_print(Token_ptr tok)
@@ -142,3 +148,5 @@ void tok_set_type_attribute(Token_ptr tok, token_type type, char *attribute)
     tok_set_type(tok, type);
     tok_set_attribute(tok, attribute);
 }
+
+/*** Konec souboru token.c ***/

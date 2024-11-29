@@ -52,5 +52,7 @@
 void nothing()
 {
 }
-#endif
-#endif
+#endif /* VOID_NOTHING */
+#endif /* SLL_H */
+
+/*** Konec souboru sll.h ***/

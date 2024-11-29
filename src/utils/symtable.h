@@ -1,9 +1,10 @@
-/** 
- * Projekt IFJ2024
- * 
+/**
+ * @addtogroup IFJ2024
+ * @file symtable.h
  * @brief Rozhraní symbolické tabulky
- * 
  * @author xsidlil00; Lukáš Šidlík
+ * 
+ * Rozhraní symbolické tabulky.
  */
 
 #ifndef SYMTABLE_H
@@ -16,10 +17,14 @@
 #include "token_types.h"
 #include "errors.h"
 
+/**
+ * @brief Velikost symbolické tabulky
+ */
 #define SYMTABLE_SIZE 4001  // velikost symbol table
 
 /**
- * @enum Datové typy
+ * @enum data_type_t
+ * @brief Datové typy
  */
 typedef enum
 {
@@ -33,7 +38,8 @@ typedef enum
 } data_type_t;
 
 /**
- * @struct Rozhraní dat v položce symbolické tabulky
+ * @struct data_t
+ * @brief Rozhraní dat v položce symbolické tabulky
  */
 typedef struct data_t
 {
@@ -124,4 +130,6 @@ void symtable_destroy(symtable_t *symtable, err_codes *error, bool isFirst);
  */
 void symtable_insert_builtin(symtable_t *symtable, err_codes *error);
 
-#endif // SYMTABLE_H
+#endif /* SYMTABLE_H */
+
+/*** Konec souboru symtable.h ***/

@@ -1,12 +1,16 @@
+/**
+ * @addtogroup IFJ2024
+ * @file memory_table.h
+ * @brief Knihovna pro dynamickou alokaci a ukládání paměti a její bezpečné uvolnění
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Modul pro dynamickou alokaci a ukladani pameti a jeji bezpecne uvolneni
+ */
+
 #include "hashtable.h"
 #include <stdlib.h>
 #include <stdio.h>
-/**
- * @file memory_table.h
- * @brief Modul pro dynamickou alokaci a ukladani pameti a jeji bezpecne uvolneni
- * @author Jakub Ramaseuski, xramas01
- * @date 2024
- */
+
 #ifndef MEMORY_TABLE_H
 #define MEMORY_TABLE_H
 
@@ -24,4 +28,6 @@ _HASHTABLE(MEMORY_TABLE_SIZE, memory, void *, void *)
 
 memory_ht _memory_table;
 bool safe_memory = false; 
-#endif
+#endif /* MEMORY_TABLE_H */
+
+/*** Konec souboru memory_table.h ***/

@@ -17,20 +17,22 @@
 
 /**
  * @struct prvek dll seznamu
+ * @brief Struktura prvků dvousměrně vázaného seznamu
  */
 typedef struct DLLElement{
-    symtable_t *symtable;               //symbolická tabulka
-    struct DLLElement *next;            //ukazatel na následujíci prvek
-    struct DLLElement *prev;            //ukazatel na predchozí prvek
+    symtable_t *symtable;               /**< symbolická tabulka */
+    struct DLLElement *next;            /**< ukazatel na následujíci prvek */
+    struct DLLElement *prev;            /**< ukazatel na predchozí prvek */
 }*DLLElementPtr;
 
 /**
- * @struct dll seznam   
+ * @struct dll seznam
+ * @brief Struktura dvousměrně vázaného seznamu
  */
 typedef struct DLList{
-    DLLElementPtr first;                //ukazatel na prvni prvek
-    DLLElementPtr current;              //ukazatel na aktivní prvek
-    DLLElementPtr last;                 //ukazatel na poslední prvek
+    DLLElementPtr first;                /**< ukazatel na prvni prvek */
+    DLLElementPtr current;              /**< ukazatel na aktivní prvek */
+    DLLElementPtr last;                 /**< ukazatel na poslední prvek */
 }DLList;
 
 /**
@@ -53,6 +55,28 @@ void DLL_First(DLList *list);
  * @param list ukazatel na strukturu dvousměrně vázaného seznamu
  */
 void DLL_Last(DLList *list);
+
+/**
+ * @brief Posune aktivitu na následující prvek seznamu list.
+ *
+ * @param list ukazatel na strukturu dvousměrně vázaného seznamu
+ */
+void DLL_Next(DLList *list);
+
+/**
+ * @brief Posune aktivitu na předchozí prvek seznamu list.
+ *
+ * @param list ukazatel na strukturu dvousměrně vázaného seznamu
+ */
+void DLL_Prev(DLList *list);
+
+/**
+ * @brief Funkce kontroluje, zda je seznam aktivní.
+ * 
+ * @param list ukazatel na strukturu dvousměrně vázaného seznamu
+ * @returns vrací true, pokud je aktuální prvek seznamu nenulový, jinak vrací false
+ */
+bool DLL_isActive(DLList *list);
 
 /**
  * @brief Vloží nový prvek na konec seznamu.
@@ -95,29 +119,6 @@ symtable_t * DLL_GetCurrent(DLList *list);
  * @param list ukazatel na strukturu dvousměrně vázaného seznamu
  */
 void DLL_Delete_last(DLList *list, err_codes *error);
-
-/**
- * @brief Posune aktivitu na následující prvek seznamu list.
- *
- * @param list ukazatel na strukturu dvousměrně vázaného seznamu
- */
-void DLL_Next(DLList *list);
-
-/**
- * @brief Posune aktivitu na předchozí prvek seznamu list.
- *
- * @param list ukazatel na strukturu dvousměrně vázaného seznamu
- */
-void DLL_Prev(DLList *list);
-
-/**
- * @brief Funkce kontroluje, zda je seznam aktivní.
- * 
- * @param list ukazatel na strukturu dvousměrně vázaného seznamu
- * 
- * @returns vrací true, pokud je aktuální prvek seznamu nenulový, jinak vrací false
- */
-bool DLL_isActive(DLList *list);
 
 /**
  * @brief Zruší všechny prvky seznamu list a uvede seznam do stavu, v jakém se nacházel po inicializaci.

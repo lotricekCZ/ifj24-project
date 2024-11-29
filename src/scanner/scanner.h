@@ -1,14 +1,14 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
- */
-
-/**
- * @brief Scanner
- * JUST FOR CLARITY
- * funkce scn jsou pro externi uziti a primo pracuji se skenerem
+/** 
+ * @addtogroup IFJ2024
+ * @file scanner.h
+ * @brief Knihovna pro lexikalni analyzu
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Funkce scn jsou pro externi uziti a primo pracuji se skenerem
  * funkce a makra s prefixem sca jsou POUZE pro interni uziti, s pomoci
  * nichz se primo ovlivnuje graf skeneru, cesty v nem a podminky.
  */
+
 #ifndef SCANNER_H
 #define SCANNER_H
 
@@ -111,4 +111,6 @@ void sca_free(Scan_node_ptr node);
 bool sca_p_has_match(Scan_path *path, char c);
 Scan_path *sca_n_has_match(Scan_node *node, char c);
 
-#endif
+#endif /* SCANNER_H */
+
+/*** Konec souboru scanner.h ***/
