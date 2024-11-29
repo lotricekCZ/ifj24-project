@@ -12,6 +12,7 @@ TEMP_INPUTS="inputs.tmp"
 
 SKIP_ZIG_CHECK=0
 RUN_MAKE=0
+SKIP_CONNECTION_CHECK=0
 
 # Zpracování parametrů
 while getopts "xm" opt; do
@@ -23,12 +24,25 @@ while getopts "xm" opt; do
 done
 shift $((OPTIND-1))
 
-XLOGIN="xhubacv00"
+XLOGIN="xlogin00"
 SERVER="$XLOGIN@merlin.fit.vutbr.cz"
 REMOTE_TMP="/tmp/$USER_$(date +%s)"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-BUILD_DIR="$(cd "$SCRIPT_DIR/../../novy" && pwd)"
+BUILD_DIR="$(cd "$SCRIPT_DIR/../../build" && pwd)"
+INTERPRETER="$SCRIPT_DIR/ic24int"
+
+# Kontrola existence interpretru
+if [ ! -f "$INTERPRETER" ]; then
+    echo -e "${RED}Error: Interpreter not found at $INTERPRETER${NC}"
+    exit 1
+fi
+
+# Kontrola spustitelnosti interpretru
+if [ ! -x "$INTERPRETER" ]; then
+    echo -e "${RED}Error: Interpreter is not executable${NC}"
+    exit 1
+fi
 
 # Spuštění make pokud je požadováno
 if [ $RUN_MAKE -eq 1 ]; then
@@ -51,29 +65,44 @@ check_file() {
     # Pokud je některý z očekávaných kódů nenulový, přeskočit kontrolu
     [ "$expected_ifj" != "0" ] || [ "$expected_server" != "0" ] && return
 
+    if [ $SKIP_CONNECTION_CHECK -eq 1 ]; then
+        return
+    fi
+
     zig_basename=$(basename "$zig_file")
     
     # Extrahování vstupů pro test
     awk '/^\/\/ --- INPUT ---/{flag=1;next} /^\/\/ ---/{flag=0} flag && /^\/\//{print substr($0,3)}' "$zig_file" > "$TEMP_INPUTS"
     
     if [ "$zig_basename" != "ifj24.zig" ]; then
-        cat "$zig_file" | ssh $SERVER "cat > $REMOTE_TMP/$zig_basename"
-        cat "$TEMP_INPUTS" | ssh $SERVER "cat > $REMOTE_TMP/test.in"
+        if ! cat "$zig_file" | ssh $SERVER "cat > $REMOTE_TMP/$zig_basename" 2>/dev/null; then
+            echo -e "${RED}Warning: Cannot connect to server. Skipping remote validation.${NC}"
+            SKIP_CONNECTION_CHECK=1
+            return
+        fi
+        cat "$TEMP_INPUTS" | ssh $SERVER "cat > $REMOTE_TMP/test.in" 2>/dev/null
         if ! ssh $SERVER "cd $REMOTE_TMP && zig run $zig_basename < test.in" > /dev/null 2>&1; then
             echo -e "${RED}Error: File $zig_file is not compilable with zig run${NC}"
             echo "Compilation output:"
             ssh $SERVER "cd $REMOTE_TMP && zig run $zig_basename < test.in" 2>&1
-            ssh $SERVER "rm -rf $REMOTE_TMP"
+            ssh $SERVER "rm -rf $REMOTE_TMP" 2>/dev/null
             exit 1
         fi
     fi
 }
 
-ssh $SERVER "mkdir -p $REMOTE_TMP"
-cat "$SCRIPT_DIR/ifj24.zig" | ssh $SERVER "cat > $REMOTE_TMP/ifj24.zig"
-
-# Kontrola spustitelnosti pouze pokud není -x
+# Vytvoření vzdáleného adresáře pouze pokud kontrolujeme zig soubory
 if [ $SKIP_ZIG_CHECK -eq 0 ]; then
+    if ! ssh $SERVER "mkdir -p $REMOTE_TMP" 2>/dev/null; then
+        echo -e "${RED}Warning: Cannot connect to server. Skipping remote validation.${NC}"
+        SKIP_CONNECTION_CHECK=1
+    else
+        cat "$SCRIPT_DIR/ifj24.zig" | ssh $SERVER "cat > $REMOTE_TMP/ifj24.zig" 2>/dev/null
+    fi
+fi
+
+# Kontrola spustitelnosti pouze pokud není -x a nemáme problém s připojením
+if [ $SKIP_ZIG_CHECK -eq 0 ] && [ $SKIP_CONNECTION_CHECK -eq 0 ]; then
     echo "Checking if test files are compilable with zig..."
     if [ $# -eq 0 ]; then
         for zig_file in "$SCRIPT_DIR"/*.zig; do
@@ -90,8 +119,10 @@ if [ $SKIP_ZIG_CHECK -eq 0 ]; then
             fi
         done
     fi
-    echo -e "${GREEN}All test files are compilable${NC}"
-    echo "----------------------------------------"
+    if [ $SKIP_CONNECTION_CHECK -eq 0 ]; then
+        echo -e "${GREEN}All test files are compilable${NC}"
+        echo "----------------------------------------"
+    fi
 fi
 
 TOTAL_TESTS=0
@@ -119,12 +150,11 @@ run_test() {
     
     if [ $ifj_exit_code -eq 0 ]; then
         cp "$OUTPUT_FILE" "$CODE_FILE"
-        cat "$CODE_FILE" | ssh $SERVER "cat > $REMOTE_TMP/$CODE_FILE"
         
         if [ -s "$TEMP_INPUTS" ]; then
-            server_output=$(cat "$TEMP_INPUTS" | ssh $SERVER "/pub/courses/ifj/ic24int/linux/ic24int $REMOTE_TMP/$CODE_FILE" 2>&1)
+            server_output=$(cat "$TEMP_INPUTS" | "$INTERPRETER" "$CODE_FILE" 2>&1)
         else
-            server_output=$(ssh $SERVER "/pub/courses/ifj/ic24int/linux/ic24int $REMOTE_TMP/$CODE_FILE" 2>&1)
+            server_output=$("$INTERPRETER" "$CODE_FILE" 2>&1)
         fi
         server_exit_code=$?
         printf "%s\n" "$server_output" > "$TEMP_ACTUAL"
@@ -176,7 +206,9 @@ else
     done
 fi
 
-ssh $SERVER "rm -rf $REMOTE_TMP"
+if [ $SKIP_CONNECTION_CHECK -eq 0 ]; then
+    ssh $SERVER "rm -rf $REMOTE_TMP" 2>/dev/null
+fi
 rm -f "$TEMP_EXPECTED" "$TEMP_ACTUAL" "$TEMP_INPUTS" "$CODE_FILE" "$OUTPUT_FILE"
 
 if [ $PASSED_TESTS -eq $TOTAL_TESTS ]; then
