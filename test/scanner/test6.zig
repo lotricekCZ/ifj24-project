@@ -1,11 +1,7 @@
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    var x = 5;
-    if (x + y * z == 85 - a) {
-        var o = 3 + 6;
-        var b = o + 2;
-    } else {
-        var t = x + x;
-    }
+    const a :?i32 = 9;
+    const b :?i32 = 8;
+    _ = a.? + b.?;
 }
