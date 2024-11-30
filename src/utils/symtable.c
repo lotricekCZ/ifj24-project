@@ -280,3 +280,5 @@ void symtable_insert_builtin(symtable_t *symtable, err_codes *error){
     data->modified = true;
     symtable_insert_params(data, tok_t_i32, error); OK;
 }
+
+/*** Konec souboru symtable.c ***/

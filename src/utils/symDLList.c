@@ -207,3 +207,5 @@ void DLL_Destroy(DLList *list, err_codes *error) {
     }
     return;
 }
+
+/*** Konec souboru symDLList.c ***/

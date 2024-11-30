@@ -338,3 +338,5 @@
 	SLL_IS_ACTIVE(name, prefix, element, deallocate)                           \
 	SLL_FRONT(name, prefix, element, deallocate)
 #endif
+
+/*** Konec souboru sll.c ***/
