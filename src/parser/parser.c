@@ -505,7 +505,7 @@ void check_redefinition(parser_tools_t* tools) {
     tools->current_symtable = DLL_GetLast(&tools->sym_list);
 
     if(tools->right_data != NULL){
-        fprintf(stderr, "Semantic error: Redefinition of id_without_null\n");
+        fprintf(stderr, "Semantic error: Redefinition of variable\n");
         tools->error = err_redef;
         return;
     }

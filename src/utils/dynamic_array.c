@@ -80,3 +80,5 @@ void dynamic_array_destroy(dynamic_array_t* array) {
     array->size = 0;
     array->capacity = 0;
 }
+
+/*** Konec souboru dynamic_array.c ***/

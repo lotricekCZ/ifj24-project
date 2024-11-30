@@ -91,9 +91,6 @@ data_t *symtable_get_item(symtable_t *table, char *name, err_codes *error);
 /**
  * @brief Vloží novou položku do tabulky symbolů.
  *
- * Pokud je položka s daným jménem již v symbolické tabulce, pak se vrací chyba err_redef.
- * Pokud dojde k vnitřní chybě, pak se vrací chyba err_internal.
- *
  * @param symtable tabulka symbolů do které se má vložit prvek
  * @param name jméno položky, která se má vložit
  * @param error místo, kam se uloží chybový kód v případě chyby

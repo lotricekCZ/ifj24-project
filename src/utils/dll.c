@@ -580,3 +580,5 @@
 	DLL_PREVIOUS(name, prefix, element, deallocate)
 
 #endif
+
+/*** Konec souboru dll.c ***/

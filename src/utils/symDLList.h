@@ -131,3 +131,5 @@ void DLL_Delete_last(DLList *list, err_codes *error);
 void DLL_Destroy(DLList *list, err_codes *error);
 
 #endif //SYMDLLIST_H
+
+/*** Konec souboru symDLList.h ***/
