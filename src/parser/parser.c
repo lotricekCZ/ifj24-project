@@ -32,11 +32,13 @@
 #include "../utils/memory_table.h"
 
 /**
+ * @def OK
  * @brief Makro pro kontrolu chybového kódu
  */
 #define OK if (tools->error != err_none) return
 
 /**
+ * @def printi
  * @brief Makro pro výpis generovaných instrukcí
  * 
  * Definice proměnných jsou přednostně definovány již na počátku funkcí,
