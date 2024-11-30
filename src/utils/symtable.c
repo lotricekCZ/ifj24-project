@@ -23,6 +23,9 @@
  * @param str řetězec, pro který chceme vypočítat hash
  * @return hash jako unsigned int
  * 
+ * Pokud je položka s daným jménem již v symbolické tabulce, pak se vrací chyba err_redef.
+ * Pokud dojde k vnitřní chybě, pak se vrací chyba err_internal.
+ *
  * @link https://theartincode.stanis.me/008-djb2/
  */
 unsigned int getHash(char *str)
@@ -66,6 +69,12 @@ data_t *symtable_get_item(symtable_t *symtable, char *name, err_codes *error){
 data_t *symtable_insert(symtable_t *symtable, char *name, err_codes *error){
     if(symtable == NULL || name == NULL){
         *error = err_internal;
+        return NULL;
+    }
+
+    if(symtable_get_item(symtable, name, error) != NULL){
+        fprintf(stderr, "Semantic error: %s is already defined\n", name);
+        *error = err_redef;
         return NULL;
     }
 
