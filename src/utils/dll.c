@@ -7,8 +7,8 @@
  * Modul obsahuje funkci pro inicializaci seznamu, vkladani a odebrani prvku
  * a funkcionality pro praci s aktivnim prvkem.
  *
- * @author xramas01 Jakub Ramaseuski
- * @cite xsidlil00 Lukas Sidlik
+ * @author xramas01; Jakub Ramaseuski
+ * @cite xsidlil00; Lukas Sidlik
  */
 #include "dll.h"
 #ifndef DLL_C

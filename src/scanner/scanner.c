@@ -1,6 +1,12 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/** 
+ * @addtogroup IFJ2024
+ * @file scanner.c
+ * @brief Implementace skeneru
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Implementace funkcí pro lexikalní analýzu.
  */
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -910,3 +916,5 @@ char *scn_compose_message(Scanner_ptr scanner)
 	message[strlen(preamble) + number_size + len + nl + 1] = '\0';
 	return message;
 }
+
+/*** Konec souboru scanner.c ***/

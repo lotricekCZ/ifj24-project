@@ -30,7 +30,7 @@ add_library(codegen SHARED 	     ${UTILS}/codegen.c)
 add_library(str SHARED 	         ${UTILS}/str.c)
 add_library(hashtable SHARED 	 ${UTILS}/hashtable.c)
 add_library(memory_table SHARED  ${UTILS}/memory_table.c)
-add_library(expresion SHARED 	 ${UTILS}/expresion.c)
+add_library(expression SHARED 	 ${UTILS}/expression.c)
 add_library(dynamic_array SHARED ${UTILS}/dynamic_array.c)
 target_compile_definitions(dll_trad PUBLIC DLL_TRAD)
 
@@ -41,7 +41,7 @@ target_link_libraries(keyword errors)
 
 target_link_libraries(scanner token errors scan_state keyword token_dll memory_table m)
 # target_link_libraries(scanner parser)
-target_link_libraries(ifj2024 errors token scanner parser codegen stack symtable sym_dll str dynamic_array expresion memory_table)
+target_link_libraries(ifj2024 errors token scanner parser codegen stack symtable sym_dll str dynamic_array expression memory_table)
 
 # Enable testing
 enable_testing()

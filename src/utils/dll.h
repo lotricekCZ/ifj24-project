@@ -1,11 +1,27 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @addtogroup IFJ2024
+ * @file dll.h
+ * @brief Knihovna pro dvousměrně vázaný seznam
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Knihovna obsahuje definice struktur a funkce pro dvousměrně vázaný seznam.
  */
 
 #ifndef DLL_H
 #define DLL_H
 #include <stdbool.h>
 
+/**
+ * @brief Definice makra pro dvousměrně vázaný seznam
+ *
+ * Toto makro definuje struktury a funkce pro dvousměrně vázaný seznam
+ * pro daný typ elementu. Obsahuje definice pro elementy a funkce
+ * pro manipulaci se seznamem.
+ *
+ * @param name Název seznamu
+ * @param prefix Prefix pro názvy struktur a funkcí
+ * @param element Typ elementu, který bude seznam obsahovat
+ */
 #define _DLL_ELEM(name, prefix, element)                              \
 	typedef struct _##prefix##_dll_element                            \
 	{                                                                 \
@@ -65,7 +81,7 @@
 	prefix##_dll_element_ptr prefix##_dll_at(prefix##_dllist *dll, size_t index); \
 	prefix##_dll_element_ptr prefix##_dll_next(prefix##_dllist *dll);             \
 	prefix##_dll_element_ptr prefix##_dll_previous(prefix##_dllist *dll);
-#endif
+#endif /* DLL_TRAD */
 
 /**
  * @brief Definice makra pro dvousměrně vázaný seznam
@@ -84,14 +100,13 @@
 #ifndef VOID_NOTHING
 #define VOID_NOTHING
 /**
- * @brief Nic nedela
+ * @brief Prazdna funkce
  *
- * Funkce nic nedela, je zde z duvodu, aby v pripade, kdy
- * element nema zadnou specialni deiniciacni funkci mohl byt vlozen do makra.
+ * Funkce nic nedělá, je zde z důvodu, aby v případě, kdy
+ * element nema žádnou speciální deiniciacni funkci mohl být vložen do makra.
  */
-void nothing()
-{
+void nothing() {}
+#endif /* VOID_NOTHING */
+#endif /* DLL_H */
 
-}
-#endif
-#endif
+/*** Konec souboru dll.h ***/

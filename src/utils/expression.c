@@ -1,12 +1,13 @@
 /** 
- * Projekt IFJ2024
- * 
+ * @addtogroup IFJ2024
+ * @file expression.c
  * @brief Kontrola datových typů ve výrazech.
- * 
  * @author xsidlil00; Lukáš Šidlík
+ * 
+ * Knihovna pro kontrolu datových typů ve výrazech.
  */
 
-#include "expresion.h"
+#include "expression.h"
 #include "errors.h"
 #include "memory_table.h"
 
@@ -449,6 +450,16 @@ data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLL
     }
 }
 
+/**
+ * @brief Funkce pro výpočet postfixového výrazu s kontrolou datových typů.
+ * 
+ * @param postfix pole s postfixovým vyjádřením výrazu
+ * @param postfix_index počet prvků v poli postfix
+ * @param sym_list dvousmerný seznam tabulek symbolů
+ * @param symtable aktuální symbolická tabulka
+ * @param error místo, kam se uloží chybový kód v případě chyby
+ * @return struktura s datovým typem výsledku
+ */
 data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list, symtable_t *symtable, err_codes *error){
     Stack stack;
     data_t *result;
@@ -480,20 +491,20 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
         return NULL;
     }
 
-    init(&stack);
+    stack_init(&stack);
     for (int i = 0; i < postfix_index; i++)
     {
         if(postfix[i]->type == tok_t_sym || postfix[i]->type == tok_t_int || postfix[i]->type == tok_t_flt || 
            postfix[i]->type == tok_t_true || postfix[i]->type == tok_t_false || postfix[i]->type == tok_t_null ||
            postfix[i]->type == tok_t_unreach)
         {
-            push(&stack, postfix[i]);
+            stack_push(&stack, postfix[i]);
             continue;
         }
 
         if(postfix[i]->type == tok_t_plus || postfix[i]->type == tok_t_minus || postfix[i]->type == tok_t_times){
-            popToken2 = pop(&stack);
-            popToken = pop(&stack);
+            popToken2 = stack_pop(&stack);
+            popToken = stack_pop(&stack);
 
             switch (popToken->type)
             {
@@ -505,15 +516,15 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, error); OK;
                     check_second_symbol(result_data, result_data2, error);
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_int){
                     check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK;
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_flt){
                     check_type(result_data, DATA_TYPE_DOUBLE, error); OK;
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else{
                     *error = error_found();
@@ -527,14 +538,14 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, error); OK;
                     check_two_types(result_data2, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK;
-                    push(&stack, popToken2);
+                    stack_push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_flt){
                     result->type = DATA_TYPE_DOUBLE;
-                    push(&stack, popToken2);
+                    stack_push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_int){
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else{
                     *error = error_found();
@@ -548,10 +559,10 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, error); OK;
                     check_type(result_data2, DATA_TYPE_DOUBLE, error); OK;
-                    push(&stack, popToken2);
+                    stack_push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_int || popToken2->type == tok_t_flt){
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else{
                     *error = error_found();
@@ -568,8 +579,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
         }
 
         if(postfix[i]->type == tok_t_divide){
-            popToken2 = pop(&stack);
-            popToken = pop(&stack);
+            popToken2 = stack_pop(&stack);
+            popToken = stack_pop(&stack);
             switch (popToken->type)
             {
             case tok_t_sym:
@@ -580,15 +591,15 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, error); OK;
                     check_second_symbol(result_data, result_data2, error); OK;
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_int){
                     check_type(result_data, DATA_TYPE_INT, error); OK;
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_flt){
                     check_type(result_data, DATA_TYPE_DOUBLE, error); OK;
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else{
                     *error = error_found();
@@ -601,14 +612,14 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, error); OK;
                     check_type(result_data2, DATA_TYPE_INT, error); OK;
-                    push(&stack, popToken2);
+                    stack_push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_flt){
                     *error = error_found();
                     return NULL;
                 }
                 else if(popToken2->type == tok_t_int){
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else{
                     *error = error_found();
@@ -621,14 +632,14 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, error); OK;
                     check_type(result_data2, DATA_TYPE_DOUBLE, error); OK;
-                    push(&stack, popToken2);
+                    stack_push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_int){
                     *error = error_found();
                     return NULL;
                 }
                 else if(popToken2->type == tok_t_flt){
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else{
                     *error = error_found();
@@ -646,55 +657,55 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
 
         if(postfix[i]->type == tok_t_neq || postfix[i]->type == tok_t_eq || postfix[i]->type == tok_t_lt || 
            postfix[i]->type == tok_t_gt || postfix[i]->type == tok_t_leq || postfix[i]->type == tok_t_geq){
-            popToken2 = pop(&stack);
-            popToken = pop(&stack);
+            popToken2 = stack_pop(&stack);
+            popToken = stack_pop(&stack);
             check_bool(result_data, result_data2, popToken, popToken2, sym_list, symtable, result, error); OK;
             result->canNull = false;
             result->type = DATA_TYPE_BOOLEAN;
             popToken->type = tok_t_bool;
-            push(&stack, popToken);
+            stack_push(&stack, popToken);
             continue;
         }
 
         if(postfix[i]->type == tok_t_and || postfix[i]->type == tok_t_or){
-            popToken2 = pop(&stack);
-            popToken = pop(&stack);
+            popToken2 = stack_pop(&stack);
+            popToken = stack_pop(&stack);
             popToken = check_and_or(popToken, popToken2, result_data, sym_list, symtable, error); OK;
             popToken->type = tok_t_bool;
-            push(&stack, popToken);
+            stack_push(&stack, popToken);
             result->canNull = false;
             continue;
         }
 
         if(postfix[i]->type == tok_t_not){
-            popToken = pop(&stack);
+            popToken = stack_pop(&stack);
             check_bool_second(result_data, popToken, sym_list, symtable, error); OK;
-            push(&stack, popToken);
+            stack_push(&stack, popToken);
             result->canNull = false;
             continue;
         }
 
         if(postfix[i]->type == tok_t_orelse){
-            popToken2 = pop(&stack);
-            popToken = pop(&stack);
+            popToken2 = stack_pop(&stack);
+            popToken = stack_pop(&stack);
             result_data = check_first_orelse(popToken, result_data, sym_list, symtable, error); OK;
 
             if(popToken2->type == tok_t_null){
                 result->canNull = true;
                 result->type = result_data->type;
-                push(&stack, popToken);
+                stack_push(&stack, popToken);
             }
             else if(popToken2->type == tok_t_int){
                 check_type(result_data, DATA_TYPE_INT, error); OK;
                 result->canNull = false;
                 result->type = DATA_TYPE_INT;
-                push(&stack, popToken2);
+                stack_push(&stack, popToken2);
             }
             else if(popToken2->type == tok_t_flt){
                 check_type(result_data, DATA_TYPE_DOUBLE, error); OK;
                 result->canNull = false;
                 result->type = DATA_TYPE_DOUBLE;
-                push(&stack, popToken2);
+                stack_push(&stack, popToken2);
             }
             else if(popToken2->type == tok_t_unreach){
                 result->canNull = false;
@@ -703,19 +714,19 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     popToken->type = tok_t_int;
                     result->type = DATA_TYPE_INT;
                     result->canNull = false;
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }   
                 else if(result_data->type == DATA_TYPE_DOUBLE){
                     popToken->type = tok_t_flt;
                     result->type = DATA_TYPE_DOUBLE;
                     result->canNull = false;
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
                 else if(result_data->type == DATA_TYPE_U8){
                     popToken->type = tok_t_u8;
                     result->type = DATA_TYPE_U8;
                     result->canNull = false;
-                    push(&stack, popToken);
+                    stack_push(&stack, popToken);
                 }
             }
             else if (popToken2->type == tok_t_sym){
@@ -723,22 +734,24 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 result_data2->used = true;
                 result->type = result_data2->type;
                 result->canNull = result_data2->canNull;
-                push(&stack, popToken2);
+                stack_push(&stack, popToken2);
             }
             continue;
         }
 
         if(postfix[i]->type == tok_t_orelse_un){  //zmněnit token
-            popToken = pop(&stack);
+            popToken = stack_pop(&stack);
             result_data = check_first_orelse(popToken, result_data, sym_list, symtable, error); OK;
             result->canNull = false;
             result->type = result_data->type;
             popToken = unreachble_type(popToken, result_data, error); OK;
-            push(&stack, popToken);
+            stack_push(&stack, popToken);
             continue;
         }
     }
 
-    pop(&stack);
+    stack_pop(&stack);
     return result;
 }
+
+/*** Konec souboru expression.c ***/

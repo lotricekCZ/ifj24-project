@@ -29,7 +29,7 @@ const Err_message err_msg[] = {
     {err_internal, "internal error: error on the level of compiler (program may be ok, but the compiler is not)\n"}};
 
 /**
- * @brief Najde index zpravy v poli err_msg podle kody chyby
+ * @brief Najde index zprávy v poli err_msg podle kódu chyby
  *
  * Funkce prochazi pole err_msg a najde index zpravy, ktera ma kod chyby
  * shodny s parametrem code. Pokud takovy kod chyby neexistuje, vrati
@@ -51,12 +51,12 @@ size_t err_fetch(err_codes code)
 }
 
 /**
- * @brief Vypise chybovou zpravy dle kody chyby
+ * @brief Vypíše chybovou zprávu dle kódu chyby
  *
  * Funkce vypise na standardni vystup chybovou zpravy dle kody chyby.
  * Kdyz je kod chyby neplatny, vypise se chybova zprava pro kod err_internal.
  *
- * @param code Kod chyby
+ * @param code Kód chyby
  */
 void err_print(err_codes code, bool message_needed)
 {
@@ -71,14 +71,13 @@ void err_print(err_codes code, bool message_needed)
 }
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim lexical error
+ * @brief Ukončí překlad s chybovým hlášením lexical error
  *
  * Funkce vypise na standardni vystup chybovou zpravy v podobe
  * "lexical error: <what>" a potom ukonci preklad s kodem chyby
  * err_lexic.
  *
- * @param what Textovy retezec, ktery bude vypsany jako cast chybove
- *             zpravy.
+ * @param what Textový řetězec, který bude vypsaný jako část chybové zprávy.
  */
 void exit_lexic(char *what)
 {
@@ -87,7 +86,7 @@ void exit_lexic(char *what)
 }
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim syntax error
+ * @brief Ukončí překlad s chybovým hlášením syntax error
  *
  * Funkce vypise na standardni vystup chybovou zpravy v podobe
  * "syntax error: syntax error or missing header within program file\n"
@@ -99,7 +98,7 @@ void exit_syntax()
 }
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim undefined function or variable
+ * @brief Ukončí překlad s chybovým hlášením undefined function or variable
  *
  * Funkce vypise na standardni vystup chybovou zpravu v podobe
  * "semantic error: undefined function or variable\n"
@@ -111,7 +110,7 @@ void exit_undef()
 }
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim o spatnem poctu parametru
+ * @brief Ukončí překlad s chybovým hlášením o chybném počtu nebo typu parametrů
  *
  * Funkce vypise na standardni vystup chybovou zpravu v podobe
  * "semantic error: wrong number/type of parameters in function call; wrong type or non-permitted disposal of function return value.\n"
@@ -123,7 +122,7 @@ void exit_param()
 }
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim o redefinici promenne nebo funkce
+ * @brief Ukončí překlad s chybovým hlášením o chybné redefinici proměnné nebo funkce
  *
  * Funkce vypise na standardni vystup chybovou zpravu v podobe
  * "semantic error: redefinition of variable/function; assigment to non-modifiable variable.\n"
@@ -135,7 +134,7 @@ void exit_redef()
 }
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim o chybejicim nebo prebyvajicim vyrazu v prikazu navratu z funkce
+ * @brief Ukončí překlad s chybovým hlášením o chybejícím nebo přebývajícím výrazu v příkazu návratu z funkce
  *
  * Funkce vypise na standardni vystup chybovou zpravu v podobe
  * "semantic error: missing/extra expression in function return statement.\n"
@@ -147,8 +146,8 @@ void exit_ret_val()
 }
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim o chybejici nebo nekompatibilni type v aritmetickych, retezcovych a relacnich vyrazech,
- * nebo o chybejicim nebo prebyvajicim vyrazu v prikazu navratu z funkce.
+ * @brief Ukončí překlad s chybovým hlášením o chybějící nebo nekompatibilní type v aritmetických, řetězcových a relačních výrazech,
+ * nebo o chybějícím nebo přebývajícím výrazu v příkazu návratu z funkce.
  *
  * Funkce vypise na standardni vystup chybovou zpravu v podobe
  * "semantic error: incompatible types in arithmetic, comparison or relational expressions; wrong type or non-permitted disposal of function return value.\n"
@@ -160,7 +159,7 @@ void exit_dt_invalid()
 }
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim o neznamem typu vyrazu
+ * @brief Ukončí překlad s chybovým hlášením o neznámém typu výrazu
  *
  * Funkce vypise na standardni vystup chybovou zpravu v podobe
  * "semantic error: could not deduce type from expression\n"
@@ -172,7 +171,7 @@ void exit_dt_unknown()
 }
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim o nevyuzite promenne v jeji oblasti platnosti
+ * @brief Ukončí překlad s chybovým hlášením o nevyužité proměnné v jejím rozsahu platnosti
  *
  * Funkce vypise na standardni vystup chybovou zpravu v podobe
  * "semantic error: unused variable in its scope.\n"
@@ -185,7 +184,7 @@ void exit_dt_unused()
 
 
 /**
- * @brief Ukonci preklad s chybovym hlasenim jine sémantické chyby
+ * @brief Ukončí překlad s chybovým hlášením jine sémantické chyby
  *
  * Funkce vypise na standardni vystup chybovou zpravu v podobe
  * "semantic error: other semantic errors\n"
@@ -208,3 +207,5 @@ void _exit_internal()
 {
     err_print(err_internal, true);
 }
+
+/*** Konec souboru errors.c ***/

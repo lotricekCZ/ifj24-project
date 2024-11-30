@@ -1,11 +1,16 @@
 /** 
- * Projekt IFJ2024
- * 
- * @brief BRIEF
- * 
+ * @addtogroup IFJ2024
+ * @file parser.c
+ * @brief Implementace parseru
  * @author xondre16; Jozef Ondrejička
  * @author xsidlil00; Lukáš Šidlík
  * @author xhubacv00; Vojtech Hubacek
+ * 
+ * Implementace parseru.
+ * Zpracování kontrola syntaxe zdrojového kódu.
+ * Zpracování výrazů společně s precedenční analýzou.
+ * Sémantické kontroly.
+ * Částečná generace cílového kódu.
  */
 
 #include <stdio.h>
@@ -23,73 +28,31 @@
 #include "../utils/symDLList.h"
 #include "../utils/str.h"
 #include "../utils/dynamic_array.h"
-#include "../utils/expresion.h"
+#include "../utils/expression.h"
 #include "../utils/memory_table.h"
 
-
-#define OK if (error != err_none) return
-/* 
- * Global variables for the parser
+/**
+ * @brief Makro pro kontrolu chybového kódu
  */
-Token_ptr current_token = NULL;
-Scanner_ptr scanner = NULL;
-err_codes error = err_none; 
+#define OK if (tools->error != err_none) return
 
+/**
+ * @brief Makro pro výpis generovaných instrukcí
+ * 
+ * Definice proměnných jsou přednostně definovány již na počátku funkcí,
+ * jelikož se proměnné nemohou deklarovat uvnitř cyklů.
+ */
 #define printi(source, ...) if (strcmp(source, format[_defvar]) == 0) \
-                                printi_defvar(&string, &string_defvar, source, ##__VA_ARGS__); \
+                                printi_defvar(&tools->string, &tools->string_defvar, source, ##__VA_ARGS__); \
                             else \
-                                str_append(&string_tmp, source, ##__VA_ARGS__)
-/*
- * Global variables for the code generation
- */
-Stack stack_codegen;
-int counter_codegen_if = 0;
-int counter_codegen_while = 0;
-int counter_codegen_for = 1;
-int counter_global = 0;
-int cycle = -1;
-char string_buffer[MAX_STRING_LEN];
-char string_buffer_value[MAX_STRING_LEN];
-str_t string;
-str_t string_tmp;
-str_t string_defvar;
+                                str_append(&tools->string_tmp, source, ##__VA_ARGS__)
 
-/*
-#define get_most_important(data, id) \
-                    DLL_First(&sym_list); \
-                    data = symtable_get_item(current_symtable, id); \
-                    DLL_Last(&sym_list); \
-                    if (data == NULL) { \
-                        current_symtable = DLL_GetCurrent(&sym_list); \
-                        while(sym_list.current != sym_list.first) { \
-                            data = symtable_get_item(current_symtable, id); \
-                            if (data == NULL) { \
-                                DLL_Prev(&sym_list); \
-                                current_symtable = DLL_GetCurrent(&sym_list);\
-                            } else { \
-                                break; \
-                            } \
-                        } \
-                    } DLL_Last(&sym_list)
-*/
+Scanner_ptr scanner = NULL;
 
-/*
- * Global variables for the semantic analysis
- */
-symtable_t* current_symtable;
-int current_context;
-DLList sym_list;
-data_t *left_data;
-data_t *right_data;
-data_t *result_data;
-data_t *function_data;
-int depth = 0;
-dynamic_array_t depth_sequence;
-char stringBuffer[MAX_STRING_LEN] = "\0";
-int param_count = -1;
-bool params = false;
-
-char precedence_tab[12][12] = {
+/**
+ * @brief Precedenční tabulka
+*/ 
+char precedence_table[12][12] = {
 //     .?   !   * / orlse + -   r   and   or   (    )    ID   $
     { '=', ' ', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // .?
     { ' ', '=', ' ', ' ', ' ', ' ', ' ', ' ', '=', ' ', '=', ' ', }, // !
@@ -105,7 +68,13 @@ char precedence_tab[12][12] = {
     { ' ', '<', '<', '<', '<', '<', '<', '<', '<', ' ', '<', ' ', }  // $
 };
 
-int get_index(token_type type) {
+/**
+ * @brief Funkce pro získání indexu tokenu v precedenční tabulce
+ * 
+ * @param type Typ tokenu
+ * @return Index elementu v precedenční tabulce
+ */
+int get_precedence_index(token_type type) {
     switch (type) {
         case tok_t_orelse_un: return 0;
         case tok_t_not: return 1; 
@@ -130,45 +99,19 @@ int get_index(token_type type) {
     }
 }
 
-void precedence_analysis_print (dynamic_array_t *precedence, token_type input, int precedence_top) {
-    for (int i = 0; i < precedence->size; i++) {
-        if (precedence->data[i] == (int)'>' || precedence->data[i] == (int)'<' || precedence->data[i] == (int)'E') {
-            fprintf(stderr, "%c ", precedence->data[i]);
-        } else
-        fprintf(stderr, "%s ", tok_type_to_str(precedence->data[i]));
-    }
-    fprintf(stderr, "| %c | ", precedence_tab[get_index(precedence_top)][get_index(input)]);
-    fprintf(stderr, "%s\n", tok_type_to_str(input));
-}
-
-/* 
- * Function to get the precedence of the operator
+/**
+ * @brief Zpracování precedenční analýzy
+ * 
+ * Funkce zpracovává precedenční analýzu výrazu za použití precedenční tabulky.
+ * 
+ * @param tools Ukazatel na strukturu parser_tools_t
+ * @param precedence Ukazatel na dynamické pole
+ * @param input Typ tokenu
  */
-void print_postfix_and_stack(char *postfix, int postfix_index, Stack *stack) {
-    printf("Postfix: ");
-    for (int i = 0; i < postfix_index; i++) {
-        printf("%c ", postfix[i]);
-    }
-    printf("\nStack: ");
-    for (int i = 0; i <= stack->top; i++) {
-        printf("%s ", tok_type_to_str(stack->items[i]->type));
-    }
-    printf("\n");
-}
-/* 
- * Function to print postfix expression
- */
-void print_postfix(Token_ptr *postfix, int postfix_index) {
-    fprintf(stderr ,"Postfix expression: ");
-    for (int i = 0; i < postfix_index; i++) {
-        fprintf(stderr ,"%s ", tok_type_to_str(postfix[i]->type));
-    }
-    fprintf(stderr, "\n");
-}
-
-void precedence_analysis(dynamic_array_t *precedence, token_type input) {
+void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, token_type input) {
     int action;
     do {
+        // Získání precedence vrcholu zásobníku
         int precedence_top;
         for (int index = precedence->size - 1; index >= 0; index--) {
             if (precedence->data[index] != (int)'E') {
@@ -176,10 +119,11 @@ void precedence_analysis(dynamic_array_t *precedence, token_type input) {
                 break;
             }
         }
-        precedence_analysis_print(precedence, input, precedence_top);
-        action = precedence_tab[get_index(precedence_top)][get_index(input)];
+
+        // Získání akce z precedenční tabulky pro daný vstup a vrchol zásobníku
+        action = precedence_table[get_precedence_index(precedence_top)][get_precedence_index(input)];
         switch (action) {
-            case '<':
+            case '<': //Shift
                 dynamic_array_insert(precedence, input);
                 for (int index = precedence->size - 2; index >= 0; index--) {
                     if (precedence->data[index] == precedence_top) {
@@ -190,11 +134,11 @@ void precedence_analysis(dynamic_array_t *precedence, token_type input) {
                     }
                 }
                 break;
-    
-            case '>':
+
+            case '>': //Redukce
                 if (precedence->data[precedence->size - 1] == (int)'<') {
                     fprintf(stderr, "Syntax error: Wrong expression.\n");
-                    error = err_syntax;
+                    tools->error = err_syntax;
                     return;
                 }
                 bool without_value = true;
@@ -206,32 +150,32 @@ void precedence_analysis(dynamic_array_t *precedence, token_type input) {
                     if (precedence->data[index] == tok_t_sym || precedence->data[index] == (int)'E') {
                         without_value = false;
                     } else if (precedence->data[index] == precedence_top && without_value && precedence_top != tok_t_rpa && precedence_top != tok_t_orelse_un) {
-                        fprintf(stderr, "Syntax error: Error in expression.\n");
-                        error = err_syntax;
+                        fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                        tools->error = err_syntax;
                         return;
                     }
                     precedence->size--;
                     if (index == 0) {
-                        fprintf(stderr, "Syntax error: Error in expression.\n");
-                        error = err_syntax;
+                        fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                        tools->error = err_syntax;
                         return;
                     }
                 }
                 if (without_value) {
-                    fprintf(stderr, "Syntax error: Error in expression.\n");
-                    error = err_syntax;
+                    fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                    tools->error = err_syntax;
                     return;
                 }
                 break;
 
-            case ' ':
+            case ' ': //Neexistující pravidlo
                 if (action == ' ' && (input != tok_t_eof || precedence_top != tok_t_eof)) {
-                    fprintf(stderr, "Syntax error: Error in expression.\n");
-                    error = err_syntax;
+                    fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                    tools->error = err_syntax;
                     return;
                 } else if (precedence->size != 2) {
-                    fprintf(stderr, "Syntax error: Error in expression.\n");
-                    error = err_syntax;
+                    fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                    tools->error = err_syntax;
                     return;
                 }
                 break;
@@ -240,42 +184,59 @@ void precedence_analysis(dynamic_array_t *precedence, token_type input) {
     dynamic_array_insert(precedence, input);
 }
 
-void expression_processing(Token_ptr (*postfix)[MAX], int* postfix_index, Stack* stack_functions) {
+/**
+ * @brief Syntaktické zpracování výrazu a vytváření postfixové notace
+ * 
+ * Funkce zpracovává jednotlivé tokeny výrazu za použití precedenční analýzy
+ * a zároveň vytváří postfixovou notaci výrazu pro náslendé zpracování
+ * sémantickou analýzou a generátorem cílového kódu.
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ * @param postfix Ukazatel na pole tokenů
+ * @param postfix_index Aktuální index pole tokenů
+ * @param stack_functions Ukazatel na zásobník funkcí
+ */
+void expression_processing(parser_tools_t* tools, Token_ptr (*postfix)[MAX], int* postfix_index, dynamic_array_t* functions_retval) {
     Stack stack_postfix;
-    init(&stack_postfix);
+    stack_init(&stack_postfix);
 
     dynamic_array_t precedence;
     dynamic_array_init(&precedence);
     dynamic_array_insert(&precedence, tok_t_eof);
 
-    int paren_count = 0;  // Na sledovanie počtu otvorených zátvoriek
+    int paren_count = 0;  // Sledovač počtu otevřených závorek
     bool expression_continue = true;
-    while (current_token->type != tok_t_semicolon && current_token->type != tok_t_com && expression_continue) {
-        switch (current_token->type) {
+
+    // Zpracování jednotlivých tokenů výrazu
+    while (tools->current_token->type != tok_t_semicolon && tools->current_token->type != tok_t_com && expression_continue) {
+        switch (tools->current_token->type) {
             case tok_t_rpa: // )
                 paren_count--;
-                // Ak máme 0 zátvoriek, skončíme spracovanie
+                // Pokud je počet závorek menší než 0, tak končíme spracování podmínky
                 if (paren_count < 0) {
                     expression_continue = false;
-                    break;  // Končíme spracovanie podmienky
+                    break;
                 }
-                precedence_analysis(&precedence, current_token->type); OK;
+                precedence_analysis(tools, &precedence, tools->current_token->type); OK;
+
                 // Inak pokračujeme v spracovaní výrazu
-                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type != tok_t_lpa) {
-                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                while (!stack_isEmpty(&stack_postfix) && stack_peek(&stack_postfix)->type != tok_t_lpa) {
+                    (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
                 }
-                pop(&stack_postfix); // Discard the left parenthesis
-                next_token();
-                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
-                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                stack_pop(&stack_postfix); // Discard the left parenthesis
+                next_token(tools);
+
+                // Vložení operátorů negace na konec postfixové notace, pokud existuje (avšak .? má přednost)
+                while (!stack_isEmpty(&stack_postfix) && stack_peek(&stack_postfix)->type == tok_t_not && tools->current_token->type != tok_t_orelse_un) {
+                    (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
                 }
                 break;
 
             case tok_t_lpa: // (
-                precedence_analysis(&precedence, current_token->type); OK;
+                precedence_analysis(tools, &precedence, tools->current_token->type); OK;
                 paren_count++;
-                push(&stack_postfix, current_token);
-                next_token();
+                stack_push(&stack_postfix, tools->current_token);
+                next_token(tools);
                 break;
 
             case tok_t_int: //1
@@ -284,210 +245,225 @@ void expression_processing(Token_ptr (*postfix)[MAX], int* postfix_index, Stack*
             case tok_t_unreach: // unreachable
             case tok_t_true: // true
             case tok_t_false: // false
-                precedence_analysis(&precedence, tok_t_sym); OK;
-                (*postfix)[(*postfix_index)++] = current_token;
-                next_token();
+                precedence_analysis(tools, &precedence, tok_t_sym); OK;
+                (*postfix)[(*postfix_index)++] = tools->current_token;
+                next_token(tools);
 
-                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
-                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                // Vložení operátorů negace za operand (pokud existují nebo následujícím tokenem není .?)
+                while (!stack_isEmpty(&stack_postfix) && stack_peek(&stack_postfix)->type == tok_t_not && tools->current_token->type != tok_t_orelse_un) {
+                    (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
                 }
                 break;
 
-            case tok_t_sym: // id
-                precedence_analysis(&precedence, tok_t_sym); OK;
-                (*postfix)[(*postfix_index)] = current_token;
-                push(&stack_codegen, current_token);
+            case tok_t_sym: // ID
+                precedence_analysis(tools, &precedence, tok_t_sym); OK;
+                (*postfix)[(*postfix_index)] = tools->current_token;
+                stack_push(&tools->stack_codegen, tools->current_token);
 
-                Token_ptr func_token = NULL;
-                func_token = tok_init(current_token->type);
-            
-                strcpy(stringBuffer, current_token->attribute);
+                // Uchování informace současného tokenu
+                Token_ptr func_token = tok_init(tools->current_token->type);
+                strcpy(tools->string_buffer_semantic, tools->current_token->attribute);
 
-                next_token();
-                id_continue(); OK;
+                // Zpracování symbolu jakožto funkce nebo proměnné
+                next_token(tools);
+                id_continue(tools); OK;
 
-                DLL_First(&sym_list);
-                current_symtable = DLL_GetCurrent(&sym_list);
-                data_t* data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
-
-                if (data != NULL) {
-                    sprintf(string_buffer, "LF@%%retval%i", counter_global++);
-                    printi(format[_defvar], string_buffer);
-                    printi(format[_move], string_buffer, "TF@%retval");
-                    current_token->attribute = (char*)imalloc(sizeof(char) * (strlen(string_buffer_value) + 1));
-                    strcpy(current_token->attribute, string_buffer_value);
-                    push(stack_functions, current_token);
+                // Vyhledání symbolu v symtable a určení jeho typu
+                DLL_First(&tools->sym_list);
+                tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
+                data_t* data = symtable_get_item(tools->current_symtable, tools->string_buffer_semantic, &tools->error); OK;
+                if (data != NULL) { // Jedná se o funkci
+                    // Generuje se přesun navrácené hodnoty do unikátní proměnné a uložení pořadového čísla unikátní proměnné
+                    sprintf(tools->string_buffer, "LF@%%retval%i", tools->counter_global);
+                    printi(format[_defvar], tools->string_buffer);
+                    printi(format[_move], tools->string_buffer, "TF@%retval");
+                    dynamic_array_insert(functions_retval, tools->counter_global++);
                 }
-                DLL_Last(&sym_list);
-                current_symtable = DLL_GetLast(&sym_list);
+                DLL_Last(&tools->sym_list);
+                tools->current_symtable = DLL_GetLast(&tools->sym_list);
 
-                tok_set_attribute(func_token, stringBuffer);
+                tok_set_attribute(func_token, tools->string_buffer_semantic);
                 (*postfix)[(*postfix_index)] = func_token;
                 (*postfix_index)++;
-                stringBuffer[0] = '\0';
+                tools->string_buffer_semantic[0] = '\0';
 
-                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
-                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                // Vložení operátorů negace za operand (pokud existují nebo následujícím tokenem není .?)
+                while (!stack_isEmpty(&stack_postfix) && stack_peek(&stack_postfix)->type == tok_t_not && tools->current_token->type != tok_t_orelse_un) {
+                    (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
                 }
                 break;
         
             case tok_t_as: // @as
-                precedence_analysis(&precedence, tok_t_sym); OK;
-                next_token();
-                expect_type(tok_t_lpa); OK;
+                precedence_analysis(tools, &precedence, tok_t_sym); OK;
+                next_token(tools);
+                expect_types(tools, 1, tok_t_lpa); OK;
 
-                next_token();
-                expect_type(tok_t_i32); OK;
+                next_token(tools);
+                expect_types(tools, 1, tok_t_i32); OK;
 
-                next_token();
-                expect_type(tok_t_com); OK;
+                next_token(tools);
+                expect_types(tools, 1, tok_t_com); OK;
 
-                next_token();
-                expect_type(tok_t_sym); OK;
-                current_symtable = DLL_GetLast(&sym_list);
-                while(sym_list.current != sym_list.first) {
-                    result_data = symtable_get_item(current_symtable, current_token->attribute, &error); OK;
-                    if(result_data == NULL){
-                        DLL_Prev(&sym_list);
-                        current_symtable = DLL_GetCurrent(&sym_list);
+                next_token(tools);
+                expect_types(tools, 1, tok_t_sym); OK;
+
+                // Vyhledání symbolu v symtable a jeho sémantická kontrola
+                tools->current_symtable = DLL_GetLast(&tools->sym_list);
+                while(tools->sym_list.current != tools->sym_list.first) {
+                    tools->result_data = symtable_get_item(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
+                    if(tools->result_data == NULL){
+                        DLL_Prev(&tools->sym_list);
+                        tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
                     } else {
                         break;
                     }
                 }
-                DLL_Last(&sym_list);
-                current_symtable = DLL_GetLast(&sym_list);
+                DLL_Last(&tools->sym_list);
+                tools->current_symtable = DLL_GetLast(&tools->sym_list);
 
-                if(sym_list.current == sym_list.first || result_data == NULL){ 
+                if(tools->sym_list.current == tools->sym_list.first || tools->result_data == NULL){ 
                     fprintf(stderr, "Semantic error: undefined id\n");
-                    error = err_undef;
+                    tools->error = err_undef;
                     return;
                 }
 
-                if(result_data->type != DATA_TYPE_INT && result_data->canNull){
+                if(tools->result_data->type != DATA_TYPE_INT && tools->result_data->canNull){
                     fprintf(stderr, "Semantic error: id can't be null\n");
-                    error = err_param;
+                    tools->error = err_param;
                     return;
                 }
 
-                if(cycle != -1){
-                    if(!left_data->as_func){
+                if(tools->cycle != -1){
+                    if(!tools->left_data->as_func){
                         fprintf(stderr, "Semantic error: isn't value |id|\n");
-                        error = err_param;
+                        tools->error = err_param;
                         return;
                     }
                 }
                 else{
-                    fprintf(stderr, "Semantic error: Function @as isn't in cycle\n");
-                    error = err_semantic;
+                    fprintf(stderr, "Semantic error: Function @as isn't in tools->cycle\n");
+                    tools->error = err_syntax;
                     return;
                 }
 
-                (*postfix)[(*postfix_index)++] = current_token;
+                (*postfix)[(*postfix_index)++] = tools->current_token;
 
-                next_token();
-                expect_type(tok_t_rpa); OK;
+                next_token(tools);
+                expect_types(tools, 1, tok_t_rpa); OK;
 
-                next_token();
+                next_token(tools);
 
-                while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
-                    (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                // Vložení operátorů negace za operand (pokud existují nebo následujícím tokenem není .?)
+                while (!stack_isEmpty(&stack_postfix) && stack_peek(&stack_postfix)->type == tok_t_not && tools->current_token->type != tok_t_orelse_un) {
+                    (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
                 }
                 break;
 
-            default:
-                expect_types(16, tok_t_plus, tok_t_minus, tok_t_times, tok_t_divide, tok_t_not, tok_t_eq, tok_t_neq, tok_t_lt, tok_t_gt, tok_t_leq, tok_t_geq, tok_t_and, tok_t_or, tok_t_not, tok_t_orelse, tok_t_orelse_un); OK;
-                precedence_analysis(&precedence, current_token->type); OK;
-                if (current_token->type == tok_t_not) {
-                    push(&stack_postfix, current_token);
-                    next_token();
-                } else if (current_token->type == tok_t_orelse_un) {
-                    (*postfix)[(*postfix_index)++] = current_token;
-                    next_token();
-                    while (!isEmpty(&stack_postfix) && peek(&stack_postfix)->type == tok_t_not && current_token->type != tok_t_orelse_un) {
-                        (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+            default: // Operátory
+                expect_types(tools, 16, tok_t_plus, tok_t_minus, tok_t_times, tok_t_divide, tok_t_not, tok_t_eq, tok_t_neq, tok_t_lt, tok_t_gt, tok_t_leq, tok_t_geq, tok_t_and, tok_t_or, tok_t_not, tok_t_orelse, tok_t_orelse_un); OK;
+                precedence_analysis(tools, &precedence, tools->current_token->type); OK;
+                if (tools->current_token->type == tok_t_not) { // Negace
+                    //Vložení na zásobník pro pozdější zapsání do postfixové notace
+                    stack_push(&stack_postfix, tools->current_token);
+                    next_token(tools);
+                } else if (tools->current_token->type == tok_t_orelse_un) { // .?
+                    (*postfix)[(*postfix_index)++] = tools->current_token;
+                    next_token(tools);
+
+                    // Vložení operátorů negace za operátor .? (pokud existují nebo následujícím tokenem není .?)
+                    while (!stack_isEmpty(&stack_postfix) && stack_peek(&stack_postfix)->type == tok_t_not && tools->current_token->type != tok_t_orelse_un) {
+                        (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
                     }
-                } else {
-                    while (!isEmpty(&stack_postfix) && get_index(peek(&stack_postfix)->type) <= get_index(current_token->type)) {
-                        (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+                } else { // Operátory
+                    // Vložení operátorů na zásobník, či ze zásobníku do postfixové notace na základě priority
+                    while (!stack_isEmpty(&stack_postfix) && get_precedence_index(stack_peek(&stack_postfix)->type) <= get_precedence_index(tools->current_token->type)) {
+                        (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
                     }
-                    push(&stack_postfix, current_token);
-                    next_token();
+                    stack_push(&stack_postfix, tools->current_token);
+                    next_token(tools);
                 }
                 break;
         }
     }
-    precedence_analysis(&precedence, tok_t_eof); OK; 
+    precedence_analysis(tools, &precedence, tok_t_eof); OK; 
 
-    // Pop remaining operators
-    while (!isEmpty(&stack_postfix)) {
-        (*postfix)[(*postfix_index)++] = pop(&stack_postfix);
+    // Vložení zbylých operátorů do postfixové notace
+    while (!stack_isEmpty(&stack_postfix)) {
+        (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
     }
 }
 
-/* 
- * Function to parse the expression
+/**
+ * @brief Zpraocvání výrazu
+ * 
+ * Hlavní funkce řídící zpracování výrazu, sémantickou kontrolu
+ * a jeho následné vygenerování do cílového kódu.
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void parse_expression() {
+void expression(parser_tools_t* tools) {
     printi(format[_comment], "<expression>");
 
+    context_t save_context = tools->current_context;
+
+    // Syntaktické zpracování výrazu
     Token_ptr postfix[MAX];
     int postfix_index = 0;
-    Stack stack_functions;
-    init(&stack_functions);
+    dynamic_array_t functions_retval;
+    dynamic_array_init(&functions_retval);
+    expression_processing(tools, &postfix, &postfix_index, &functions_retval); OK;
 
-    context_t save_context = current_context;
-    expression_processing(&postfix, &postfix_index, &stack_functions);
+    // Generování výrazu v cílovém kódu
+    printi_postfix(&tools->string_tmp, postfix, postfix_index, &functions_retval, &tools->sym_list, tools->current_symtable, &tools->error); OK;
 
-    //print_postfix(postfix, postfix_index);
-    printi_postfix(&string_tmp, postfix, postfix_index, &stack_functions, &sym_list, current_symtable, &error); OK;
-
-    result_data = postfix_semantic(postfix, postfix_index, sym_list, current_symtable, &error); OK;
-    current_context = save_context;
-    switch (current_context)
+    // Sémantická kontrola výrazu
+    tools->result_data = postfix_semantic(postfix, postfix_index, tools->sym_list, tools->current_symtable, &tools->error); OK;
+    tools->current_context = save_context;
+    switch (tools->current_context)
     {
     case CONTEXT_CONDITION:
-        if(result_data->type == DATA_TYPE_STRING || result_data->type == DATA_TYPE_VOID || result_data->type == DATA_TYPE_UND ){
+        if(tools->result_data->type == DATA_TYPE_STRING || tools->result_data->type == DATA_TYPE_VOID || tools->result_data->type == DATA_TYPE_UND ){
             fprintf(stderr, "Semantic error: Invalid if/while condition type\n");
-            error = err_dt_invalid;
+            tools->error = err_dt_invalid;
             return;
         }
     break;
 
     case CONTEXT_RETURN:// todo hlídat null
-        if((function_data->type != result_data->type || function_data->canNull != result_data->canNull)){
+        if((tools->function_data->type != tools->result_data->type || tools->function_data->canNull != tools->result_data->canNull)){
             fprintf(stderr, "Semantic error: Invalid return type\n");
-            error = err_param;
+            tools->error = err_param;
             return;
         }    
     break;
 
     case CONTEXT_SYMBOL:
-        if(result_data->type == DATA_TYPE_VOID){
+        if(tools->result_data->type == DATA_TYPE_VOID){
             fprintf(stderr, "Semantic error: Cant assighn void value\n");
-            error = err_dt_invalid;
+            tools->error = err_dt_invalid;
             return;
         }
 
-        if(left_data->type == DATA_TYPE_UND){
-            if(result_data->type == DATA_TYPE_UND){
-                error = err_dt_unknown;
+        if(tools->left_data->type == DATA_TYPE_UND){
+            if(tools->result_data->type == DATA_TYPE_UND){
+                tools->error = err_dt_unknown;
                 fprintf(stderr, "ERROR: nelze do nedefinovaného typu dát null\n");
                 return;
             }
-            left_data->type = result_data->type;
-            left_data->canNull = result_data->canNull;
+            tools->left_data->type = tools->result_data->type;
+            tools->left_data->canNull = tools->result_data->canNull;
         }
         else{
-            if(!left_data->canNull){
-                if(left_data->type != result_data->type){
-                    error = err_dt_invalid;
+            if(!tools->left_data->canNull){
+                if(tools->left_data->type != tools->result_data->type){
+                    tools->error = err_dt_invalid;
                     fprintf(stderr, "ERROR: neshodné datové typy\n");
                     return;
                 }
             }
             
-            if(left_data->type != result_data->type && result_data->type != DATA_TYPE_UND){
-                error = err_dt_invalid;
+            if(tools->left_data->type != tools->result_data->type && tools->result_data->type != DATA_TYPE_UND){
+                tools->error = err_dt_invalid;
                 fprintf(stderr, "ERROR: neshodné datové typy\n");
                 return;
             }
@@ -495,83 +471,89 @@ void parse_expression() {
         break;
 
         case CONTEXT_CONDITION_FOR:
-            if(result_data->type != DATA_TYPE_U8 && result_data->canNull != false){
+            if(tools->result_data->type != DATA_TYPE_U8 && tools->result_data->canNull != false){
                 fprintf(stderr, "Semantic error: Invalid type in for condition\n");
-                error = err_dt_invalid;
+                tools->error = err_dt_invalid;
                 return;
             }
         break;
     }
 
-    //print_postfix(postfix, postfix_index);
     printi(format[_comment], "</expression>");
 }
 
-void check_redefinition() {
-    DLL_Last(&sym_list);
-    current_symtable = DLL_GetCurrent(&sym_list);
-    while(sym_list.current != sym_list.first) {
-        right_data = symtable_get_item(current_symtable, current_token->attribute, &error); OK;
-        if(right_data == NULL){
-            DLL_Prev(&sym_list);
-            current_symtable = DLL_GetCurrent(&sym_list);
+/**
+ * @brief Kontrola redefinece proměnné
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void check_redefinition(parser_tools_t* tools) {
+    DLL_Last(&tools->sym_list);
+    tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
+    while(tools->sym_list.current != tools->sym_list.first) {
+        tools->right_data = symtable_get_item(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
+        if(tools->right_data == NULL){
+            DLL_Prev(&tools->sym_list);
+            tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
         } else {
             break;
         }
     }
-    DLL_Last(&sym_list);
-    current_symtable = DLL_GetLast(&sym_list);
+    DLL_Last(&tools->sym_list);
+    tools->current_symtable = DLL_GetLast(&tools->sym_list);
 
-    if(right_data != NULL){
+    if(tools->right_data != NULL){
         fprintf(stderr, "Semantic error: Redefinition of id_without_null\n");
-        error = err_redef;
+        tools->error = err_redef;
         return;
     }
 }
 
-/* 
- * Function to print the type and attribute of the current token
+/**
+ * @brief Načítání tokenů prvního průchodu parseru
+ * 
+ * Funkce načítá tokeny ze scanneru.
+ * Uvolňuje paměť po předchozím tokenu při počáteční načtení.
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void print_token() {
-    printf("->%s : %s\n", tok_type_to_str(current_token->type), current_token->attribute ? current_token->attribute : "(null)");
-}
-/* 
- * Function to get the next token from the scanner
- */
-void next_token_initial() {
-    do {
-        if (current_token != NULL) {
-            tok_free(current_token);
+void next_token_initial(parser_tools_t* tools) {
+    do { //Dokud je tokenem komentář
+        if (tools->current_token != NULL) {
+            tok_free(tools->current_token);
         }   
-        current_token = scn_scan(scanner);
-        if (current_token->type == tok_t_error) {
-            tok_free(current_token);
-            current_token = NULL;
-            error = err_lexic;
+        tools->current_token = scn_scan(scanner);
+        if (tools->current_token->type == tok_t_error) {
+            tok_free(tools->current_token);
+            tools->current_token = NULL;
+            tools->error = err_lexic;
         }
-    } while (current_token->type == tok_t_doc);
-    //fprintf(stderr, "%s\n", tok_type_to_str(current_token->type));
+    } while (tools->current_token->type == tok_t_doc);
 }
 
-void next_token() {
-    do {
-        current_token = scn_scan(scanner);
-    } while (current_token->type == tok_t_doc);
-    //fprintf(stderr, "%s\n", tok_type_to_str(current_token->type));
-}
-/* 
- * Function to check if the current token is of the expected type
+/**
+ * @brief Načítání tokenů parseru při druhém průchodu
+ * 
+ * Funkce pouze načítá tokeny ze scanneru.
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void expect_type(token_type type) {
-    if (current_token->type != type) {
-        fprintf(stderr, "Syntax error: Expected %s, got %s\n", tok_type_to_str(type), tok_type_to_str(current_token->type));
-        error = err_syntax;
-    }
+void next_token(parser_tools_t* tools) {
+    do { // Dokud je tokenem komentář
+        tools->current_token = scn_scan(scanner);
+    } while (tools->current_token->type == tok_t_doc);
 }
-/*
-* Function to check if the current token is of the expected type
-*/
-void expect_types(int count, ...) {
+
+/**
+ * @brief Kontrolu typu tokenu
+ * 
+ * Funkce kontroluje, zda je aktuální token jednoho z očekávaných typů.
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ * @param count Počet očekávaných typů
+ * @param ... Očekávané typy
+ */
+void expect_types(parser_tools_t* tools, int count, ...) {
     va_list args;
     va_start(args, count);
     bool found = false;
@@ -581,7 +563,7 @@ void expect_types(int count, ...) {
         token_type type = va_arg(args, token_type);
         expected_types[i] = type;
         
-        if (current_token->type == type) {
+        if (tools->current_token->type == type) {
             found = true;
             break;
         }
@@ -591,7 +573,7 @@ void expect_types(int count, ...) {
     
     // Pokud nebyla nalezena shoda, vytvoříme chybovou hlášku
     if (!found) {
-        fprintf(stderr, "Syntax error: Expected one of: ");
+        fprintf(stderr, "Syntax error: Expected: ");
         // Výpis všech očekávaných typů
         for (int i = 0; i < count; i++) {
             fprintf(stderr, "%s", tok_type_to_str(expected_types[i]));
@@ -599,685 +581,732 @@ void expect_types(int count, ...) {
                 fprintf(stderr, ", ");
             }
         }
-        fprintf(stderr, ", but got %s\n", tok_type_to_str(current_token->type));
-        error = err_syntax;
+        fprintf(stderr, ", but got %s\n", tok_type_to_str(tools->current_token->type));
+        tools->error = err_syntax;
     }
 }
-/* 
- * Function to check if the current token has the expected attribute
+
+/**
+ * @brief Počáteční funkce rekurzivního sestupu
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void expect_attribute(const char* attr) {
-    printi("Expect_attribute: %s\n", attr);
-    if (current_token->attribute == NULL) {
-        fprintf(stderr, "Syntax error: Expected %s, but current token has no attribute\n", attr);
-        error = err_syntax;
-    }
-    if (strcmp(current_token->attribute, attr) != 0) {
-        fprintf(stderr, "Syntax error: Expected %s, got %s\n", attr, current_token->attribute);
-        error = err_syntax;
-    }
-}
-/************** Grammar functions ************** 
- *  Function to parse the <program> non-terminal
- */
-void program() {
+void program(parser_tools_t* tools) {
     printi(format[_comment], "<program>");
 
-    next_token();
-    prolog(); OK;
+    next_token(tools);
+    prolog(tools); OK;
 
+    // Generace prvního rámce
     printi("%s", format[_createframe]);
     printi(format[_call], "$main");
     printi(format[_jump], "&$main");
 
-    next_token();
-    function(); OK;
+    next_token(tools);
+    function(tools); OK;
 
-    expect_type(tok_t_eof); OK;
+    expect_types(tools, 1, tok_t_eof); OK;
 
-    pop(&stack_codegen);
+    stack_pop(&tools->stack_codegen);
 
-    printi_builtin(&string);
+    printi_builtin(&tools->string);
 
     printi(format[_label], "&$main");
 
     printi(format[_comment], "</program>");
 
-    str_unify(&string, &string_tmp);
-    str_clear(&string_tmp);
+    str_unify(&tools->string, &tools->string_tmp);
+    str_clear(&tools->string_tmp);
 }
-/* 
- *  Grammar: <prolog> → "const" <ID> "=" "@import" "(" <STR> ")" ";"
+
+/**
+ * @brief Zpracování prologu programu
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void prolog() {
-    str_append(&string, format[_comment], "<prolog>");
+void prolog(parser_tools_t* tools) {
+    str_append(&tools->string, format[_comment], "<prolog>");
 
-    // "const"
-    expect_type(tok_t_const); OK;  
+    expect_types(tools, 1, tok_t_const); OK;  
 
-    // "ID"
-    next_token();
-    expect_type(tok_t_sym); OK;
-    if(strcmp(current_token->attribute, "ifj") != 0){
-        error = err_syntax;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_sym); OK;
+    if(strcmp(tools->current_token->attribute, "ifj") != 0){
+        tools->error = err_syntax;
         return;
     }
 
-    push(&stack_codegen, current_token);
+    stack_push(&tools->stack_codegen, tools->current_token);
 
-    // "="
-    next_token();
-    expect_type(tok_t_ass); OK;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_ass); OK;
 
-    // "@import"
-    next_token();
-    expect_type(tok_t_import); OK; 
+    next_token(tools);
+    expect_types(tools, 1, tok_t_import); OK; 
 
-    // "("
-    next_token();
-    expect_type(tok_t_lpa); OK;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_lpa); OK;
 
-    // "STRING"
-    next_token();
-    expect_type(tok_t_str); OK;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_str); OK;
 
-    if(strcmp(current_token->attribute, "ifj24.zig") != 0){
-        error = err_syntax;
+    if(strcmp(tools->current_token->attribute, "ifj24.zig") != 0){
+        tools->error = err_syntax;
         return;
     }
 
-    // ")"
-    next_token();
-    expect_type(tok_t_rpa); OK;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_rpa); OK;
 
-    // ";"
-    next_token();
-    expect_type(tok_t_semicolon); OK;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_semicolon); OK;
 
-    // vložení všech built-in funkci do symtable
-    symtable_insert_builtin(current_symtable, &error); OK;
+    symtable_insert_builtin(tools->current_symtable, &tools->error); OK;
 
+    // Generace hlavičky cílového kódu
     printi(".ifjcode24\n");
 
     printi(format[_comment], "</prolog>");
 }
-/* 
- *  Grammar: <function> → "pub" "fn" <ID> "(" <parameter> ")" <return_type> "{" <statement> "}" <function_next>
+
+/**
+ * @brief Zpracování funkce
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void function() {
+void function(parser_tools_t* tools) {
     printi(format[_comment], "<function>");
     
-    current_symtable = DLL_Insert_last(&sym_list, &error); OK;
+    tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
 
-    expect_type(tok_t_pub); OK; // "pub"
+    expect_types(tools, 1, tok_t_pub); OK;
 
-    next_token();
-    expect_type(tok_t_fn); OK; // "fn"
+    next_token(tools);
+    expect_types(tools, 1, tok_t_fn); OK;
 
-    next_token();
-    expect_type(tok_t_sym); OK; // "ID"
-    push(&stack_codegen, current_token);
+    next_token(tools);
+    expect_types(tools, 1, tok_t_sym); OK;
+    stack_push(&tools->stack_codegen, tools->current_token);
 
-    current_symtable = DLL_GetFirst(&sym_list);
-    function_data = symtable_get_item(current_symtable, current_token->attribute, &error); OK;
-    current_symtable = DLL_GetLast(&sym_list);
+    tools->current_symtable = DLL_GetFirst(&tools->sym_list);
+    tools->function_data = symtable_get_item(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
+    tools->current_symtable = DLL_GetLast(&tools->sym_list);
 
-    sprintf(string_buffer, "$%s", current_token->attribute);
-    printi(format[_label], string_buffer);
+    sprintf(tools->string_buffer, "$%s", tools->current_token->attribute);
+    printi(format[_label], tools->string_buffer);
     printi("%s", format[_pushframe]);
 
-    str_unify(&string, &string_tmp);
-    str_clear(&string_tmp);
+    str_unify(&tools->string, &tools->string_tmp);
+    str_clear(&tools->string_tmp);
 
-    next_token(); // "("
-    expect_type(tok_t_lpa); OK;  
+    next_token(tools);
+    expect_types(tools, 1, tok_t_lpa); OK;  
 
-    next_token();
-    parameter(); OK;
+    next_token(tools);
+    parameter(tools); OK;
     
-    expect_type(tok_t_rpa); OK; // ")"
+    expect_types(tools, 1, tok_t_rpa); OK;
     
-    next_token();
-    return_type(); OK;
+    next_token(tools);
+    return_type(tools); OK;
 
-    next_token();
-    expect_type(tok_t_lcbr); OK; // "{"
+    next_token(tools);
+    expect_types(tools, 1, tok_t_lcbr); OK;
 
-    next_token();
+    next_token(tools);
+
+    // Generace speciální proměnné _
     printi(format[_defvar], "LF@_");
-    dynamic_array_insert(&depth_sequence, ++depth);
-    body(); OK;
-    depth--;
 
-    expect_type(tok_t_rcbr); OK; // "}"
+    // Zpracování těla funkce
+    dynamic_array_insert(&tools->depth_sequence, ++tools->depth);
+    body(tools); OK;
+    tools->depth--;
 
-    DLL_Delete_last(&sym_list, &error); OK;
+    expect_types(tools, 1, tok_t_rcbr); OK;
 
-    DLL_First(&sym_list);
-    current_symtable = DLL_GetCurrent(&sym_list);
-    data_t* data = symtable_get_item(current_symtable, pop(&stack_codegen)->attribute, &error); OK;
+    DLL_Delete_last(&tools->sym_list, &tools->error); OK;
+
+    DLL_First(&tools->sym_list);
+    tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
+    data_t* data = symtable_get_item(tools->current_symtable, stack_pop(&tools->stack_codegen)->attribute, &tools->error); OK;
 
     if(data == NULL) {
         fprintf(stderr, "Semantic error: Undefined function\n");
-        error = err_undef;
+        tools->error = err_undef;
         return;
     }
     
-    if (data->type != DATA_TYPE_VOID && depth_sequence.data[0] != -1) {
+    // Kontrola, zdali je ve funkci s návratovou hodnotou navracena hodnota
+    if (data->type != DATA_TYPE_VOID && tools->depth_sequence.data[0] != -1) {
         fprintf(stderr, "Semantic error: Function must return a value\n");
-        error = err_ret_val; OK;
+        tools->error = err_ret_val; OK;
     }
-    dynamic_array_clear(&depth_sequence);
-    DLL_Last(&sym_list);
-    current_symtable = DLL_GetLast(&sym_list);
+    dynamic_array_clear(&tools->depth_sequence);
+    DLL_Last(&tools->sym_list);
+    tools->current_symtable = DLL_GetLast(&tools->sym_list);
 
+    // Generace návratu z funkce
     printi("%s", format[_popframe]);
     printi("%s", format[_return]);
 
-    str_unify(&string, &string_tmp);
-    str_clear(&string_tmp);
-    str_clear(&string_defvar);
+    // Spojení hlavního a dočasného řetězce cílového kódu a vyčištění pomocných řetězců
+    str_unify(&tools->string, &tools->string_tmp);
+    str_clear(&tools->string_tmp);
+    str_clear(&tools->string_defvar);
 
-    next_token();
-    function_next(); OK;
+    next_token(tools);
+    function_next(tools); OK;
 
     printi(format[_comment], "</function>");
 }
-/*
- * Grammar: <function_next> → EOF | <function>
+
+/**
+ * @brief Zpracování dalších případných funkcí
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void function_next() {
+void function_next(parser_tools_t* tools) {
     printi(format[_comment], "<function_next>");
 
-    if (current_token->type != tok_t_eof) {
-        function(); OK;
+    if (tools->current_token->type != tok_t_eof) {
+        function(tools); OK;
     } else {
-        expect_type(tok_t_eof); OK;
+        expect_types(tools, 1, tok_t_eof); OK;
     }
     printi(format[_comment], "</function_next>");
 }
-/*
- * Grammar: <parameter> → ɛ | <ID> : <ID_type> <parameter_next>
+
+/**
+ * @brief Zpracování parametrů funkce
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void parameter() {
+void parameter(parser_tools_t* tools) {
     printi(format[_comment], "<parameter>");
 
-    if (current_token->type == tok_t_sym) {
-        sprintf(string_buffer, "LF@%s", current_token->attribute);
-        printi(format[_defvar], string_buffer);
-        printi(format[_pops], string_buffer);
+    if (tools->current_token->type == tok_t_sym) {
+        // Generace proměnné pro parametr
+        sprintf(tools->string_buffer, "LF@%s", tools->current_token->attribute);
+        printi(format[_defvar], tools->string_buffer);
+        printi(format[_pops], tools->string_buffer);
 
-        check_redefinition(); OK;
+        check_redefinition(tools); OK;
 
-        left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
-        left_data->isConst = true;
-        left_data->modified = true;
+        tools->left_data = symtable_insert(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
+        tools->left_data->isConst = true;
+        tools->left_data->modified = true;
 
-        next_token();
-        expect_type(tok_t_colon); OK; // ":"
+        next_token(tools);
+        expect_types(tools, 1, tok_t_colon); OK;
 
-        next_token();
-        bool varOrFunc = true;
-        type(varOrFunc); OK;
+        next_token(tools);
+        tools->varOrFunc = true;
+        type(tools); OK;
 
-        next_token();
-        parameter_next(); OK;
+        next_token(tools);
+        parameter_next(tools); OK;
     }
     printi(format[_comment], "</parameter>");
 }
-/*
- * Grammar: <parameter_next> → ɛ | "," <ID> : <ID_type> <parameter_next>
+
+/**
+ * @brief Zpracování dalších případných parametrů funkce
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void parameter_next() {
+void parameter_next(parser_tools_t* tools) {
     printi(format[_comment], "<parameter_next>");
 
-    if (current_token->type == tok_t_com) {
-        next_token();
-        parameter(); OK;
+    if (tools->current_token->type == tok_t_com) {
+        next_token(tools);
+        parameter(tools); OK;
     }
+
     printi(format[_comment], "</parameter_next>");
 }
-/*
- * Grammar: <body> → ɛ | <statement> <body>
+
+/**
+ * @brief Zpracování těla funkce
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru 
  */
-void body() {
+void body(parser_tools_t* tools) {
     printi(format[_comment], "<body>");
-    /* Toto je správně, ale zatím to necháme takto
-    while (current_token->type != tok_t_rcbr) {
-        statement(); OK;
-    }*/
-    if (current_token->type != tok_t_rcbr) {
-        expect_types(10, tok_t_sym, tok_t_unused, tok_t_const, tok_t_var, tok_t_if, tok_t_while, tok_t_for, tok_t_return, tok_t_break, tok_t_continue); OK;
-        statement(); OK;
-        body(); OK;
+
+    if (tools->current_token->type == tok_t_sym || tools->current_token->type == tok_t_unused || tools->current_token->type == tok_t_const || tools->current_token->type == tok_t_var || tools->current_token->type == tok_t_if ||
+        tools->current_token->type == tok_t_while || tools->current_token->type == tok_t_for || tools->current_token->type == tok_t_return || tools->current_token->type == tok_t_break || tools->current_token->type == tok_t_continue) {
+        statement(tools); OK;
+        body(tools); OK;
     }
 
     printi(format[_comment], "</body>");
 }
-/*
- * Grammar: <statement> → <id_statement> | <declaration> | <if_statement> | <while_statement> | <for_statement> | <return_statement> | <break_statement> | <continue_statement>
+
+/**
+ * @brief Zpracování jednotlivých příkazů
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void statement() {
+void statement(parser_tools_t* tools) {
     printi(format[_comment], "<statement>");
+
     bool constFlag = false;
-    left_data = NULL;
-    params = false;
-
-    DLL_Last(&sym_list);
-    current_symtable = DLL_GetCurrent(&sym_list);
-
+    tools->left_data = NULL;
+    tools->params = false;
+    DLL_Last(&tools->sym_list);
+    tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
     char destination[MAX_STRING_LEN];
 
-    switch (current_token->type) {
-    case tok_t_unused: //toto se v podstatě nemusí generovat ani kontrolovat
-        current_context = CONTEXT_NONE;
+    switch (tools->current_token->type) {
+    case tok_t_unused: //_
+        tools->current_context = CONTEXT_NONE;
         printi(format[_comment], "<id_option>");
         printi(format[_comment], "</id_option>");
 
-        next_token();
-        expect_type(tok_t_ass); OK;
+        next_token(tools);
+        expect_types(tools, 1, tok_t_ass); OK;
 
-        next_token();
-        value(); OK;
-        sprintf(string_buffer, "LF@_");
-        printi(format[_move], string_buffer, string_buffer_value);
+        // Získání hodnoty pro přiřazení
+        next_token(tools);
+        value(tools); OK;
 
-        expect_type(tok_t_semicolon); OK;
+        expect_types(tools, 1, tok_t_semicolon); OK;
 
-        next_token();
+        // Přiřazení hodnoty do speciální proměnné unused
+        sprintf(tools->string_buffer, "LF@_");
+        printi(format[_move], tools->string_buffer, tools->string_buffer_value);
+
+        next_token(tools);
         break;
 
-    case tok_t_sym:
-        current_context = CONTEXT_SYMBOL;
+    case tok_t_sym: //ID
+        tools->current_context = CONTEXT_SYMBOL;
         printi(format[_comment], "<id_option>");
         printi(format[_comment], "</id_option>");
 
-        strcpy(stringBuffer, current_token->attribute);
-        push(&stack_codegen, current_token);
+        //Uchování potřebných informací
+        strcpy(tools->string_buffer_semantic, tools->current_token->attribute);
+        stack_push(&tools->stack_codegen, tools->current_token);
 
-        next_token();
-        id_statement(); OK;
-        //printi(format[_label], string_buffer);
+        // Provedení akce v závislosti na tom, zda je symbol funkce či proměnná
+        next_token(tools);
+        id_statement(tools); OK;
 
-        expect_type(tok_t_semicolon); OK;
+        expect_types(tools, 1, tok_t_semicolon); OK;
 
-        next_token();
+        next_token(tools);
         break;
 
-    case tok_t_const:
+    case tok_t_const: //const
         constFlag = true;
-    case tok_t_var:
-        current_context = CONTEXT_SYMBOL;
+    case tok_t_var: // var
+        tools->current_context = CONTEXT_SYMBOL;
         printi(format[_comment], "<prefix>");
         printi(format[_comment], "</prefix>");
 
-        next_token();
-        expect_type(tok_t_sym); OK; // ID
+        next_token(tools);
+        expect_types(tools, 1, tok_t_sym); OK;
 
-        check_redefinition(); OK;
+        check_redefinition(tools); OK;
 
-        left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
+        tools->left_data = symtable_insert(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
         
-        left_data->isConst = constFlag;
-        left_data->modified = constFlag;
+        tools->left_data->isConst = constFlag;
+        tools->left_data->modified = constFlag;
 
-        sprintf(string_buffer, "LF@%s", current_token->attribute);
-
-        printi(format[_defvar], string_buffer);
-        strcpy(destination, string_buffer);
+        // Generace proměnné / konstanty
+        sprintf(tools->string_buffer, "LF@%s", tools->current_token->attribute);
+        printi(format[_defvar], tools->string_buffer);
+        strcpy(destination, tools->string_buffer);
         
-        next_token();
-        definition(); OK;
+        next_token(tools);
+        definition(tools); OK;
         
-        expect_type(tok_t_ass); OK;
+        expect_types(tools, 1, tok_t_ass); OK;
 
-        next_token();
-        value(); OK;
-
-        //left_data->type = result_data->type;
-        //left_data->canNull = result_data->canNull;
+        next_token(tools);
+        value(tools); OK;
         
-        printi(format[_move], destination, string_buffer_value);
+        // Generace přiřazení hodnoty k dané proměnné
+        printi(format[_move], destination, tools->string_buffer_value);
 
-        expect_type(tok_t_semicolon); OK;
+        expect_types(tools, 1, tok_t_semicolon); OK;
 
-        next_token();
+        next_token(tools);
         break;
 
-    case tok_t_if:
-        current_context = CONTEXT_CONDITION;
-        next_token(); // (
-        expect_type(tok_t_lpa); OK; 
+    case tok_t_if: // if
+        tools->current_context = CONTEXT_CONDITION;
+        next_token(tools);
+        expect_types(tools, 1, tok_t_lpa); OK; 
 
-        next_token();
-        int if_number = counter_codegen_if++;
-        sprintf(string_buffer, "LF@%%if%i", if_number);
-        printi(format[_defvar], string_buffer);
-        value(); OK;
-        sprintf(string_buffer, "LF@%%if%i", if_number);
-        printi(format[_move], string_buffer, string_buffer_value);
+        next_token(tools);
+        // Generace proměnné výsledku podmínky
+        int if_number = tools->counter_codegen_if++;
+        sprintf(tools->string_buffer, "LF@%%if%i", if_number);
+        printi(format[_defvar], tools->string_buffer);
+        value(tools); OK;
+        sprintf(tools->string_buffer, "LF@%%if%i", if_number);
+        printi(format[_move], tools->string_buffer, tools->string_buffer_value);
 
-        expect_type(tok_t_rpa); OK;
+        expect_types(tools, 1, tok_t_rpa); OK;
         
-        printi_condition_jump(&string_tmp, "if", if_number);
+        // Generace pro vyhodnocení podmíněného skoku
+        printi_condition_jump(&tools->string_tmp, "if", if_number);
 
-        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
+        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
+        
+        // Případné provedení výrazu podmíněného neprázdnou hodnotou
+        next_token(tools);
+        sprintf(tools->string_buffer, "LF@%%if%i", if_number);
+        not_null_value(tools); OK;
 
-        next_token();
-        sprintf(string_buffer, "LF@%%if%i", if_number);
-        not_null_value(); OK;
+        // Tělo pozitivního výsledku podmínky
+        then(tools); OK;
 
-        then(); OK;
+        // Generace skoku za celý if
+        sprintf(tools->string_buffer, "*$if%i", if_number);
+        printi(format[_jump], tools->string_buffer);
 
-        sprintf(string_buffer, "*$if%i", if_number);
-        printi(format[_jump], string_buffer);
+        // Generace návěští pro else
+        sprintf(tools->string_buffer, "!$if%i", if_number);
+        printi(format[_label], tools->string_buffer);
 
-        sprintf(string_buffer, "!$if%i", if_number);
-        printi(format[_label], string_buffer);
+        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
 
-        DLL_Delete_last(&sym_list, &error); OK;
+        // Tšlo negativního výsledku podmínky
+        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
+        else_then(tools); OK;
+        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
 
-        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
-        else_then(); OK;
-        DLL_Delete_last(&sym_list, &error); OK;
-
-        sprintf(string_buffer, "*$if%i", if_number);
-        printi(format[_label], string_buffer);
+        // Generace návěští pro konec if
+        sprintf(tools->string_buffer, "*$if%i", if_number);
+        printi(format[_label], tools->string_buffer);
         break;
 
-    case tok_t_while:
-        current_context = CONTEXT_CONDITION;
-        int previous_cycle_while = cycle;
-        counter_codegen_while += 2;
-        int while_number = counter_codegen_while;
-        cycle = counter_codegen_while;
+    case tok_t_while: // while
+        tools->current_context = CONTEXT_CONDITION;
+        int cycle_while = tools->cycle;
+        tools->counter_codegen_while += 2;
+        int while_number = tools->counter_codegen_while;
+        tools->cycle = tools->counter_codegen_while;
 
-        next_token();
-        expect_type(tok_t_lpa); OK;
+        next_token(tools);
+        expect_types(tools, 1, tok_t_lpa); OK;
 
-        next_token();
-        sprintf(string_buffer, "LF@%%while%i", while_number);
-        printi(format[_defvar], string_buffer);
+        // Generace proměnné výsledku podmínky
+        sprintf(tools->string_buffer, "LF@%%while%i", while_number);
+        printi(format[_defvar], tools->string_buffer);
 
-        sprintf(string_buffer, "*$while%i", while_number);
-        printi(format[_label], string_buffer);
+        // Generace návěští pro počátek while
+        sprintf(tools->string_buffer, "*$while%i", while_number);
+        printi(format[_label], tools->string_buffer);
 
-        value(); OK;
-        sprintf(string_buffer, "LF@%%while%i", while_number);
-        printi(format[_move], string_buffer, string_buffer_value);
+        // Generace vyhodnocení podmínky
+        next_token(tools);
+        value(tools); OK;
+        sprintf(tools->string_buffer, "LF@%%while%i", while_number);
+        printi(format[_move], tools->string_buffer, tools->string_buffer_value);
 
-        expect_type(tok_t_rpa); OK;
+        expect_types(tools, 1, tok_t_rpa); OK;
 
-        printi_condition_jump(&string_tmp, "while", while_number);
+        // Generace pro vyhodnocení podmíněného skoku
+        printi_condition_jump(&tools->string_tmp, "while", while_number);
 
-        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
+        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
 
-        next_token();
-        sprintf(string_buffer, "LF@%%while%i", while_number);
-        not_null_value(); OK;
+        // Případné provedení výrazu podmíněného neprázdnou hodnotou
+        next_token(tools);
+        sprintf(tools->string_buffer, "LF@%%while%i", while_number);
+        not_null_value(tools); OK;
 
-        then(); OK;
-        DLL_Delete_last(&sym_list, &error); OK;
+        // Tělo pozitivního výsledku podmínky
+        then(tools); OK;
+        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
 
-        sprintf(string_buffer, "*$while%i", while_number);
-        printi(format[_jump], string_buffer);
+        // Generace skoku na začátek while
+        sprintf(tools->string_buffer, "*$while%i", while_number);
+        printi(format[_jump], tools->string_buffer);
 
-        sprintf(string_buffer, "!$while%i", while_number);
-        printi(format[_label], string_buffer);
-        cycle = previous_cycle_while;
+        // Generace návěští pro konec while
+        sprintf(tools->string_buffer, "!$while%i", while_number);
+        printi(format[_label], tools->string_buffer);
+        tools->cycle = cycle_while;
 
-        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
+        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
 
-        else_then(); OK;
-        DLL_Delete_last(&sym_list, &error); OK;
+        // Tělo negativního výsledku podmínky
+        else_then(tools); OK;
+        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
 
-        sprintf(string_buffer, "&$while%i", while_number);
-        printi(format[_label], string_buffer);
+        // Generace návěští pro konec while
+        sprintf(tools->string_buffer, "&$while%i", while_number);
+        printi(format[_label], tools->string_buffer);
         break;
 
-    case tok_t_for:
-        current_context = CONTEXT_CONDITION_FOR;
-        int previous_cycle_for = cycle;
-        counter_codegen_for += 2;
-        int for_number = counter_codegen_for;
-        cycle = counter_codegen_for;
+    case tok_t_for: //for
+        tools->current_context = CONTEXT_CONDITION_FOR;
+        int cycle_for = tools->cycle;
+        tools->counter_codegen_for += 2;
+        int for_number = tools->counter_codegen_for;
+        tools->cycle = tools->counter_codegen_for;
 
-        next_token();
-        expect_type(tok_t_lpa); OK;
+        next_token(tools);
+        expect_types(tools, 1, tok_t_lpa); OK;
 
-        next_token();
-        expect_types(3, tok_t_sym, tok_t_str, tok_t_mstr); OK;
+        next_token(tools);
+        expect_types(tools, 3, tok_t_sym, tok_t_str, tok_t_mstr); OK;
 
-        strcat(stringBuffer, current_token->attribute);
+        strcat(tools->string_buffer_semantic, tools->current_token->attribute);
 
-        for_value(); OK;
+        // Získání řetězce ve for, generace proměnné pro for a počitadla cyklů for
+        for_value(tools); OK;
+        sprintf(tools->string_buffer, "LF@%%forcounter%i", for_number);
+        printi(format[_defvar], tools->string_buffer);
+        printi(format[_move], tools->string_buffer, "int@0");
+        sprintf(tools->string_buffer, "LF@%%for%i", for_number);
+        printi(format[_defvar], tools->string_buffer);
+        sprintf(tools->string_buffer, "LF@%%for%i", for_number);
+        printi(format[_move], tools->string_buffer, tools->string_buffer_value);
 
-        sprintf(string_buffer, "LF@%%forcounter%i", for_number);
-        printi(format[_defvar], string_buffer);
-        printi(format[_move], string_buffer, "int@0");
-        sprintf(string_buffer, "LF@%%for%i", for_number);
-        printi(format[_defvar], string_buffer);
+        expect_types(tools, 1, tok_t_rpa); OK;
 
-        sprintf(string_buffer, "LF@%%for%i", for_number);
-        printi(format[_move], string_buffer, string_buffer_value);
+        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
 
-        expect_type(tok_t_rpa); OK;
+        next_token(tools);
+        expect_types(tools, 1, tok_t_alias); OK;
 
-        current_symtable = DLL_Insert_last(&sym_list, &error); OK;
-
-        next_token();
-        expect_type(tok_t_alias); OK;
-        next_token();
-        expect_types(2, tok_t_sym, tok_t_unused); OK;
+        next_token(tools);
+        expect_types(tools, 2, tok_t_sym, tok_t_unused); OK;
         printi(format[_comment], "<id_option>");
         printi(format[_comment], "</id_option>");
 
-        if (current_token->type == tok_t_sym) {
-            sprintf(destination, "LF@%s", current_token->attribute);
+        // Generace proměnné pro uložeí hodnoty výrazu ve for
+        if (tools->current_token->type == tok_t_sym) { // ID
+            sprintf(destination, "LF@%s", tools->current_token->attribute);
             printi(format[_defvar], destination);
 
-            check_redefinition(); OK;
+            check_redefinition(tools); OK;
 
-            left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
-            left_data->type = DATA_TYPE_INT;
-            left_data->canNull = false;
-            left_data->modified = true;
-        } else {
+            tools->left_data = symtable_insert(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
+            tools->left_data->type = DATA_TYPE_INT;
+            tools->left_data->canNull = false;
+            tools->left_data->modified = true;
+        } else { // Specialní proměnná _
             sprintf(destination, "LF@_");
         }
 
-        sprintf(string_buffer, "*$for%i", for_number);
-        printi(format[_label], string_buffer);
+        // Generace přiřazení hodnoty výrazu ve for
+        sprintf(tools->string_buffer, "*$for%i", for_number);
+        printi(format[_label], tools->string_buffer);
 
+        // Generace získání ordinální hodnoty řetězce ve for na základě počitadla cyklů
         printi("%s", format[_createframe]);
-        sprintf(string_buffer, "LF@%%forcounter%i", for_number);
-        printi(format[_pushs], string_buffer);
-        sprintf(string_buffer, "LF@%%for%i", for_number);
-        printi(format[_pushs], string_buffer);
-        sprintf(string_buffer, "LF@%%forcounter%i", for_number);
-        printi(format[_add], string_buffer, string_buffer, "int@1");
+        sprintf(tools->string_buffer, "LF@%%forcounter%i", for_number);
+        printi(format[_pushs], tools->string_buffer);
+        sprintf(tools->string_buffer, "LF@%%for%i", for_number);
+        printi(format[_pushs], tools->string_buffer);
+        sprintf(tools->string_buffer, "LF@%%forcounter%i", for_number);
+        printi(format[_add], tools->string_buffer, tools->string_buffer, "int@1");
         printi(format[_call], "$$$ord");
         printi(format[_move], destination, "TF@%retval");
+        printi("JUMPIFEQ !$for%i %s int@0\n", for_number, destination);
 
-        printi("JUMPIFEQ !$for%i %s nil@nil\n", for_number, destination);
+        next_token(tools);
+        expect_types(tools, 1, tok_t_alias); OK;
 
-        next_token();
-        expect_type(tok_t_alias); OK;
+        next_token(tools);
 
-        next_token();
+        then(tools); OK;
 
-        then(); OK;
+        // Skok na začátek cyklu for
+        sprintf(tools->string_buffer, "*$for%i", for_number);
+        printi(format[_jump], tools->string_buffer);
 
-        sprintf(string_buffer, "*$for%i", for_number);
-        printi(format[_jump], string_buffer);
+        // Návěští pro konec cyklu for
+        sprintf(tools->string_buffer, "!$for%i", for_number);
+        printi(format[_label], tools->string_buffer);
 
-        sprintf(string_buffer, "!$for%i", for_number);
-        printi(format[_label], string_buffer);
+        tools->cycle = cycle_for;
 
-        cycle = previous_cycle_for;
-
-        DLL_Delete_last(&sym_list, &error); OK;
+        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
         break;
 
-    case tok_t_return:
-        current_context = CONTEXT_RETURN;
-        next_token();
-        return_value(); OK;
+    case tok_t_return: // return
+        tools->current_context = CONTEXT_RETURN;
+        next_token(tools);
+        return_value(tools); OK;
 
         printi("%s", format[_popframe]);
         printi("%s", format[_return]);
 
-        expect_type(tok_t_semicolon); OK;
+        expect_types(tools, 1, tok_t_semicolon); OK;
 
-        next_token();
+        next_token(tools);
         break;
 
-    case tok_t_break:
-        if (cycle == -1) {
+    case tok_t_break: // break
+        if (tools->cycle == -1) {  // Kontrola, zda je break mimo cyklus
             fprintf(stderr, "Syntax error: Break statement outside of a loop\n");
-            error = err_syntax;
+            tools->error = err_syntax;
             return;
-        } else if (cycle % 2 == 0) {
-            sprintf(string_buffer, "&$while%i", cycle);
-            printi(format[_jump], string_buffer);
-        } else {
-            sprintf(string_buffer, "&$for%i", cycle);
-            printi(format[_jump], string_buffer);
+        } else if (tools->cycle % 2 == 0) { // Kontrola, zda je break ve while
+            sprintf(tools->string_buffer, "&$while%i", tools->cycle);
+            printi(format[_jump], tools->string_buffer);
+        } else { // Kontrola, zda je break ve for
+            sprintf(tools->string_buffer, "&$for%i", tools->cycle);
+            printi(format[_jump], tools->string_buffer);
         }
 
-        next_token();
-        expect_type(tok_t_semicolon); OK;
+        next_token(tools);
+        expect_types(tools, 1, tok_t_semicolon); OK;
 
-        next_token();
+        next_token(tools);
         break;
 
-    case tok_t_continue:
-        if (cycle == -1) {
+    case tok_t_continue: // continue
+        if (tools->cycle == -1) { // Kontrola, zda je continue mimo cyklus
             fprintf(stderr, "Syntax error: Continue statement outside of a loop\n");
-            error = err_syntax;
+            tools->error = err_syntax;
             return;
-        } else if (cycle % 2 == 0) {
-            sprintf(string_buffer, "*$while%i", cycle);
-            printi(format[_jump], string_buffer);
-        } else {
-            sprintf(string_buffer, "*$for%i", cycle);
-            printi(format[_jump], string_buffer);
+        } else if (tools->cycle % 2 == 0) { // Kontrola, zda je continue ve while
+            sprintf(tools->string_buffer, "*$while%i", tools->cycle);
+            printi(format[_jump], tools->string_buffer);
+        } else { // Kontrola, zda je continue ve for
+            sprintf(tools->string_buffer, "*$for%i", tools->cycle);
+            printi(format[_jump], tools->string_buffer);
         }
 
-        next_token();
-        expect_type(tok_t_semicolon); OK;
+        next_token(tools);
+        expect_types(tools, 1, tok_t_semicolon); OK;
 
-        next_token();
+        next_token(tools);
         break;
     }
 
     printi(format[_comment], "</statement>");
 }
 
-void id_statement() {
+/**
+ * @brief Zpracování příkazu počínající symbolem
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void id_statement(parser_tools_t* tools) {
     printi(format[_comment], "<id_statement>");
 
-    if (current_token->type == tok_t_ass) {
-        DLL_Last(&sym_list);
-        current_symtable = DLL_GetCurrent(&sym_list);
-        while(sym_list.current != sym_list.first){
-            left_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
-            if (left_data != NULL){   
+    if (tools->current_token->type == tok_t_ass) { // Příkaz je přiřazení
+        // Vyhledání symbolu mezi v symtable
+        DLL_Last(&tools->sym_list);
+        tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
+        while(tools->sym_list.current != tools->sym_list.first){
+            tools->left_data = symtable_get_item(tools->current_symtable, stack_peek(&tools->stack_codegen)->attribute, &tools->error); OK;
+            if (tools->left_data != NULL){   
                 break;     
             }
-            DLL_Prev(&sym_list);
-            current_symtable = DLL_GetCurrent(&sym_list);
+            DLL_Prev(&tools->sym_list);
+            tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
         }
-        DLL_Last(&sym_list);
-        current_symtable = DLL_GetLast(&sym_list);
+        DLL_Last(&tools->sym_list);
+        tools->current_symtable = DLL_GetLast(&tools->sym_list);
 
-        if(sym_list.current == sym_list.first || left_data == NULL){
-            fprintf(stderr, "Semantic error: %s is undefined variable\n", current_token->attribute);
-            error = err_undef;
+        if(tools->sym_list.current == tools->sym_list.first || tools->left_data == NULL){
+            fprintf(stderr, "Semantic error: %s is undefined variable\n", tools->current_token->attribute);
+            tools->error = err_undef;
             return;
         }       
-
-        if(left_data->isConst){
-            fprintf(stderr, "Semantic error: %s is constant\n", current_token->attribute);
-            error = err_redef;
+        if(tools->left_data->isConst){
+            fprintf(stderr, "Semantic error: %s is constant\n", tools->current_token->attribute);
+            tools->error = err_redef;
             return;
         }
 
-        left_data->modified = true;
-        next_token();
-        stringBuffer[0] = '\0';
-        value(); OK;
+        // Získání hodnoty pro přiřazení
+        tools->left_data->modified = true;
+        next_token(tools);
+        tools->string_buffer_semantic[0] = '\0';
+        value(tools); OK;
 
-        sprintf(string_buffer, "LF@%s", pop(&stack_codegen)->attribute);
-        printi(format[_move], string_buffer, string_buffer_value);
-    } else {
-        current_context = CONTEXT_NONE;
-        right_data = NULL;
-        bool is_left = true;
-        call(is_left); OK;
+        // Generace přiřazení hodnoty k dané proměnné
+        sprintf(tools->string_buffer, "LF@%s", stack_pop(&tools->stack_codegen)->attribute);
+        printi(format[_move], tools->string_buffer, tools->string_buffer_value);
+    } else { // Příkaz je voláním funkce
+        tools->current_context = CONTEXT_NONE;
+        tools->right_data = NULL;
+        tools->is_left = true;
+        call(tools); OK;
 
-        next_token();
+        next_token(tools);
     }
 
     printi(format[_comment], "</id_statement>");
 }
-/*
- * Grammar: <value> → <expression> | <literal> | <ID>
+
+/**
+ * @brief Zpracování hodnoty
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void value() {
+void value(parser_tools_t* tools) {
     printi(format[_comment], "<value>");
 
-    expect_types(9, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym, tok_t_lpa, tok_t_not); OK;
+    expect_types(tools, 9, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym, tok_t_lpa, tok_t_not); OK;
 
-    parse_expression(); OK;
-    sprintf(string_buffer_value, "LF@%%expression%i", counter_global++);
-    printi(format[_defvar], string_buffer_value);
-    printi(format[_pops], string_buffer_value);
+    // Zpracování výrazu
+    expression(tools); OK;
+    sprintf(tools->string_buffer_value, "LF@%%expression%i", tools->counter_global++);
+    printi(format[_defvar], tools->string_buffer_value);
+    printi(format[_pops], tools->string_buffer_value);
 
     printi(format[_comment], "</value>");
 }
-/*
- * Grammar: <not_null_value> → <ID> <id_continue> | <STRING> | <value>
+
+/**
+ * @brief Přiřazení hodnoty výrazu podmíněného neprázdnou hodnotou
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void not_null_value() {
+void not_null_value(parser_tools_t* tools) {
     printi(format[_comment], "<not_null_value>");
 
-    if (current_token->type == tok_t_alias) {
-        if(result_data->type == DATA_TYPE_BOOLEAN){
+    if (tools->current_token->type == tok_t_alias) { // Pokud se má provést přiřazení neprázdné hodnoty
+        if(tools->result_data->type == DATA_TYPE_BOOLEAN){
             fprintf(stderr, "Semantic error: Cannot cast boolean to id_without_null\n");
-            error = err_dt_invalid;
+            tools->error = err_dt_invalid;
             return;
         }
 
-        next_token();
-        expect_types(2, tok_t_sym, tok_t_unused); OK; // ID
+        // Generace proměnné pro uložení hodnoty výrazu
+        next_token(tools);
+        expect_types(tools, 2, tok_t_sym, tok_t_unused); OK; // ID
         char source[MAX_STRING_LEN];
-        strcpy(source, string_buffer);
-        if (current_token->type == tok_t_sym) {
-            sprintf(string_buffer, "LF@%s", current_token->attribute);
-            printi(format[_defvar], string_buffer);
+        strcpy(source, tools->string_buffer);
+        if (tools->current_token->type == tok_t_sym) { // ID
+            sprintf(tools->string_buffer, "LF@%s", tools->current_token->attribute);
+            printi(format[_defvar], tools->string_buffer);
 
-            check_redefinition(); OK;
+            check_redefinition(tools); OK;
 
-            left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
-            left_data->type = result_data->type;
-            left_data->canNull = !result_data->canNull;
-            left_data->modified = true;
-        } else {
-            sprintf(string_buffer, "LF@_");
+            tools->left_data = symtable_insert(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
+            tools->left_data->type = tools->result_data->type;
+            tools->left_data->canNull = !tools->result_data->canNull;
+            tools->left_data->modified = true;
+        } else { // Specialní proměnná _
+            sprintf(tools->string_buffer, "LF@_");
         }
-        printi(format[_move], string_buffer, source);
+        printi(format[_move], tools->string_buffer, source);
 
-        next_token();
-        expect_type(tok_t_alias); OK; // |
+        next_token(tools);
+        expect_types(tools, 1, tok_t_alias); OK; // |
 
-        next_token();
+        next_token(tools);
     }
-    else{
-        if(result_data->type != DATA_TYPE_BOOLEAN){
-            if(!result_data->canNull){
+    else{ // Pokud se má provést pouze vyhodnocení výrazu
+        if(tools->result_data->type != DATA_TYPE_BOOLEAN){
+            if(!tools->result_data->canNull){
                 fprintf(stderr, "Semantic error: Missing id_without_null\n");
-                error = err_dt_invalid;
+                tools->error = err_dt_invalid;
             }
             return;
         }
@@ -1285,299 +1314,310 @@ void not_null_value() {
 
     printi(format[_comment], "</not_null_value>");
 }
-void then() {
+
+/**
+ * @brief Zpracování těla cyklů a podmínek
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void then(parser_tools_t* tools) {
     printi(format[_comment], "<then>");
-    dynamic_array_insert(&depth_sequence, ++depth);
 
-    if (current_token->type == tok_t_lcbr) {
-        next_token();
-        body(); OK;
+    // Zvýšení hloubky
+    dynamic_array_insert(&tools->depth_sequence, ++tools->depth);
+    if (tools->current_token->type == tok_t_lcbr) { // Tělo je blok
+        next_token(tools);
+        body(tools); OK;
 
-        expect_type(tok_t_rcbr); OK;
+        expect_types(tools, 1, tok_t_rcbr); OK;
 
-        next_token();
-    } else {
-        expect_types(10, tok_t_sym, tok_t_unused, tok_t_const, tok_t_var, tok_t_if, tok_t_while, tok_t_for, tok_t_return, tok_t_break, tok_t_continue); OK;
-        statement(); OK;
+        next_token(tools);
+    } else { // Tělo je jednoduchý příkaz
+        expect_types(tools, 10, tok_t_sym, tok_t_unused, tok_t_const, tok_t_var, tok_t_if, tok_t_while, tok_t_for, tok_t_return, tok_t_break, tok_t_continue); OK;
+        statement(tools); OK;
     }
+    --tools->depth;
 
-    --depth;
     printi(format[_comment], "</then>");
 }
-/*
- * Grammar: <else_then> → ɛ | "else" <then>
+
+/**
+ * @brief Zpracování těla else
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void else_then() {
+void else_then(parser_tools_t* tools) {
     printi(format[_comment], "<else_then>");
 
-    if (current_token->type == tok_t_else) {
-        next_token();
-        then(); OK;
+    if (tools->current_token->type == tok_t_else) { // Poku je else
+        next_token(tools);
+        then(tools); OK;
+
         bool else_returned = false;
-        // && depth > depth_sequence.data[index]
-        for (int index = depth_sequence.size - 1; index >= 0; index--) {
-            if (depth_sequence.data[index] <= depth + 1 && depth_sequence.data[index] > 0 || depth_sequence.data[index] > -depth - 1 && depth_sequence.data[index] < 0) {
+        for (int index = tools->depth_sequence.size - 1; index >= 0; index--) { // Pro každou již procházenou hloubku
+            if (tools->depth_sequence.data[index] <= tools->depth + 1 && tools->depth_sequence.data[index] > 0 || tools->depth_sequence.data[index] > -tools->depth - 1 && tools->depth_sequence.data[index] < 0) {
                 break;
-            } else if (else_returned && depth_sequence.data[index] == -1 - depth) {
-                for (int index2 = depth_sequence.size - 1; index2 >= 0; index2--) {
-                    if (depth_sequence.data[index2] > 0) {
-                        depth_sequence.data[index2] *= -1; 
+            } else if (else_returned && tools->depth_sequence.data[index] == -1 - tools->depth) { // pokud else větev obsahuje return a kladná taktéž
+                // Označení všech nižších či shodných hloubek do první vyšší, které byly již procházeny, za navrácené
+                for (int index2 = tools->depth_sequence.size - 1; index2 >= 0; index2--) { 
+                    if (tools->depth_sequence.data[index2] > 0) {
+                        tools->depth_sequence.data[index2] *= -1; 
                     }
-                    if (depth_sequence.data[index2] <= depth && depth_sequence.data[index2] > 0 || depth_sequence.data[index2] >= -depth && depth_sequence.data[index2] < 0) {
+                    if (tools->depth_sequence.data[index2] <= tools->depth && tools->depth_sequence.data[index2] > 0 || tools->depth_sequence.data[index2] >= -tools->depth && tools->depth_sequence.data[index2] < 0) {
                         break;
                     }
                 }
                 break;
-            } else if (depth_sequence.data[index] == -1 - depth) {
+            } else if (tools->depth_sequence.data[index] == -1 - tools->depth) { // else větev obsahuje return
                 else_returned = true;
             }
         }
     }
     printi(format[_comment], "</else_then>");
 }
-/*
- * Grammar: <id_continue> → "." <ID> <call> | "(" <call_params> ")"
+
+/**
+ * @brief Zpracování symbolu
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void id_continue() {
+void id_continue(parser_tools_t* tools) {
     printi(format[_comment], "<id_continue>");
 
-    if (current_token->type == tok_t_dot || current_token->type == tok_t_lpa) {
+    if (tools->current_token->type == tok_t_dot || tools->current_token->type == tok_t_lpa) { // Symbol je funkce
         char source[MAX_STRING_LEN]; 
-        strcpy(source, string_buffer_value);
+        strcpy(source, tools->string_buffer_value);
 
-        bool is_left = false;
-        call(is_left); OK;
-        strcpy(string_buffer_value, source);
+        tools->is_left = false;
+        call(tools); OK;
+        strcpy(tools->string_buffer_value, source);
 
-        sprintf(string_buffer_value, "TF@%%retval");
+        sprintf(tools->string_buffer_value, "TF@%%retval");
 
-        next_token();
-    } else {
-        if(params){
-            data_t *param_data;
-            DLL_Last(&sym_list);
-            current_symtable = DLL_GetCurrent(&sym_list);
-            while(sym_list.current != sym_list.first) {
-                param_data = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
-                if(param_data == NULL){
-                    DLL_Prev(&sym_list);
-                    current_symtable = DLL_GetCurrent(&sym_list);
-                } else {
-                    break;
-                }
+        next_token(tools);
+    } else { // Symbol je proměnná
+        data_t *data;
+        DLL_Last(&tools->sym_list);
+        tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
+        while(tools->sym_list.current != tools->sym_list.first) {
+            data = symtable_get_item(tools->current_symtable, stack_peek(&tools->stack_codegen)->attribute, &tools->error); OK;
+            if(data == NULL){
+                DLL_Prev(&tools->sym_list);
+                tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
+            } else {
+                break;
             }
-            DLL_Last(&sym_list);
-            current_symtable = DLL_GetLast(&sym_list);
-
-            if(sym_list.current == sym_list.first || param_data == NULL){ 
-                fprintf(stderr, "Semantic error: %s is undefined parameter\n", current_token->attribute);
-                error = err_undef;
-                return;
-            }
-            param_data->used = true;
-            sprintf(string_buffer_value, "LF@%s", pop(&stack_codegen)->attribute);
         }
-        else{
-            data_t *id_save;
-            DLL_Last(&sym_list);
-            current_symtable = DLL_GetCurrent(&sym_list);
-            while(sym_list.current != sym_list.first) {
-                id_save = symtable_get_item(current_symtable, peek(&stack_codegen)->attribute, &error); OK;
-                if(id_save == NULL){
-                    DLL_Prev(&sym_list);
-                    current_symtable = DLL_GetCurrent(&sym_list);
-                } else {
-                    break;
-                }
-            }
-            DLL_Last(&sym_list);
-            DLL_GetLast(&sym_list);
-
-            if(sym_list.current == sym_list.first || id_save == NULL){ 
-                fprintf(stderr, "Semantic error: %s is undefined variable\n", current_token->attribute);
-                error = err_undef;
-                return;
-            }
-            id_save->used = true;
-            sprintf(string_buffer_value, "LF@%s", pop(&stack_codegen)->attribute);
-            
+        DLL_Last(&tools->sym_list);
+        if (tools->params) {
+            tools->current_symtable = DLL_GetLast(&tools->sym_list);
         }
+
+        if(tools->sym_list.current == tools->sym_list.first || data == NULL) {
+            if (tools->params) {
+                fprintf(stderr, "Semantic error: %s is undefined parameter\n", tools->current_token->attribute);
+            } else {
+                fprintf(stderr, "Semantic error: %s is undefined variable\n", tools->current_token->attribute);
+            }
+            tools->error = err_undef;
+            return;
+        }
+        data->used = true;
+        sprintf(tools->string_buffer_value, "LF@%s", stack_pop(&tools->stack_codegen)->attribute);
     }
 
     printi(format[_comment], "</id_continue>");
 }
-/*
- * Grammar: <return_value> → ɛ | <value>
+
+/**
+ * @brief Zpracování návratové hodnoty funkce
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void return_value() {
+void return_value(parser_tools_t* tools) {
     printi(format[_comment], "<return_value>");
 
-    if (current_token->type != tok_t_semicolon) {
-        if(function_data->type == DATA_TYPE_VOID){
+    if (tools->current_token->type != tok_t_semicolon) {
+        if(tools->function_data->type == DATA_TYPE_VOID){
             fprintf(stderr, "Semantic error: void function cannot return value\n");
-            error = err_ret_val;
+            tools->error = err_ret_val;
             return;
         }
 
-        value(); OK;
-        sprintf(string_buffer, "LF@%%retval");
-        printi(format[_move], string_buffer, string_buffer_value);
+        value(tools); OK;
+        sprintf(tools->string_buffer, "LF@%%retval");
+        printi(format[_move], tools->string_buffer, tools->string_buffer_value);
     }
     else {
-        if(function_data->type != DATA_TYPE_VOID){
+        if(tools->function_data->type != DATA_TYPE_VOID){
             fprintf(stderr, "Semantic error: not void function must return value\n");
-            error = err_ret_val;
+            tools->error = err_ret_val;
             return;
         }
     }
 
-
-    for (int index = depth_sequence.size - 1; index >= 0; index--) {
-        if (depth_sequence.data[index] > 0) {
-            depth_sequence.data[index] *= -1;
+    // Označení všech nižších, které byly již procházeny, za navrácené
+    for (int index = tools->depth_sequence.size - 1; index >= 0; index--) {
+        if (tools->depth_sequence.data[index] > 0) {
+            tools->depth_sequence.data[index] *= -1;
         }
-        if (depth_sequence.data[index] <= depth && depth_sequence.data[index] > 0 || depth_sequence.data[index] >= -depth && depth_sequence.data[index] < 0) {
+        if (tools->depth_sequence.data[index] <= tools->depth && tools->depth_sequence.data[index] > 0 || tools->depth_sequence.data[index] >= -tools->depth && tools->depth_sequence.data[index] < 0) {
             break;
         }
     }
     printi(format[_comment], "</return_value>");
 }
-/*
- * Grammar: <call> → "." <ID> <call_params> | "(" <call_params> ")"
+
+/**
+ * @brief Zpracování volání funkce
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void call(bool is_left) {
+void call(parser_tools_t* tools) {
     printi(format[_comment], "<call>");
-    param_count = -1; 
-    params = true;
+    int param_count_save = tools->param_count;
+    tools->param_count = -1;
+    tools->params = true;
     
     printi("%s", format[_createframe]);
-    if (current_token->type == tok_t_dot) { //a.a()
-        pop(&stack_codegen);
+    if (tools->current_token->type == tok_t_dot) { // Vestavěná funkce
+        stack_pop(&tools->stack_codegen);
 
-        strcat(stringBuffer, ".");
-        next_token();
-        expect_type(tok_t_sym); OK;
-        strcat(stringBuffer, current_token->attribute);
-                
-        current_symtable = DLL_GetFirst(&sym_list);
-        right_data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
-        current_symtable = DLL_GetLast(&sym_list);
-        if(right_data == NULL){
-            fprintf(stderr, "Semantic error: %s is undefined function\n", current_token->attribute);
-            error = err_undef; 
+        // Získání kompletního názvu vestavěné funkce
+        strcat(tools->string_buffer_semantic, ".");
+        next_token(tools);
+        expect_types(tools, 1, tok_t_sym); OK;
+        strcat(tools->string_buffer_semantic, tools->current_token->attribute);
+        
+        // Získání informací o vestavěné funkci
+        tools->current_symtable = DLL_GetFirst(&tools->sym_list);
+        tools->right_data = symtable_get_item(tools->current_symtable, tools->string_buffer_semantic, &tools->error); OK;
+        tools->current_symtable = DLL_GetLast(&tools->sym_list);
+        if(tools->right_data == NULL){
+            fprintf(stderr, "Semantic error: %s is undefined function\n", tools->current_token->attribute);
+            tools->error = err_undef; 
             return;
         }
-        right_data->used = true;
-
-        if (is_left){
-            if(right_data->type != DATA_TYPE_VOID){
+        tools->right_data->used = true;
+        if (tools->is_left){
+            if(tools->right_data->type != DATA_TYPE_VOID){
                 fprintf(stderr, "Semantic error: cannot discard the return value");
-                error = err_param;
+                tools->error = err_param;
                 return;
             }
         }
         
-        push(&stack_codegen, current_token);
+        stack_push(&tools->stack_codegen, tools->current_token);
 
-        next_token();
-        expect_type(tok_t_lpa); OK;
+        next_token(tools);
+        expect_types(tools, 1, tok_t_lpa); OK;
 
-        next_token();
+        next_token(tools);
 
-        call_params(); OK;
+        // Zpracování parametrů volání vestavěné funkce
+        call_params(tools); OK;
 
-        expect_type(tok_t_rpa); OK;
+        expect_types(tools, 1, tok_t_rpa); OK;
 
-        sprintf(string_buffer, "$$$%s", pop(&stack_codegen)->attribute);
-    } else { //a()
-        expect_type(tok_t_lpa); OK;
+        // Získání názvu návěští funkce
+        sprintf(tools->string_buffer, "$$$%s", stack_pop(&tools->stack_codegen)->attribute);
+    } else { // Funkce
+        expect_types(tools, 1, tok_t_lpa); OK;
 
-        current_symtable = DLL_GetFirst(&sym_list);
-        right_data = symtable_get_item(current_symtable, stringBuffer, &error); OK;
-        if(right_data == NULL){
-            fprintf(stderr, "Semantic error: %s is undefined function\n", current_token->attribute);
-            error = err_undef; 
+        // Získání informací o funkci
+        tools->current_symtable = DLL_GetFirst(&tools->sym_list);
+        tools->right_data = symtable_get_item(tools->current_symtable, tools->string_buffer_semantic, &tools->error); OK;
+        if(tools->right_data == NULL){
+            fprintf(stderr, "Semantic error: %s is undefined function\n", tools->current_token->attribute);
+            tools->error = err_undef; 
             return;
         }
-        current_symtable = DLL_GetLast(&sym_list);
-
-        if (is_left){
-            if(right_data->type != DATA_TYPE_VOID){
+        tools->current_symtable = DLL_GetLast(&tools->sym_list);
+        if (tools->is_left){
+            if(tools->right_data->type != DATA_TYPE_VOID){
                 fprintf(stderr, "Semantic error: cannot discard the return value");
-                error = err_param;
+                tools->error = err_param;
                 return;
             }
         }
-        right_data->used = true;
+        tools->right_data->used = true;
 
-        next_token();
-        call_params(); OK;
+        next_token(tools);
+        call_params(tools); OK;
 
-        expect_type(tok_t_rpa); OK;
+        expect_types(tools, 1, tok_t_rpa); OK;
 
-        sprintf(string_buffer, "$%s", pop(&stack_codegen)->attribute);
+        // Získání názvu návěští funkce
+        sprintf(tools->string_buffer, "$%s", stack_pop(&tools->stack_codegen)->attribute);
     }
-    printi(format[_call], string_buffer);
+    tools->param_count = param_count_save;
+
+    printi(format[_call], tools->string_buffer);
     printi(format[_comment], "</call>");
 }
-/*
- * Grammar: <call_params> → ɛ | <call_value> <call_params_next>
+
+/**
+ * @brief Zpracování parametrů volání funkce
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void call_params() {
+void call_params(parser_tools_t* tools) {
     printi(format[_comment], "<call_params>");
-    char stringBuffer2[MAX_STRING_LEN];
-    current_context = CONTEXT_NONE;
+    tools->current_context = CONTEXT_NONE;
     
-    if (current_token->type != tok_t_rpa) {
-        param_count++;
-        data_t* data = right_data;
-        int param_count_save = param_count;
-        strcpy(stringBuffer2, stringBuffer);
-        call_value(); OK;
-        strcpy(stringBuffer, stringBuffer2);
-        param_count = param_count_save;
-        right_data = data;
+    if (tools->current_token->type != tok_t_rpa) { // Pokud jsou nějaké parametry
+        // Zpracování hodnoty parametru
+        tools->param_count++;
+        data_t* data = tools->right_data;
+        int param_count_save = tools->param_count;
+        char string_buffer_semantic_tmp[MAX_STRING_LEN];
+        strcpy(string_buffer_semantic_tmp, tools->string_buffer_semantic);
+        call_value(tools); OK;
+        strcpy(tools->string_buffer_semantic, string_buffer_semantic_tmp);
+        tools->right_data = data;
+
+        // Kontrola parametru
         bool found = true;
-        if (data->parameters->size <= param_count) {
+        if (data->parameters->size <= param_count_save) {
             fprintf(stderr, "Semantic error: Function parameter count mismatch\n");
-            error = err_param;
+            tools->error = err_param;
             return;
-        } else if(peek(&stack_codegen)->type == tok_t_str || peek(&stack_codegen)->type == tok_t_mstr){
-            if (data->parameters->data[param_count] != tok_t_str) {
+        } else if(stack_peek(&tools->stack_codegen)->type == tok_t_str || stack_peek(&tools->stack_codegen)->type == tok_t_mstr){
+            if (data->parameters->data[param_count_save] != tok_t_str) {
                 found = false;
             }
         } else {
-            switch (result_data->type) {
+            switch (tools->result_data->type) {
                 case DATA_TYPE_INT:
-                    if (result_data->canNull) {
-                        if (data->parameters->data[param_count] != tok_t_i32_opt) {
-                            error = err_param;
+                    if (tools->result_data->canNull) {
+                        if (data->parameters->data[param_count_save] != tok_t_i32_opt) {
+                            tools->error = err_param;
                             found = false;
                         }
                     }
                     break;
                 case DATA_TYPE_DOUBLE:
-                    if (result_data->canNull) {
-                        if (data->parameters->data[param_count] != tok_t_f64_opt) {
-                            error = err_param;
+                    if (tools->result_data->canNull) {
+                        if (data->parameters->data[param_count_save] != tok_t_f64_opt) {
+                            tools->error = err_param;
                             found = false;
                         }
                     }
                     break;
                 case DATA_TYPE_U8:
-                    if (result_data->canNull) {
-                        if (data->parameters->data[param_count] != tok_t_u8_opt) {
-                            error = err_param;
+                    if (tools->result_data->canNull) {
+                        if (data->parameters->data[param_count_save] != tok_t_u8_opt) {
+                            tools->error = err_param;
                             found = false;
                         }
-                    } else if (data->parameters->data[param_count] != tok_t_u8) {
-                        error = err_param;
+                    } else if (data->parameters->data[param_count_save] != tok_t_u8) {
+                        tools->error = err_param;
                         found = false;
                     }
                     break;
                 case DATA_TYPE_BOOLEAN:
-                    if (data->parameters->data[param_count] != tok_t_bool) {
-                        error = err_param;
+                    if (data->parameters->data[param_count_save] != tok_t_bool) {
+                        tools->error = err_param;
                         found = false;
                     }
                     break;
@@ -1585,125 +1625,152 @@ void call_params() {
                     break;
             }
         }
-        
-        if (!found && data->parameters->data[param_count] != tok_t_unused) {
+        if (!found && data->parameters->data[param_count_save] != tok_t_unused) {
             fprintf(stderr, "Semantic error: Function parameter type mismatch\n");
-            error = err_param;
+            tools->error = err_param;
             return;
         }
         else{
-            error = err_none;
+            tools->error = err_none;
         }
+
+        // Generace přiřazení hodnoty parametru
         char source[MAX_STRING_LEN];
-        token_type tmp_type = peek(&stack_codegen)->type;
-        strcpy(source, string_buffer_value);
+        token_type tmp_type = stack_peek(&tools->stack_codegen)->type;
+        strcpy(source, tools->string_buffer_value);
         bool string_value = false;
-        if (peek(&stack_codegen)->type == tok_t_str || peek(&stack_codegen)->type == tok_t_mstr) {
-            pop(&stack_codegen);
+        if (stack_peek(&tools->stack_codegen)->type == tok_t_str || stack_peek(&tools->stack_codegen)->type == tok_t_mstr) {
+            stack_pop(&tools->stack_codegen);
             string_value = true;
         } else if (strstr(source, "TF@%retval") != NULL) {
-            sprintf(source, "GF@%%%i", counter_global++);
+            sprintf(source, "GF@%%%i", tools->counter_global++);
             printi(format[_defvar], source);
             printi(format[_move], source, "TF@%retval");
             printi("%s" ,format[_createframe]);
         }
 
-        call_params_next(); OK;
+        call_params_next(tools); OK;
 
+        if (tools->param_count != data->parameters->size -1 && tools->param_count != -2) {
+            fprintf(stderr, "Semantic error: Function parameter count mismatch\n");
+            tools->error = err_param;
+            return;
+        }
+        tools->param_count = -2;
+
+        // Přidání parametru do zásobník
         if (string_value) {
             printi("PUSHS string@");
-            printi_string(&string_tmp, source, tmp_type);
+            printi_string(&tools->string_tmp, source, tmp_type);
             printi("\n");
         } else {
             printi(format[_pushs], source);
             printi("%s", format[_createframe]);
         }
     }
+
     printi(format[_comment], "</call_params>");
 }
-/*
- * Grammar: <call_value> → <value> | <ID> <call_params> | <STRING> <call_params>
- */
-void call_value() {
-    printi(format[_comment], "<call_value>");
 
-    if (current_token->type == tok_t_str || current_token->type == tok_t_mstr) {
-        strcpy(string_buffer_value, current_token->attribute);
-        push(&stack_codegen, current_token);
-        next_token();
-    } else {
-        value(); OK;
-    }
-
-    printi(format[_comment], "</call_value>");
-}
-/*
- * Grammar: <call_params_next> → ɛ | "," <call_params>
+/**
+ * @brief Zpracování dalších parametrů volání funkce
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void call_params_next() {
+void call_params_next(parser_tools_t* tools) {
     printi(format[_comment], "<call_params_next>");
 
-    if (current_token->type == tok_t_com) {
-        next_token();
-        call_params(); OK;
+    if (tools->current_token->type == tok_t_com) {
+        next_token(tools);
+        call_params(tools); OK;
     }
     printi(format[_comment], "</call_params_next>");
 }
 
-void return_type() {
+/**
+ * @brief Zpracování hodnoty parametru
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void call_value(parser_tools_t* tools) {
+    printi(format[_comment], "<call_value>");
+
+    if (tools->current_token->type == tok_t_str || tools->current_token->type == tok_t_mstr) { // Hodnota je řetězec
+        strcpy(tools->string_buffer_value, tools->current_token->attribute);
+        stack_push(&tools->stack_codegen, tools->current_token);
+        next_token(tools);
+    } else {
+        value(tools); OK;
+    }
+
+    printi(format[_comment], "</call_value>");
+}
+
+/**
+ * @brief Zpracování návratového typu funkce
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void return_type(parser_tools_t* tools) {
     printi(format[_comment], "<return_type>");
 
-    if (current_token->type != tok_t_void) {
-        bool varOrFunc = false;
-        type(varOrFunc); OK;
+    if (tools->current_token->type != tok_t_void) {
+        tools->varOrFunc = false;
+        type(tools); OK;
         
         printi(format[_defvar], "LF@%retval");
     } else {
-        expect_type(tok_t_void); OK;
+        expect_types(tools, 1, tok_t_void); OK;
     }
 
     printi(format[_comment], "</return_type>");
 }
-void type(bool varOrFunc) {
+
+/**
+ * @brief Zpracování typu symbolu
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void type(parser_tools_t* tools) {
     printi(format[_comment], "<type>");
 
-    expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
-    if(varOrFunc){
-        switch (current_token->type)    // přiřazení typu funkce
+    expect_types(tools, 7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
+    if(tools->varOrFunc){
+        switch (tools->current_token->type)    // přiřazení typu funkce
         {
             case tok_t_i32:
-                left_data->type = DATA_TYPE_INT;
+                tools->left_data->type = DATA_TYPE_INT;
                 break;
 
             case tok_t_f64:
-                left_data->type = DATA_TYPE_DOUBLE;
+                tools->left_data->type = DATA_TYPE_DOUBLE;
                 break;
 
             case tok_t_u8:
-                left_data->type = DATA_TYPE_U8;
+                tools->left_data->type = DATA_TYPE_U8;
                 break;
 
             case tok_t_bool:
-                left_data->type = DATA_TYPE_BOOLEAN;
+                tools->left_data->type = DATA_TYPE_BOOLEAN;
                 break;
             
             case tok_t_i32_opt:
-                left_data->type = DATA_TYPE_INT;
-                left_data->canNull = true;
+                tools->left_data->type = DATA_TYPE_INT;
+                tools->left_data->canNull = true;
                 break;
 
             case tok_t_f64_opt:
-                left_data->type = DATA_TYPE_DOUBLE;
-                left_data->canNull = true;
+                tools->left_data->type = DATA_TYPE_DOUBLE;
+                tools->left_data->canNull = true;
                 break;
 
             case tok_t_u8_opt:
-                left_data->type = DATA_TYPE_U8;
-                left_data->canNull = true;
+                tools->left_data->type = DATA_TYPE_U8;
+                tools->left_data->canNull = true;
                 break;
             
             default:    
-                error = err_internal;
+                tools->error = err_internal;
                 return;
                 break;
         }
@@ -1712,192 +1779,249 @@ void type(bool varOrFunc) {
     printi(format[_comment], "</type>");
 }
 
-void definition() {
+/**
+ * @brief Zpracování typu proměnné
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void definition(parser_tools_t* tools) {
     printi(format[_comment], "<definition>");
 
-    if (current_token->type == tok_t_colon) {
-        next_token();
-        bool varOrFunc = true;
-        type(varOrFunc); OK;
+    if (tools->current_token->type == tok_t_colon) { // Příkaz obsahuje přímou definici proměnné
+        next_token(tools);
+        tools->varOrFunc = true;
+        type(tools); OK;
 
-        next_token();
+        next_token(tools);
     }
 
     printi(format[_comment], "</definition>");
 }
 
-void for_value() {
+/**
+ * @brief Zpracování hodnoty pro for cyklus
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void for_value(parser_tools_t* tools) {
     printi(format[_comment], "<for_value>");
 
-    if (current_token->type == tok_t_sym) {
-        push(&stack_codegen, current_token);
+    if (tools->current_token->type == tok_t_sym) { // Hodnota je symbol
+        stack_push(&tools->stack_codegen, tools->current_token);
         
-        next_token();
-        id_continue(); OK;
-    } else {
-        sprintf(string_buffer_value, "LF@%%expression%i", counter_global++);
-        printi(format[_defvar], string_buffer_value);
-        printi("MOVE %s string@", string_buffer_value);
-        printi_string(&string_tmp, current_token->attribute, current_token->type);
+        next_token(tools);
+        id_continue(tools); OK;
+    } else { // Hodnota je zadána řetězcem
+        // Generace proměnné pro uložení řetězce
+        sprintf(tools->string_buffer_value, "LF@%%expression%i", tools->counter_global++);
+        printi(format[_defvar], tools->string_buffer_value);
+        printi("MOVE %s string@", tools->string_buffer_value);
+        printi_string(&tools->string_tmp, tools->current_token->attribute, tools->current_token->type);
         printi("\n");
 
-        next_token();
+        next_token(tools);
     }
 
     printi(format[_comment], "</for_value>");
 }
 
-/*
- * Function to parse code for the first time
+/**
+ * @brief První průchod parseru zdrojovým kódem
+ * 
+ * Funkce prochází zdrojový kód a vytváří tabulku symbolů pro funkce.
+ *  
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
-void parse_fn_first() {
+void parse_fn_first(parser_tools_t* tools) {
     // Get the first token.
-    next_token_initial(); OK;
+    next_token_initial(tools); OK;
     // Iterate through program
-    while (current_token->type != tok_t_eof) {
-        if (current_token->type == tok_t_fn) {
-            next_token_initial(); OK;
-            expect_type(tok_t_sym); OK;
+    while (tools->current_token->type != tok_t_eof) {
+        if (tools->current_token->type == tok_t_fn) {
+            next_token_initial(tools); OK;
+            expect_types(tools, 1, tok_t_sym); OK;
 
-            check_redefinition(); OK;
+            check_redefinition(tools); OK;
 
-            left_data = symtable_insert(current_symtable, current_token->attribute, &error); OK;
-            left_data->modified = true;
+            tools->left_data = symtable_insert(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
+            tools->left_data->modified = true;
             
-            next_token_initial(); OK;
-            expect_type(tok_t_lpa); OK; // (
+            next_token_initial(tools); OK;
+            expect_types(tools, 1, tok_t_lpa); OK; // (
 
-            next_token_initial(); OK;
-            if (current_token->type != tok_t_rpa) { //)   ???
-                expect_type(tok_t_sym); OK;
+            next_token_initial(tools); OK;
+            
+            // Zpracování parametrů funkce
+            bool not_first = false;
+            while (tools->current_token->type != tok_t_rpa) { // )
+                if (not_first) {
+                    next_token_initial(tools); OK;
+                } else {
+                    not_first = true;
+                }
+                expect_types(tools, 1, tok_t_sym); OK;
 
-                next_token_initial(); OK;
-                expect_type(tok_t_colon); OK;
+                next_token_initial(tools); OK;
+                expect_types(tools, 1, tok_t_colon); OK;
 
-                next_token_initial(); OK;
-                expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
+                next_token_initial(tools); OK;
+                expect_types(tools, 7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
 
-                symtable_insert_params(left_data, current_token->type, &error); OK;
-                
-                next_token_initial(); OK;
+                symtable_insert_params(tools->left_data, tools->current_token->type, &tools->error); OK;
+
+                next_token_initial(tools); OK;
+                expect_types(tools, 2, tok_t_com, tok_t_rpa); OK;
             }
             
-            while (current_token->type != tok_t_rpa) { // ) ???
-                expect_type(tok_t_com); OK;
-
-                next_token_initial(); OK;
-                expect_type(tok_t_sym); OK;
-
-                next_token_initial(); OK;
-                expect_type(tok_t_colon); OK;
-
-                next_token_initial(); OK;
-                expect_types(7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
-
-                symtable_insert_params(left_data, current_token->type, &error); OK;
-
-                next_token_initial(); OK;
-            }
-            
-            next_token_initial(); OK;
-            expect_types(8, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_void, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
-
-            switch (current_token->type)    // přiřazení typu funkce
+            // Zpracování návratového typu funkce
+            next_token_initial(tools); OK;
+            expect_types(tools, 8, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_void, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
+            switch (tools->current_token->type)   // přiřazení typu funkce
                 {
                 case tok_t_i32:
-                    left_data->type = DATA_TYPE_INT;
+                    tools->left_data->type = DATA_TYPE_INT;
                     break;
 
                 case tok_t_f64:
-                    left_data->type = DATA_TYPE_DOUBLE;
+                    tools->left_data->type = DATA_TYPE_DOUBLE;
                     break;
 
                 case tok_t_u8:
-                    left_data->type = DATA_TYPE_U8;
+                    tools->left_data->type = DATA_TYPE_U8;
                     break;
 
                 case tok_t_bool:
-                    left_data->type = DATA_TYPE_BOOLEAN;
+                    tools->left_data->type = DATA_TYPE_BOOLEAN;
                     break;
                 
                 case tok_t_i32_opt:
-                    left_data->type = DATA_TYPE_INT;
-                    left_data->canNull = true;
+                    tools->left_data->type = DATA_TYPE_INT;
+                    tools->left_data->canNull = true;
                     break;
 
                 case tok_t_f64_opt:
-                    left_data->type = DATA_TYPE_DOUBLE;
-                    left_data->canNull = true;
+                    tools->left_data->type = DATA_TYPE_DOUBLE;
+                    tools->left_data->canNull = true;
                     break;
 
                 case tok_t_u8_opt:
-                    left_data->type = DATA_TYPE_U8;
-                    left_data->canNull = true;
+                    tools->left_data->type = DATA_TYPE_U8;
+                    tools->left_data->canNull = true;
                     break;
 
                 case tok_t_void:
-                    left_data->type = DATA_TYPE_VOID;
+                    tools->left_data->type = DATA_TYPE_VOID;
                     break;
                 
                 default:
-                    error = err_internal;
+                    tools->error = err_internal;
                     return;
                     break;
                 }
         }
-        next_token_initial(); OK;
+        next_token_initial(tools); OK;
     }
-    // set next token for second parse
-    tok_free(current_token);
+
+    tok_free(tools->current_token);
 }
 
+/**
+ * @brief Inicializace struktury parser_tools_t
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void parser_tools_init(parser_tools_t* tools) {
+    tools->error = err_none;
+    tools->current_token = NULL;
 
-/******** End of grammar functions ******** 
- * Function to parse the source code
+    tools->current_symtable = NULL;
+    tools->current_context = CONTEXT_NONE;
+    DLL_Init(&tools->sym_list);
+    tools->left_data = NULL;
+    tools->right_data = NULL;
+    tools->result_data = NULL;
+    tools->function_data = NULL;
+    tools->depth = 0;
+    dynamic_array_init(&tools->depth_sequence);
+    tools->string_buffer_semantic[0] = '\0';
+    tools->param_count = -1;
+    tools->params = false;
+    tools->is_left = false;
+    tools->varOrFunc = false;
+
+    tools->counter_codegen_if = 0;
+    tools->counter_codegen_while = 0;
+    tools->counter_codegen_for = 0;
+    tools->counter_global = 0;
+    tools->cycle = -1;
+    tools->string_buffer[0] = '\0';
+    tools->string_buffer_value[0] = '\0';
+    stack_init(&tools->stack_codegen);
+    str_init(&tools->string);
+    str_init(&tools->string_tmp);
+    str_init(&tools->string_defvar);
+}
+
+/**
+ * @brief Uvolnění struktury parser_tools_t
+ * 
+ * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
+ */
+void parser_tools_destroy(parser_tools_t* tools) {
+    tok_free(tools->current_token);
+    DLL_Destroy(&tools->sym_list, &tools->error);
+    dynamic_array_destroy(&tools->depth_sequence);
+    str_destroy(&tools->string);
+    str_destroy(&tools->string_tmp);
+    str_destroy(&tools->string_defvar);
+}
+
+/**
+ * @brief Hlavní funkce parseru
+ * 
+ * Parser má celkově dva režimy.
+ * Při prvním průchodu přidá do tabulky symbolů všechny funkce a proměnné.
+ * Při druhém průchodu se provádí samotná syntaktická analýza.
+ * 
+ * @return Návratový kód chyby během parsování
  */
 err_codes parse() {
-    // init dll and symtable
-    DLL_Init(&sym_list);
-    current_symtable = DLL_Insert_last(&sym_list, &error); OK error;
+    parser_tools_t tools;
+    parser_tools_init(&tools);
 
-    // Parse the source code for the first time.
-    parse_fn_first();
+    tools.current_symtable = DLL_Insert_last(&tools.sym_list, &tools.error);
+    if (tools.error != err_none) {
+        return tools.error;
+    }
 
-    left_data = symtable_get_item(current_symtable, "main", &error);
-    
-    if(left_data == NULL) {
+    // První průchod parseru zdrovým kódem a naplnění tabulky symbolů funkcemi
+    parse_fn_first(&tools);
+
+    tools.left_data = symtable_get_item(tools.current_symtable, "main", &tools.error);
+    if(tools.left_data == NULL) {
         fprintf(stderr, "Semantic error: main is undefined function\n");
-        error = err_undef;
-        return error; 
+        tools.error = err_undef;
+        return tools.error; 
+    }
+    if(tools.left_data->type != DATA_TYPE_VOID || tools.left_data->parameters->size != 0) {
+        fprintf(stderr, "Semantic error: main must be void and have no parameters\n");
+        tools.error = err_param;
+    }
+    tools.left_data->used = true;
+    
+    // Druhý průchod parseru zdrovým kódem s úplnou syntaktická analýza
+    if (tools.error == err_none) {
+        program(&tools);
+
+        // Výpis výsledného kódu při úspěšném průchodu
+        if (tools.error == err_none) {
+            str_printout(&tools.string);
+        }
     }
     
-    if(left_data->type != DATA_TYPE_VOID || left_data->parameters->size != 0) {
-        fprintf(stderr, "Semantic error: main must be void and have no parameters\n");
-        error = err_param;
-    }
-    left_data->used = true;
+    parser_tools_destroy(&tools);
 
-    if (error == err_none) {
-        // Initialize the stack for code generation
-        init(&stack_codegen);
-        str_init(&string);
-        str_init(&string_tmp);
-        str_init(&string_defvar);
-        dynamic_array_init(&depth_sequence);
-
-        // Start parsing second time from the <program> non-terminal.
-        program();
-        
-        if (error == err_none) {
-        str_printout(&string);
-        }
-
-        str_destroy(&string);
-        str_destroy(&string_tmp);
-        str_destroy(&string_defvar);
-        dynamic_array_destroy(&depth_sequence);
-    }
-    DLL_Destroy(&sym_list, &error); 
-
-    return error;
+    return tools.error;
 }
+
+/*** Konec souboru parser.c ***/

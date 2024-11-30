@@ -1,5 +1,10 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @addtogroup IFJ2024
+ * @file token_dll.h
+ * @brief Knihovna pro dvousměrně vázaný seznam tokenů
+ * @author xramas01
+ * 
+ * Knihovna obsahuje definice struktur a funkcí pro dvousměrně vázaný seznam tokenů.
  */
 
 #ifndef TOKEN_DLL_H
@@ -10,6 +15,11 @@
 #include "token.h"
 #include "dll.c"
 
+/**
+ * @brief Definice makra pro dvousměrně vázaný seznam
+ */
 _DLL(token, tok, Token)
 
-#endif
+#endif /* TOKEN_DLL_H */
+
+/*** Konec souboru token_dll.h ***/

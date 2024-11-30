@@ -4,7 +4,7 @@
 
 size_t getHash(void *src)
 {
-	return (int)src % 11;
+	return (size_t)src % 11;
 }
 
 void *key(void *src)

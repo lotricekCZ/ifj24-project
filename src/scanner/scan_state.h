@@ -1,5 +1,10 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/** 
+ * @addtogroup IFJ2024
+ * @file scan_state.h
+ * @brief Knihovna pro stavy skeneru
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Knihovna obsahuje definice stavů skeneru a jejich překlad na typ tokenu.
  */
 
 #ifndef SCAN_STATE_H
@@ -7,6 +12,10 @@
 
 #include "../utils/token_types.h"
 
+/**
+ * @enum scn_state_t
+ * @brief Stavy skeneru
+ */
 typedef enum
 {
 	sca_s_init,
@@ -86,4 +95,6 @@ token_type scn_get_keyword(scn_state_t state);
 
 extern State_type_pair sca_tr_table[]; // translation table
 
-#endif
+#endif /* SCAN_STATE_H */
+
+/*** Konec souboru scan_state.h ***/

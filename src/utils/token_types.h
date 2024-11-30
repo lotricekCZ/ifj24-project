@@ -1,12 +1,18 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @addtogroup IFJ2024
+ * @file token_types.h
+ * @brief Knihovna typů tokenů
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Knihovna obsahuje definice typů tokenů a klíčových slov.
  */
 
 #ifndef KEYWORDS_H
 #define KEYWORDS_H
 
 /**
- * @brief Typ tokenu
+ * @enum _token_type
+ * @brief Výčet typů tokenu
  *
  * Enum který reprezentuje dosažitelné typy tokenů
  */
@@ -84,14 +90,27 @@ typedef enum _token_type
 	tok_t_false,	 // false
 } token_type;
 
+/**
+ * @struct _Keyword
+ * @brief Struktura klíčového slova
+ */
 typedef struct _Keyword
 {
-	token_type type;
-	char *lexeme;
+	token_type type; /**< Typ tokenu */
+	char *lexeme; /**< Řetězec přiřazený odpovídajícímu tokenu */
 } Keyword;
 
 char *kw_get_lexeme(token_type type);
+
 char *tok_type_to_str(token_type type);
+
 token_type kw_get_type(char *lexeme);
+
+/**
+ * @brief Pole klíčových slov
+ */
 extern Keyword keywords[];
-#endif // KEYWORDS_H
+
+#endif /* KEYWORDS_H */
+
+/*** Konec souboru token_types.h ***/

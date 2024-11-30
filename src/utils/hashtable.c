@@ -1,7 +1,11 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @addtogroup IFJ2024
+ * @file hashtable.c
+ * @brief Hashovaci tabulka
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Implementace hasovaci tabulky.
  */
-
 #include "hashtable.h"
 #include "sll.h"
 #include <stdlib.h>
@@ -168,3 +172,5 @@
 	HT_GET(entries, prefix, element, key_type)                                                      \
 	HT_DELETE(entries, prefix, element, key_type, comp_fn, hash_fn, deinit_fn)                      \
 	HT_DISPOSE(entries, prefix, element, key_type, deinit_fn)
+
+/*** Konec souboru hashtable.c ***/
