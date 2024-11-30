@@ -1475,7 +1475,8 @@ void return_value(parser_tools_t* tools) {
  */
 void call(parser_tools_t* tools) {
     printi(format[_comment], "<call>");
-    tools->param_count = -1; 
+    int param_count_save = tools->param_count;
+    tools->param_count = -1;
     tools->params = true;
     
     printi("%s", format[_createframe]);
@@ -1549,6 +1550,8 @@ void call(parser_tools_t* tools) {
         // Získání názvu návěští funkce
         sprintf(tools->string_buffer, "$%s", stack_pop(&tools->stack_codegen)->attribute);
     }
+    tools->param_count = param_count_save;
+
     printi(format[_call], tools->string_buffer);
     printi(format[_comment], "</call>");
 }
@@ -1571,24 +1574,23 @@ void call_params(parser_tools_t* tools) {
         strcpy(string_buffer_semantic_tmp, tools->string_buffer_semantic);
         call_value(tools); OK;
         strcpy(tools->string_buffer_semantic, string_buffer_semantic_tmp);
-        tools->param_count = param_count_save;
         tools->right_data = data;
 
         // Kontrola parametru
         bool found = true;
-        if (data->parameters->size <= tools->param_count) {
+        if (data->parameters->size <= param_count_save) {
             fprintf(stderr, "Semantic error: Function parameter count mismatch\n");
             tools->error = err_param;
             return;
         } else if(stack_peek(&tools->stack_codegen)->type == tok_t_str || stack_peek(&tools->stack_codegen)->type == tok_t_mstr){
-            if (data->parameters->data[tools->param_count] != tok_t_str) {
+            if (data->parameters->data[param_count_save] != tok_t_str) {
                 found = false;
             }
         } else {
             switch (tools->result_data->type) {
                 case DATA_TYPE_INT:
                     if (tools->result_data->canNull) {
-                        if (data->parameters->data[tools->param_count] != tok_t_i32_opt) {
+                        if (data->parameters->data[param_count_save] != tok_t_i32_opt) {
                             tools->error = err_param;
                             found = false;
                         }
@@ -1596,7 +1598,7 @@ void call_params(parser_tools_t* tools) {
                     break;
                 case DATA_TYPE_DOUBLE:
                     if (tools->result_data->canNull) {
-                        if (data->parameters->data[tools->param_count] != tok_t_f64_opt) {
+                        if (data->parameters->data[param_count_save] != tok_t_f64_opt) {
                             tools->error = err_param;
                             found = false;
                         }
@@ -1604,17 +1606,17 @@ void call_params(parser_tools_t* tools) {
                     break;
                 case DATA_TYPE_U8:
                     if (tools->result_data->canNull) {
-                        if (data->parameters->data[tools->param_count] != tok_t_u8_opt) {
+                        if (data->parameters->data[param_count_save] != tok_t_u8_opt) {
                             tools->error = err_param;
                             found = false;
                         }
-                    } else if (data->parameters->data[tools->param_count] != tok_t_u8) {
+                    } else if (data->parameters->data[param_count_save] != tok_t_u8) {
                         tools->error = err_param;
                         found = false;
                     }
                     break;
                 case DATA_TYPE_BOOLEAN:
-                    if (data->parameters->data[tools->param_count] != tok_t_bool) {
+                    if (data->parameters->data[param_count_save] != tok_t_bool) {
                         tools->error = err_param;
                         found = false;
                     }
@@ -1623,7 +1625,7 @@ void call_params(parser_tools_t* tools) {
                     break;
             }
         }
-        if (!found && data->parameters->data[tools->param_count] != tok_t_unused) {
+        if (!found && data->parameters->data[param_count_save] != tok_t_unused) {
             fprintf(stderr, "Semantic error: Function parameter type mismatch\n");
             tools->error = err_param;
             return;
@@ -1648,6 +1650,13 @@ void call_params(parser_tools_t* tools) {
         }
 
         call_params_next(tools); OK;
+
+        if (tools->param_count != data->parameters->size -1 && tools->param_count != -2) {
+            fprintf(stderr, "Semantic error: Function parameter count mismatch\n");
+            tools->error = err_param;
+            return;
+        }
+        tools->param_count = -2;
 
         // Přidání parametru do zásobník
         if (string_value) {

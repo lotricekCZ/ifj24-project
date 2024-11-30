@@ -68,9 +68,9 @@ typedef struct {
     data_t *result_data;                            /**< Výsledná data výrazu */
     data_t *function_data;                          /**< Návratová data z funkce */
     int depth;                                      /**< Hloubka vnoření */
+    int param_count;                                /**< Počet parametrů */
     dynamic_array_t depth_sequence;                 /**< Záznam hloubek vnoření */
     char string_buffer_semantic[MAX_STRING_LEN];    /**< Pomocný buffer pro sémantické kontroly */
-    int param_count;                                /**< Počet parametrů */
     bool params;                                    /**< Příznak, zda se jedná o parametry */
     bool is_left;                                   /**< Příznak, zda se jedná o levou stranu přiřazení */
     bool varOrFunc;                                 /**< Příznak, zda se jedná o proměnnou nebo funkci */
