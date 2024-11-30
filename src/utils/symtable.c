@@ -68,11 +68,6 @@ data_t *symtable_insert(symtable_t *symtable, char *name, err_codes *error){
         *error = err_internal;
         return NULL;
     }
-    if(symtable_get_item(symtable, name, error) != NULL){
-        fprintf(stderr, "Semantic error: %s is already defined\n", name);
-        *error = err_redef;
-        return NULL;
-    }
 
     symtable_item_t *new_item = (symtable_item_t *)imalloc(sizeof(symtable_item_t));
     if (new_item == NULL){
