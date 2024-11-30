@@ -1111,7 +1111,7 @@ void statement(parser_tools_t* tools) {
         printi(format[_add], tools->string_buffer, tools->string_buffer, "int@1");
         printi(format[_call], "$$$ord");
         printi(format[_move], destination, "TF@%retval");
-        printi("JUMPIFEQ !$for%i %s nil@nil\n", for_number, destination);
+        printi("JUMPIFEQ !$for%i %s int@0\n", for_number, destination);
 
         next_token(tools);
         expect_types(tools, 1, tok_t_alias); OK;

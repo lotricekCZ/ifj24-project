@@ -147,6 +147,7 @@ void printi_string(str_t* string, char* source, token_type type) {
  * @param error Ukazatel na chybový kód
  */
 void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, dynamic_array_t* functions_retval, DLList* sym_list, symtable_t* symtable, err_codes *error) {
+    int functions_retval_index = 0;
     for (size_t index = 0; index < postfix_index; index++) {
         char buffer[MAX_STRING_LEN]; // Pomocný buffer pro výpis generovaných řetězců
         switch (postfix[index]->type) {
@@ -180,9 +181,8 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, dynami
                     return;
                 }
                 if (data != NULL) { // Pokud je symbol nalezen jedná se o funkci a její návratová hodnota je přidána na zásobník
-                    sprintf(buffer, "LF@%%retval%i", functions_retval->data[functions_retval->size - 1]);
+                    sprintf(buffer, "LF@%%retval%i", functions_retval->data[functions_retval_index++]);
                     str_append(string, format[_pushs], buffer);
-                    functions_retval->size--;
                 } else { 
                     DLL_Last(sym_list);
                     symtable = DLL_GetCurrent(sym_list);
@@ -712,7 +712,7 @@ MOVE LF@%%retval nil@nil\n\
 EXIT int@4\n\
 JUMP $$$$ord_end\n\
 LABEL $$$$ord_null\n\
-MOVE LF@%%retval nil@nil\n\
+MOVE LF@%%retval int@0\n\
 LABEL $$$$ord_end\n\
 POPFRAME\n\
 RETURN\n");
