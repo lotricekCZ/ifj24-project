@@ -68,6 +68,20 @@ typedef struct symtable_item_t
  */
 typedef symtable_item_t *symtable_t[SYMTABLE_SIZE];
 
+
+/**
+ * @brief Vypočítá hash pro řetězec pomocí algoritmu djb2.
+ *
+ * @param str řetězec, pro který chceme vypočítat hash
+ * @return hash jako unsigned int
+ * 
+ * Pokud je položka s daným jménem již v symbolické tabulce, pak se vrací chyba err_redef.
+ * Pokud dojde k vnitřní chybě, pak se vrací chyba err_internal.
+ *
+ * @link http://www.cse.yorku.ca/~oz/hash.html
+ */
+unsigned int getHash(char *str);
+
 /**
  * @brief Inicializuje symbolické tabulky.
  *

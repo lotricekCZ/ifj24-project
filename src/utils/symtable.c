@@ -17,17 +17,6 @@
  */
 #define OK if (*error != err_none) return
 
-/**
- * @brief Vypočítá hash pro řetězec pomocí algoritmu djb2.
- *
- * @param str řetězec, pro který chceme vypočítat hash
- * @return hash jako unsigned int
- * 
- * Pokud je položka s daným jménem již v symbolické tabulce, pak se vrací chyba err_redef.
- * Pokud dojde k vnitřní chybě, pak se vrací chyba err_internal.
- *
- * @link https://theartincode.stanis.me/008-djb2/
- */
 unsigned int getHash(char *str)
 {
     unsigned int hash = 5381;
