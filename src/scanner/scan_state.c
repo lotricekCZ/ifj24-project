@@ -57,7 +57,7 @@ State_type_pair sca_translation_table[] =
 		{sca_s_orelse_op, tok_t_orelse_un},
 };
 
-// Prevodni funkce z internalniho stavu scanneru na typ tokenu.
+// Prevodni funkce z interniho stavu scanneru na typ tokenu.
 token_type scn_get_tok_type(scn_state_t state, char *lexeme)
 {
 	for (size_t i = 0; i < sizeof(sca_translation_table) / sizeof(State_type_pair); i++)
@@ -72,7 +72,7 @@ token_type scn_get_tok_type(scn_state_t state, char *lexeme)
 			return sca_translation_table[i].tok_type;
 		}
 	}
-	// error-worthy: ?[]i32, ?[ ]u8 and states that do not have a translation
+	// hodne chyby: ?[]i32, ?[ ]u8 a stavy ktere nemaji preklad
 	return tok_t_error;
 }
 

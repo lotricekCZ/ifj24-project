@@ -75,7 +75,7 @@ typedef struct Scan_path Scan_path;
  */
 struct Scan_node
 {
-	// conditions that are checked in order to determine given character matches the node
+	// podmínky, které se kontrolují, aby se urcilo, zda je dany znak shodny s uzlem
 	Scan_path **children;
 	size_t count;
 	scn_state_t state;
@@ -98,12 +98,9 @@ Token_ptr scn_previous(Scanner_ptr scanner);
 Token_ptr scn_next(Scanner_ptr scanner);
 char *scn_open_file(Scanner_ptr scanner);
 char *scn_compose_message(Scanner_ptr scanner);
-// scanner analyze functions, usage restricted to scanner.c
-/// entry function
-// Token_ptr sca_init();
 
+// funkce pro analyzu skeneru (SCA), pouziti omezeno na soubor scanner.c
 typedef Scan_node *Scan_node_ptr;
-// extern Scan_path sca_paths[];
 
 void sca_assign_children(Scan_node_ptr node, int argc, ...);
 void sca_free(Scan_node_ptr node);
