@@ -31,8 +31,6 @@ void *memt_key(void *src)
 // Kopírování prvku.
 void *memt_copy(void *src)
 {
-	// void **copy = malloc(sizeof(void *));
-	// *copy = src;
 	return src;
 }
 
@@ -46,7 +44,6 @@ void memt_deinit(void **src)
 // Bezpečné uvolnění paměti.
 void memt_safe_deinit(void **src)
 {
-	// free(*src);
 	free(src);
 }
 
