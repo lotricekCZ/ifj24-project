@@ -1798,25 +1798,25 @@ err_codes parse(Scanner_ptr scanner) {
 
     // První průchod parseru zdrovým kódem a naplnění tabulky symbolů funkcemi
     parse_fn_first(&tools);
-
-    
     
     // Druhý průchod parseru zdrovým kódem s úplnou syntaktická analýza
     if (tools.error == err_none) {
-        // Získání definoice funkce main
-        tools.left_data = symtable_get_item(tools.current_symtable, "main", &tools.error);
-        if(tools.left_data == NULL) { // Ověření existence funkce main
-            fprintf(stderr, "Semantic error: main is undefined function\n");
-            tools.error = err_undef;
-            return tools.error; 
-        }
-        if(tools.left_data->type != DATA_TYPE_VOID || tools.left_data->parameters->size != 0) { // Ověření parametrů funkce main
-            fprintf(stderr, "Semantic error: main must be void and have no parameters\n");
-            tools.error = err_param;
-        }
-        tools.left_data->used = true;
+        program(&tools); 
 
-        program(&tools);
+        if(tools.error == err_none) {
+            // Získání definoice funkce main
+            tools.left_data = symtable_get_item(tools.current_symtable, "main", &tools.error);
+            if(tools.left_data == NULL) { // Ověření existence funkce main
+                fprintf(stderr, "Semantic error: main is undefined function\n");
+                tools.error = err_undef;
+                return tools.error; 
+            }
+            if(tools.left_data->type != DATA_TYPE_VOID || tools.left_data->parameters->size != 0) { // Ověření parametrů funkce main
+                fprintf(stderr, "Semantic error: main must be void and have no parameters\n");
+                tools.error = err_param;
+            }
+            tools.left_data->used = true;
+        }
 
         // Výpis výsledného kódu při úspěšném průchodu
         if (tools.error == err_none) {
