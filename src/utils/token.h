@@ -26,17 +26,28 @@ typedef struct _Token *Token_ptr;
  * @brief Inicializace lexemu
  *
  * Funkce inicializuje strukturu reprezentujici lexem.
+ * Navraci ukazatel na inicializovanou strukturu.
+ * 
  * @param type typ lexemu
  * @return ukazatel na inicializovanou strukturu
  */
 Token_ptr tok_init(token_type type);
 
+/**
+ * @brief Inicializace lexemu
+ *
+ * Funkce inicializuje strukturu reprezentujici lexem.
+ * 
+ * @param tok Ukazatel na ukazaatel na lexem pro inicializaci
+ * @return ukazatel na inicializovanou strukturu
+ */
 void tok_init_no_ret(Token_ptr* tok);
 
 /**
  * @brief Inicializace lexemu
  *
  * Funkce inicializuje strukturu reprezentujici lexem.
+ * 
  * @return ukazatel na inicializovanou strukturu
  */
 Token_ptr tok_init_no_type();
@@ -45,6 +56,8 @@ Token_ptr tok_init_no_type();
  * @brief Zkopiruje token
  *
  * Funkce zkopiruje dany token a vrati ukazatel na novy token.
+ * 
+ * @param dst ukazatel na novy token
  * @param tok token, ktery chceme zkopirovat
  * @return ukazatel na novy token
  */
@@ -57,8 +70,6 @@ void tok_copy(Token_ptr dst, Token tok);
  * @param tok ukazatel na lexem, ktery  chceme uvolnit
  */
 void tok_free(Token_ptr tok);
-
-void tok_print(Token_ptr tok);
 
 /**
  * @brief Ziska typ tokenu
@@ -93,6 +104,7 @@ void tok_set_attribute(Token_ptr tok, char *attribute);
  *
  * Funkce vraci typ tokenu.
  * @param tok token, jehoz typ chceme ziskat
+ * @param type novy typ tokenu
  * @return typ tokenu
  */
 void tok_set_type(Token_ptr tok, token_type type);

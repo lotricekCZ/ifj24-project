@@ -22,6 +22,7 @@
 
 /**
  * @brief Hledá položku v symbolické tabulce s daným jménem.
+ * 
  * @param result_data nalezená položka symtable
  * @param sym_list dvousmerný seznam symtable
  * @param popToken token s jménem proměnné

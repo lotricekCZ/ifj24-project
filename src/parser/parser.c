@@ -49,11 +49,27 @@
                             else \
                                 str_append(&tools->string_tmp, source, ##__VA_ARGS__)
 
-Scanner_ptr scanner = NULL;
-
 /**
  * @brief Precedenční tabulka
 */ 
+char precedence_table[12][12] = {
+//     .?   !   * / orlse + -   r   and   or   (    )    ID   $
+    { '=', ' ', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // .?
+    { '=', '<', '>', '>', '>', '>', '>', '>', '<', '>', '<', '>', }, // !
+    { '=', '<', '>', '>', '>', '>', '>', '>', '<', '>', '<', '>', }, // * /
+    { '=', '<', '<', '>', '>', '>', '>', '>', '<', '>', '<', '>', }, // orelse
+    { '=', '<', '<', '<', '>', '>', '>', '>', '<', '>', '<', '>', }, // + -
+    { '=', '<', '<', '<', '<', ' ', '>', '>', '<', '>', '<', '>', }, // relations
+    { '=', '<', '<', '<', '<', '<', '>', '>', '<', '>', '<', '>', }, // and
+    { '=', '<', '<', '<', '<', '<', '<', '>', '<', '>', '<', '>', }, // or
+    { '=', '<', '<', '<', '<', '<', '<', '<', '<', '=', '<', ' ', }, // (
+    { '=', ' ', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // )
+    { '=', ' ', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // ID
+    { '=', '<', '<', '<', '<', '<', '<', '<', '<', ' ', '<', ' ', }  // $
+};
+
+/*
+
 char precedence_table[12][12] = {
 //     .?   !   * / orlse + -   r   and   or   (    )    ID   $
     { '=', ' ', '>', '>', '>', '>', '>', '>', ' ', '>', ' ', '>', }, // .?
@@ -70,12 +86,9 @@ char precedence_table[12][12] = {
     { ' ', '<', '<', '<', '<', '<', '<', '<', '<', ' ', '<', ' ', }  // $
 };
 
-/**
- * @brief Funkce pro získání indexu tokenu v precedenční tabulce
- * 
- * @param type Typ tokenu
- * @return Index elementu v precedenční tabulce
  */
+
+// Funkce pro získání indexu tokenu v precedenční tabulce
 int get_precedence_index(token_type type) {
     switch (type) {
         case tok_t_orelse_un: return 0;
@@ -101,15 +114,7 @@ int get_precedence_index(token_type type) {
     }
 }
 
-/**
- * @brief Zpracování precedenční analýzy
- * 
- * Funkce zpracovává precedenční analýzu výrazu za použití precedenční tabulky.
- * 
- * @param tools Ukazatel na strukturu parser_tools_t
- * @param precedence Ukazatel na dynamické pole
- * @param input Typ tokenu
- */
+// Funkce pro zpracování precedenční analýzy
 void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, token_type input) {
     int action;
     do {
@@ -121,14 +126,13 @@ void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, tok
                 break;
             }
         }
-
         // Získání akce z precedenční tabulky pro daný vstup a vrchol zásobníku
         action = precedence_table[get_precedence_index(precedence_top)][get_precedence_index(input)];
         switch (action) {
-            case '<': //Shift
+            case '<': // Shift
                 dynamic_array_insert(precedence, input);
-                for (int index = precedence->size - 2; index >= 0; index--) {
-                    if (precedence->data[index] == precedence_top) {
+                for (int index = precedence->size - 2; index >= 0; index--) { // Pro prvky výrazu počínaje od konce
+                    if (precedence->data[index] == precedence_top) { // Vložení shift na místo za vrcholem zásobníku
                         precedence->data[index + 1] = (int)'<';
                         break;
                     } else {
@@ -137,9 +141,8 @@ void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, tok
                 }
                 break;
 
-            case '>': //Redukce
-                // Kontrola validity výrazu
-                if (precedence->data[precedence->size - 1] == (int)'<') {
+            case '>': // Redukce
+                if (precedence->data[precedence->size - 1] == (int)'<') { // Kontrola validity výrazu
                     fprintf(stderr, "Syntax error: Wrong expression.\n");
                     tools->error = err_syntax;
                     return;
@@ -155,20 +158,20 @@ void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, tok
                     if (precedence->data[index] == tok_t_sym || precedence->data[index] == (int)'E') {
                         without_value = false;
                     } else if (precedence->data[index] == precedence_top && without_value && precedence_top != tok_t_rpa && precedence_top != tok_t_orelse_un) { // Redukce výrazu bez hodnoty
-                        fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                        fprintf(stderr, "Syntax error: Error in expression.\n");
                         tools->error = err_syntax;
                         return;
                     }
                     precedence->size--; // Odstranění prvku z výrazu
                     // Neplatný výraz
                     if (index == 0) {
-                        fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                        fprintf(stderr, "Syntax error: Error in expression.\n");
                         tools->error = err_syntax;
                         return;
                     }
                 }
                 if (without_value) {
-                    fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                    fprintf(stderr, "Syntax error: Error in expression.\n");
                     tools->error = err_syntax;
                     return;
                 }
@@ -176,11 +179,11 @@ void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, tok
 
             case ' ': //Neexistující pravidlo
                 if (action == ' ' && (input != tok_t_eof || precedence_top != tok_t_eof)) {
-                    fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                    fprintf(stderr, "Syntax error: Error in expression.\n");
                     tools->error = err_syntax;
                     return;
                 } else if (precedence->size != 2) { // Zakončení výrazu musí být absolutně zredukováno
-                    fprintf(stderr, "Syntax error: tools->Error in expression.\n");
+                    fprintf(stderr, "Syntax error: Error in expression.\n");
                     tools->error = err_syntax;
                     return;
                 }
@@ -192,18 +195,7 @@ void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, tok
     dynamic_array_insert(precedence, input);
 }
 
-/**
- * @brief Syntaktické zpracování výrazu a vytváření postfixové notace
- * 
- * Funkce zpracovává jednotlivé tokeny výrazu za použití precedenční analýzy
- * a zároveň vytváří postfixovou notaci výrazu pro náslendé zpracování
- * sémantickou analýzou a generátorem cílového kódu.
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- * @param postfix Ukazatel na pole tokenů
- * @param postfix_index Aktuální index pole tokenů
- * @param stack_functions Ukazatel na zásobník funkcí
- */
+// Funkce syntaktického zpracování výrazu a vytváření postfixové notace
 void expression_processing(parser_tools_t* tools, Token_ptr (*postfix)[MAX], int* postfix_index, dynamic_array_t* functions_retval) {
     Stack stack_postfix; // Pomocný zásobník pro postfixovou notaci
     stack_init(&stack_postfix);
@@ -401,14 +393,7 @@ void expression_processing(parser_tools_t* tools, Token_ptr (*postfix)[MAX], int
     }
 }
 
-/**
- * @brief Zpraocvání výrazu
- * 
- * Hlavní funkce řídící zpracování výrazu, sémantickou kontrolu
- * a jeho následné vygenerování do cílového kódu.
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpraocvání výrazu
 void expression(parser_tools_t* tools) {
     // Uložení kontextu
     context_t save_context = tools->current_context;
@@ -446,7 +431,7 @@ void expression(parser_tools_t* tools) {
 
     case CONTEXT_SYMBOL:
         if(tools->result_data->type == DATA_TYPE_VOID){
-            fprintf(stderr, "Semantic error: Cant assighn void value\n");
+            fprintf(stderr, "Semantic error: Cant assign void value\n");
             tools->error = err_dt_invalid;
             return;
         }
@@ -454,7 +439,7 @@ void expression(parser_tools_t* tools) {
         if(tools->left_data->type == DATA_TYPE_UND){
             if(tools->result_data->type == DATA_TYPE_UND){
                 tools->error = err_dt_unknown;
-                fprintf(stderr, "ERROR: nelze do nedefinovaného typu dát null\n");
+                fprintf(stderr, "Semantic error: Cant assign NULL value\n");
                 return;
             }
             tools->left_data->type = tools->result_data->type;
@@ -464,14 +449,14 @@ void expression(parser_tools_t* tools) {
             if(!tools->left_data->canNull){
                 if(tools->left_data->type != tools->result_data->type){
                     tools->error = err_dt_invalid;
-                    fprintf(stderr, "ERROR: neshodné datové typy\n");
+                    fprintf(stderr, "Semantic error: missmatch data type\n");
                     return;
                 }
             }
             
             if(tools->left_data->type != tools->result_data->type && tools->result_data->type != DATA_TYPE_UND){
                 tools->error = err_dt_invalid;
-                fprintf(stderr, "ERROR: neshodné datové typy\n");
+                fprintf(stderr, "Semantic error: missmatch data type\n");
                 return;
             }
         }
@@ -487,11 +472,7 @@ void expression(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Kontrola redefinece proměnné
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce kontroly redefinece proměnné
 void check_redefinition(parser_tools_t* tools) {
     // Vyhledání symbolu v symtable
     DLL_Last(&tools->sym_list);
@@ -516,20 +497,13 @@ void check_redefinition(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Načítání tokenů prvního průchodu parseru
- * 
- * Funkce načítá tokeny ze scanneru.
- * Uvolňuje paměť po předchozím tokenu při počáteční načtení.
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce načítání tokenů prvního průchodu parseru
 void next_token_initial(parser_tools_t* tools) {
     do { //Dokud je tokenem komentář
         if (tools->current_token != NULL) {
             tok_free(tools->current_token);
         }   
-        tools->current_token = scn_scan(scanner);
+        tools->current_token = scn_scan(tools->scanner);
         if (tools->current_token->type == tok_t_error) {
             tok_free(tools->current_token);
             tools->current_token = NULL;
@@ -538,28 +512,14 @@ void next_token_initial(parser_tools_t* tools) {
     } while (tools->current_token->type == tok_t_doc);
 }
 
-/**
- * @brief Načítání tokenů parseru při druhém průchodu
- * 
- * Funkce pouze načítá tokeny ze scanneru.
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce pro načítání tokenů parseru při druhém průchodu
 void next_token(parser_tools_t* tools) {
     do { // Dokud je tokenem komentář
-        tools->current_token = scn_scan(scanner);
+        tools->current_token = scn_scan(tools->scanner);
     } while (tools->current_token->type == tok_t_doc);
 }
 
-/**
- * @brief Kontrolu typu tokenu
- * 
- * Funkce kontroluje, zda je aktuální token jednoho z očekávaných typů.
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- * @param count Počet očekávaných typů
- * @param ... Očekávané typy
- */
+//Funkce pro kontrolu typu tokenu
 void expect_types(parser_tools_t* tools, int count, ...) {
     va_list args;
     va_start(args, count);
@@ -593,11 +553,7 @@ void expect_types(parser_tools_t* tools, int count, ...) {
     }
 }
 
-/**
- * @brief Počáteční funkce rekurzivního sestupu
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Počáteční funkce rekurzivního sestupu
 void program(parser_tools_t* tools) {
     // Zpracování prologu programu
     next_token(tools);
@@ -624,11 +580,7 @@ void program(parser_tools_t* tools) {
     str_unify(&tools->string, &tools->string_tmp);
 }
 
-/**
- * @brief Zpracování prologu programu
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování prologu programu
 void prolog(parser_tools_t* tools) {
     expect_types(tools, 1, tok_t_const); OK;  
 
@@ -672,11 +624,7 @@ void prolog(parser_tools_t* tools) {
     printi(".ifjcode24\n");
 }
 
-/**
- * @brief Zpracování funkce
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce pro zpracování funkce
 void function(parser_tools_t* tools) {
     tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
 
@@ -763,11 +711,7 @@ void function(parser_tools_t* tools) {
     function_next(tools); OK;
 }
 
-/**
- * @brief Zpracování dalších případných funkcí
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování dalších případných funkcí
 void function_next(parser_tools_t* tools) {
     if (tools->current_token->type != tok_t_eof) {
         function(tools); OK;
@@ -776,11 +720,7 @@ void function_next(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování parametrů funkce
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+//Funkce pro zpracování parametrů funkce
 void parameter(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_sym) {
         // Generace proměnné pro parametr
@@ -808,11 +748,7 @@ void parameter(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování dalších případných parametrů funkce
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování dalších případných parametrů funkce
 void parameter_next(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_com) {
         next_token(tools);
@@ -820,11 +756,7 @@ void parameter_next(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování těla funkce
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru 
- */
+// Funkce zpracování těla funkce
 void body(parser_tools_t* tools) {
     // Pokud je token začátkem příkazu, tak se zpracuje příkaz
     if (tools->current_token->type == tok_t_sym || tools->current_token->type == tok_t_unused || tools->current_token->type == tok_t_const || tools->current_token->type == tok_t_var || tools->current_token->type == tok_t_if ||
@@ -834,11 +766,7 @@ void body(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování jednotlivých příkazů
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování jednotlivých příkazů
 void statement(parser_tools_t* tools) {
     bool constFlag = false; // Příznak konstanty
     char destination[MAX_STRING_LEN]; // Dočasné uložení cílové proměnné
@@ -978,9 +906,9 @@ void statement(parser_tools_t* tools) {
 
     case tok_t_while: // while
         tools->current_context = CONTEXT_CONDITION;
-        int cycle_while = tools->cycle;
+        int cycle_while = tools->cycle; // Uložení cyklu while
         tools->counter_codegen_while += 2;
-        int while_number = tools->counter_codegen_while;
+        int while_number = tools->counter_codegen_while; // Uložení počitadla cyklů while
         tools->cycle = tools->counter_codegen_while;
 
         next_token(tools);
@@ -1042,9 +970,9 @@ void statement(parser_tools_t* tools) {
 
     case tok_t_for: //for
         tools->current_context = CONTEXT_CONDITION_FOR;
-        int cycle_for = tools->cycle;
+        int cycle_for = tools->cycle; // Uložení cyklu for
         tools->counter_codegen_for += 2;
-        int for_number = tools->counter_codegen_for;
+        int for_number = tools->counter_codegen_for; // Uložení počitadla cyklů for
         tools->cycle = tools->counter_codegen_for;
 
         next_token(tools);
@@ -1183,11 +1111,7 @@ void statement(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování příkazu počínající symbolem
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování příkazu počínající symbolem
 void id_statement(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_ass) { // Příkaz je přiřazení
         // Vyhledání symbolu mezi v symtable
@@ -1234,11 +1158,7 @@ void id_statement(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování hodnoty
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování hodnoty
 void value(parser_tools_t* tools) {
     expect_types(tools, 9, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym, tok_t_lpa, tok_t_not); OK;
 
@@ -1249,11 +1169,7 @@ void value(parser_tools_t* tools) {
     printi(format[_pops], tools->string_buffer_value);
 }
 
-/**
- * @brief Přiřazení hodnoty výrazu podmíněného neprázdnou hodnotou
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce přiřazení hodnoty výrazu podmíněného neprázdnou hodnotou
 void not_null_value(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_alias) { // Pokud se má provést přiřazení neprázdné hodnoty
         if(tools->result_data->type == DATA_TYPE_BOOLEAN){
@@ -1298,11 +1214,7 @@ void not_null_value(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování těla cyklů a podmínek
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování těla cyklů a podmínek
 void then(parser_tools_t* tools) {
     // Zvýšení hloubky
     dynamic_array_insert(&tools->depth_sequence, ++tools->depth);
@@ -1320,11 +1232,7 @@ void then(parser_tools_t* tools) {
     --tools->depth; // Snížení hloubky
 }
 
-/**
- * @brief Zpracování těla else
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování těla else
 void else_then(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_else) { // Poku je else
         next_token(tools);
@@ -1354,11 +1262,7 @@ void else_then(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování symbolu
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování symbolu
 void id_continue(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_dot || tools->current_token->type == tok_t_lpa) { // Symbol je funkce
         char source[MAX_STRING_LEN]; // Dočasné uložení cílové proměnné
@@ -1404,11 +1308,7 @@ void id_continue(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování návratové hodnoty funkce
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování návratové hodnoty funkce
 void return_value(parser_tools_t* tools) {
     if (tools->current_token->type != tok_t_semicolon) {
         if(tools->function_data->type == DATA_TYPE_VOID){
@@ -1443,11 +1343,7 @@ void return_value(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování volání funkce
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování volání funkce
 void call(parser_tools_t* tools) {
     int param_count_save = tools->param_count; // Uložení počtu parametrů
     tools->param_count = -1;
@@ -1530,11 +1426,7 @@ void call(parser_tools_t* tools) {
     printi(format[_call], tools->string_buffer);
 }
 
-/**
- * @brief Zpracování parametrů volání funkce
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování parametrů volání funkce
 void call_params(parser_tools_t* tools) {
     tools->current_context = CONTEXT_NONE;
     
@@ -1646,11 +1538,7 @@ void call_params(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování dalších parametrů volání funkce
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování dalších parametrů volání funkce
 void call_params_next(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_com) {
         next_token(tools);
@@ -1658,11 +1546,7 @@ void call_params_next(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování hodnoty parametru
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování hodnoty parametru
 void call_value(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_str || tools->current_token->type == tok_t_mstr) { // Hodnota je řetězec
         strcpy(tools->string_buffer_value, tools->current_token->attribute);
@@ -1674,11 +1558,7 @@ void call_value(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování návratového typu funkce
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování návratového typu funkce
 void return_type(parser_tools_t* tools) {
     if (tools->current_token->type != tok_t_void) {
         tools->varOrFunc = false;
@@ -1690,11 +1570,7 @@ void return_type(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování typu symbolu
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování typu symbolu
 void type(parser_tools_t* tools) {
     expect_types(tools, 7, tok_t_i32, tok_t_f64, tok_t_u8, tok_t_bool, tok_t_i32_opt, tok_t_f64_opt, tok_t_u8_opt); OK;
     if(tools->varOrFunc){
@@ -1739,11 +1615,7 @@ void type(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování typu proměnné
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování typu proměnné
 void definition(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_colon) { // Příkaz obsahuje přímou definici proměnné
         next_token(tools);
@@ -1754,11 +1626,7 @@ void definition(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief Zpracování hodnoty pro for cyklus
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce zpracování hodnoty pro for cyklus
 void for_value(parser_tools_t* tools) {
     if (tools->current_token->type == tok_t_sym) { // Hodnota je symbol
         stack_push(&tools->stack_codegen, tools->current_token);
@@ -1777,17 +1645,11 @@ void for_value(parser_tools_t* tools) {
     }
 }
 
-/**
- * @brief První průchod parseru zdrojovým kódem
- * 
- * Funkce prochází zdrojový kód a vytváří tabulku symbolů pro funkce.
- *  
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce prvního průchodu parseru zdrojovým kódem
 void parse_fn_first(parser_tools_t* tools) {
-    // Get the first token.
+    // Získání prvního tokenu
     next_token_initial(tools); OK;
-    // Iterate through program
+    // Zpracování zdrojového kódu
     while (tools->current_token->type != tok_t_eof) {
         if (tools->current_token->type == tok_t_fn) {
             next_token_initial(tools); OK;
@@ -1879,11 +1741,7 @@ void parse_fn_first(parser_tools_t* tools) {
     tok_free(tools->current_token);
 }
 
-/**
- * @brief Inicializace struktury parser_tools_t
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce inicializace struktury parser_tools_t
 void parser_tools_init(parser_tools_t* tools) {
     tools->error = err_none;
     tools->current_token = NULL;
@@ -1916,11 +1774,7 @@ void parser_tools_init(parser_tools_t* tools) {
     str_init(&tools->string_defvar);
 }
 
-/**
- * @brief Uvolnění struktury parser_tools_t
- * 
- * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
- */
+// Funkce uvolnění struktury parser_tools_t
 void parser_tools_destroy(parser_tools_t* tools) {
     tok_free(tools->current_token);
     DLL_Destroy(&tools->sym_list, &tools->error);
@@ -1930,18 +1784,11 @@ void parser_tools_destroy(parser_tools_t* tools) {
     str_destroy(&tools->string_defvar);
 }
 
-/**
- * @brief Hlavní funkce parseru
- * 
- * Parser má celkově dva režimy.
- * Při prvním průchodu přidá do tabulky symbolů všechny funkce a proměnné.
- * Při druhém průchodu se provádí samotná syntaktická analýza.
- * 
- * @return Návratový kód chyby během parsování
- */
-err_codes parse() {
+// Hlavní funkce parseru
+err_codes parse(Scanner_ptr scanner) {
     // Inicializace struktury parser_tools_t
     parser_tools_t tools;
+    tools.scanner = scanner;
     parser_tools_init(&tools);
 
     tools.current_symtable = DLL_Insert_last(&tools.sym_list, &tools.error);

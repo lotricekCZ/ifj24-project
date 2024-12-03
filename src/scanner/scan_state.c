@@ -57,16 +57,7 @@ State_type_pair sca_translation_table[] =
 		{sca_s_orelse_op, tok_t_orelse_un},
 };
 
-/**
- * @brief Prevodni funkce z internalniho stavu scanneru na typ tokenu.
- * @details Funkce bere jako parametr interni stav scanneru a lexem, ktery
- * byl v danem stavu nalezen. Vraci se typ tokenu, ktery odpovida bud stavu, nebo lexemu.
- * Pokud lexem oznaceny za symbol neni v tabulce keywords, vraci se tok_t_sym. Pokud pro dany
- * interni stav ni mozno vratit tok_t_sym, vraci se tok_t_error.
- * @param state internalni stav scanneru
- * @param lexeme lexem, ktery byl v danem stavu nalezen
- * @return token typu, ktery se rovnaji lexemu
- */
+// Prevodni funkce z internalniho stavu scanneru na typ tokenu.
 token_type scn_get_tok_type(scn_state_t state, char *lexeme)
 {
 	for (size_t i = 0; i < sizeof(sca_translation_table) / sizeof(State_type_pair); i++)

@@ -16,39 +16,47 @@ SLL(memory, memory, void *, nothing, memt_deinit, false, false)
 
 HASHTABLE(MEMORY_TABLE_SIZE, memory, void *, void *, memt_hash, memt_key, memt_copy, memt_comp, memt_deinit)
 
+// Získání ukazatele na prvek v seznamu na daném indexu.
 size_t memt_hash(void *src)
 {
 	return (uintptr_t)src % MEMORY_TABLE_SIZE;
 }
 
+// Získání klíče pro porovnání.
 void *memt_key(void *src)
 {
 	return src;
 }
 
+// Kopírování prvku.
 void *memt_copy(void *src)
 {
 	// void **copy = malloc(sizeof(void *));
 	// *copy = src;
 	return src;
 }
+
+// Uvolnění paměti.
 void memt_deinit(void **src)
 {
 	free(*src);
 	free(src);
 }
 
+// Bezpečné uvolnění paměti.
 void memt_safe_deinit(void **src)
 {
 	// free(*src);
 	free(src);
 }
 
+// Porovnání dvou prvků.
 size_t memt_comp(void *src, void *other)
 {
 	return src == other;
 }
 
+// Bezpečné uvolnění paměti jednosměrně vázaného seznamu.
 void memory_sll_safe_delete(memory_sllist *sll, size_t index)
 {
 	if (index == 0)
@@ -80,6 +88,7 @@ void memory_sll_safe_delete(memory_sllist *sll, size_t index)
 	}
 }
 
+// Bezpečné uvolnění paměti hasovací tabulky.
 void memory_ht_safe_delete(memory_ht *table, void *key)
 {
 	size_t hash = memt_hash(key);
@@ -100,16 +109,7 @@ void memory_ht_safe_delete(memory_ht *table, void *key)
 	}
 }
 
-/**
- * @brief Alokace pameti s moznosti sledovani.
- *
- * Funkce alokuje pamet o velikosti size a vraci ukazatel na ni. Pokud je
- * zapnuta kontrola pameti (safe_memory), tak se pamet take ulozi do tabulky
- * pameti, cimz ji lze pozdeji sledovat a uvolnit.
- *
- * @param size Velikost pameti, ktera se ma alokovat.
- * @return Ukazatel na alokovanou pamet.
- */
+// Alokace pameti s moznosti sledovani.
 void *imalloc(size_t size)
 {
 	void *ptr = malloc(size);
@@ -117,15 +117,8 @@ void *imalloc(size_t size)
 		memory_ht_insert(&_memory_table, ptr);
 	return ptr;
 }
-/**
- * @brief Uvolni pamet alokovanou pomoci imalloc.
- *
- * Funkce uvolni pamet, ktera byla alokovana pomoci imalloc.
- * Pokud je zapnuta kontrola pameti, tak se prvne pokusime vymazat
- * prvky z tabulky pameti, cimz ji uvolnime, jinak uvolnime pamet s pomoci free.
- *
- * @param ptr Ukazatel na pamet, ktera se ma uvolnit.
- */
+
+// Uvolni pamet alokovanou pomoci imalloc.
 void ifree(void *ptr)
 {
 	if (safe_memory)
@@ -133,6 +126,8 @@ void ifree(void *ptr)
 	else
 		free(ptr);
 }
+
+// Realokace pameti s moznosti sledovani.
 void *irealloc(void *ptr, size_t size)
 {
 	void *newptr = realloc(ptr, size);

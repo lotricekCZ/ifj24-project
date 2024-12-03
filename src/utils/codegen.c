@@ -13,9 +13,7 @@
 #include <ctype.h>
 #include "codegen.h"
 
-/**
- * @brief Pole formátů instrukcí strojového kódu
- */
+// Pole formátů instrukcí strojového kódu.
 const char *format[INSTRUCTION_COUNT] = {
     "MOVE %s %s\n",         // MOVE ⟨var⟩ ⟨symb⟩
     "CREATEFRAME\n",        // CREATEFRAME
@@ -76,15 +74,7 @@ const char *format[INSTRUCTION_COUNT] = {
     "# %s\n"                // # ⟨string⟩
 };
 
-/**
- * @brief Funkce pro výpis instrukce strojového kódu
- * 
- * Funkce pro výpis řetězce s ohledem na speciální znaky a escape sekvence v závislosti na typu tokenu.
- * 
- * @param string Ukazatel na strukturu řetězce s generovaným kódem
- * @param source Vypisovaný řetězec
- * @param type Typ tokenu řetězce
- */
+// Funkce pro výpis řetězce s ohledem na speciální znaky a escape sekvence v závislosti na typu tokenu.
 void printi_string(str_t* string, char* source, token_type type) {
     for (int index = 0; index < strlen(source); index++) {
         if (type == tok_t_str) {
@@ -133,45 +123,33 @@ void printi_string(str_t* string, char* source, token_type type) {
     }
 }
 
-/**
- * @brief Výpis instrukce strojového kódu
- * 
- * Funkce pro výpis posloupnosti instrukcí vyhodnocení výrazu na zásobníku v postfixové notaci.
- * 
- * @param string Ukazatel na strukturu řetězce s generovaným kódem
- * @param postfix Pole tokenů v postfixové notaci
- * @param postfix_index Index posledního prvku v poli
- * @param stack Ukazatel na zásobník s názvy generovaných proměnných s hodnotymi návratů funkcí
- * @param sym_list Ukazatel na seznam tabulek symbolů
- * @param symtable Ukazatel na tabulku symbolů
- * @param error Ukazatel na chybový kód
- */
+// Funkce pro výpis posloupnosti instrukcí vyhodnocení výrazu na zásobníku v postfixové notaci.
 void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, dynamic_array_t* functions_retval, DLList* sym_list, symtable_t* symtable, err_codes *error) {
     int functions_retval_index = 0;
     for (size_t index = 0; index < postfix_index; index++) {
         char buffer[MAX_STRING_LEN]; // Pomocný buffer pro výpis generovaných řetězců
         switch (postfix[index]->type) {
-            case tok_t_null:
+            case tok_t_null: // null
                 str_append(string, format[_pushs], "nil@nil");
                 break;
-            case tok_t_int:
+            case tok_t_int: // int
                 sprintf(buffer, "int@%i", atoi(postfix[index]->attribute));
                 str_append(string, format[_pushs], buffer);
                 break;
-            case tok_t_flt:
+            case tok_t_flt: // float
                 sprintf(buffer, "float@%a", atof(postfix[index]->attribute));
                 str_append(string, format[_pushs], buffer);
                 break;
-            case tok_t_true:
+            case tok_t_true: // true
                 str_append(string, format[_pushs], "bool@true");
                 break;
-            case tok_t_false:
+            case tok_t_false: // false
                 str_append(string, format[_pushs], "bool@false");
                 break;
-            case tok_t_unreach:
+            case tok_t_unreach: // unreached
                 str_append(string, format[_pushs], "string@panic:\\032reached\\032unreachable\\032code\n");
                 break;
-            case tok_t_sym:
+            case tok_t_sym: // symbol
                 DLL_First(sym_list);
                 symtable = DLL_GetCurrent(sym_list);
 
@@ -202,63 +180,63 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, dynami
                 }
                 DLL_Last(sym_list);
                 break;
-            case tok_t_plus:
+            case tok_t_plus: // +
                 str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_adds]);
                 break;
-            case tok_t_minus:
+            case tok_t_minus: // -
                 str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_subs]);
                 break;
-            case tok_t_times:
+            case tok_t_times: // *
                 str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_muls]);
                 break;
-            case tok_t_divide:
+            case tok_t_divide: // /
                 str_append(string, format[_call], "$$$divs");
                 break;
-            case tok_t_eq:
+            case tok_t_eq: // ==
                 str_append(string, format[_call], "$$$retype");
                 str_append(string, format[_call], "$$$null");
                 str_append(string, "%s", format[_eqs]);
                 break;
-            case tok_t_neq:
+            case tok_t_neq: // !=
                 str_append(string, format[_call], "$$$retype");
                 str_append(string, format[_call], "$$$null");
                 str_append(string, "%s", format[_eqs]);
                 str_append(string, "%s", format[_nots]);
                 break;
-            case tok_t_lt:
+            case tok_t_lt: // <
                 str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_lts]);
                 break;
-            case tok_t_gt:
+            case tok_t_gt: // >
                 str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_gts]);
                 break;
-            case tok_t_leq:
+            case tok_t_leq: // <=
                 str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_gts]);
                 str_append(string, "%s", format[_nots]);
                 break;
-            case tok_t_geq:
+            case tok_t_geq: // >=
                 str_append(string, format[_call], "$$$retype");
                 str_append(string, "%s", format[_lts]);
                 str_append(string, "%s", format[_nots]);
                 break;
-            case tok_t_and:
+            case tok_t_and: // and
                 str_append(string, "%s", format[_ands]);
                 break;
-            case tok_t_or:
+            case tok_t_or: // or
                 str_append(string, "%s", format[_ors]);
                 break;
-            case tok_t_not:
+            case tok_t_not: // !
                 str_append(string, "%s", format[_nots]);
                 break;
-            case tok_t_orelse:
+            case tok_t_orelse: // orelse
                 str_append(string, format[_call], "$$$orelse");
                 break;
-            case tok_t_orelse_un:
+            case tok_t_orelse_un: // .?
                 str_append(string, format[_pushs], "string@panic:\\032reached\\032unreachable\\032code\n");
                 str_append(string, format[_call], "$$$orelse");
                 break;
@@ -268,16 +246,7 @@ void printi_postfix(str_t* string, Token_ptr *postfix, int postfix_index, dynami
     }
 }
 
-/**
- * @brief Výpis instrukce strojového kódu
- * 
- * Funkce pro přednostní výpis instrukcí definicí proměnných, pokud ještě nebyly definovány.
- * 
- * @param string Ukazatel na strukturu řetězce s generovaným kódem
- * @param defvar Ukazatel na strukturu řetězce s již definovanými proměnnými
- * @param source Formátovaný řetězec
- * @param ... Argumenty pro formátovaný řetězec
- */
+// Funkce pro přednostní výpis instrukcí definicí proměnných, pokud ještě nebyly definovány.
 void printi_defvar(str_t* string, str_t* defvar, const char* source, ...) {
     char definition[MAX_STRING_LEN + 30]; // Pomocný buffer pro výpis generovaných řetězců
     char definition_search[MAX_STRING_LEN + 35]; // Pomocný buffer pro vyhledávání již definovaných proměnných
@@ -292,15 +261,7 @@ void printi_defvar(str_t* string, str_t* defvar, const char* source, ...) {
     }
 }
 
-/**
- * @brief Výpis podmíněného skoku
- * 
- * Funkce pro výpis posloupnosti instrukcí pro vyhodnocení podmínky skoku v programu.
- * 
- * @param string Ukazatel na strukturu řetězce s generovaným kódem
- * @param name Název návěští
- * @param number Číslo návěští
- */
+// Funkce pro výpis posloupnosti instrukcí pro vyhodnocení podmínky skoku v programu.
 void printi_condition_jump(str_t* string, const char *name, int number) {
     str_append(string, "\
 CREATEFRAME\n\
@@ -312,14 +273,9 @@ JUMPIFEQ !$%s%i LF@%%%s%i bool@false\n\
 LABEL $$$$%s%i\n", name, number, name, number, name, number, name, number, name, number, name, number);
 }
 
-/**
- * @brief Výpis posloupnosti instrukcí vestavěných funkcí a pomocných funkcí vyhodnocení výrazu.
- * 
- * Funkce pro výpis posloupnosti instrukcí vestavěných funkcí a pomocných funkcí vyhodnocení výrazu.
- * 
- * @param string Ukazatel na strukturu řetězce s generovaným kódem
- */
+// Funkce pro výpis posloupnosti instrukcí vestavěných funkcí a pomocných funkcí vyhodnocení výrazu.
 void printi_builtin(str_t* string) {
+    // Pomocná funkce pro přetypování hodnoty
     str_append(string, "\
 LABEL $$$retype\n\
 CREATEFRAME\n\
@@ -355,6 +311,7 @@ PUSHS TF@%%1\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Pomocná funkce pro vyhodnocení nulových hodnot
     str_append(string, "\
 LABEL $$$null\n\
 CREATEFRAME\n\
@@ -380,6 +337,7 @@ PUSHS TF@%%1\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Pomocná funkce pro dělení
    str_append(string, "\
 LABEL $$$divs\n\
 CREATEFRAME\n\
@@ -408,6 +366,7 @@ LABEL $$$$divs_end\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Pomocná funkce pro operátor orelse
     str_append(string, "\
 LABEL $$$orelse\n\
 CREATEFRAME\n\
@@ -436,6 +395,7 @@ LABEL $$$$orelse_end\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Vestavěná funkce ifj.readstr
     str_append(string, "\
 LABEL $$$readstr\n\
 PUSHFRAME\n\
@@ -444,6 +404,7 @@ READ LF@%%retval string\n\
 POPFRAME\n\
 RETURN\n");
     
+    // Vestavěná funkce ifj.readi32
     str_append(string, "\
 LABEL $$$readi32\n\
 PUSHFRAME\n\
@@ -452,6 +413,7 @@ READ LF@%%retval int\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Vestavěná funkce ifj.readf64
     str_append(string, "\
 LABEL $$$readf64\n\
 PUSHFRAME\n\
@@ -460,6 +422,7 @@ READ LF@%%retval float\n\
 POPFRAME\n\
 RETURN\n");
     
+    // Vestavěná funkce ifj.write
     str_append(string, "\
 LABEL $$$write\n\
 PUSHFRAME\n\
@@ -469,6 +432,7 @@ WRITE LF@%%0\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Vestavěná funkce ifj.i2f
     str_append(string, "\
 LABEL $$$i2f\n\
 PUSHFRAME\n\
@@ -491,6 +455,7 @@ LABEL $$$$i2f_end\n\
 POPFRAME\n\
 RETURN\n");
     
+    // Vestaevná funkce ifj.f2i
     str_append(string, "\
 LABEL $$$f2i\n\
 PUSHFRAME\n\
@@ -513,6 +478,7 @@ LABEL $$$$f2i_end\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Vestavěná funkce ifj.string
     str_append(string, "\
 LABEL $$$string\n\
 PUSHFRAME\n\
@@ -531,6 +497,7 @@ LABEL $$$$string_end\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Vestavěná funkce ifj.length
     str_append(string, "\
 LABEL $$$length\n\
 PUSHFRAME\n\
@@ -549,6 +516,7 @@ LABEL $$$$length_end\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Vestavěná funkce ifj.concat
     str_append(string, "\
 LABEL $$$concat\n\
 PUSHFRAME\n\
@@ -571,7 +539,8 @@ EXIT int@4\n\
 LABEL $$$$concat_end\n\
 POPFRAME\n\
 RETURN\n");
-            
+    
+    // Vestavěná funkce ifj.substring
     str_append(string, "\
 LABEL $$$substring\n\
 PUSHFRAME\n\
@@ -628,6 +597,7 @@ LABEL $$$$substring_end\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Vestavěná funkce ifj.strcmp
     str_append(string, "\
 LABEL $$$strcmp\n\
 PUSHFRAME\n\
@@ -682,6 +652,7 @@ LABEL $$$$strcmp_end\n\
 POPFRAME\n\
 RETURN\n");
 
+    // Vestavěná funkce ifj.ord
     str_append(string, "\
 LABEL $$$ord\n\
 PUSHFRAME\n\

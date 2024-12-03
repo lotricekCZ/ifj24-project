@@ -100,10 +100,29 @@ typedef struct _Keyword
 	char *lexeme; /**< Řetězec přiřazený odpovídajícímu tokenu */
 } Keyword;
 
+/**
+ * @brief Vraci lexem dle typu tokenu.
+ * 
+ * @param type typ tokenu
+ * @return lexem tokenu nebo NULL, pokud nebyl nalezen
+ */
 char *kw_get_lexeme(token_type type);
 
+/**
+ * @brief Vraci název typu tokenu.
+ * @see token_type
+ * 
+ * @param type typ tokenu
+ * @return lexem tokenu nebo NULL, pokud nebyl nalezen
+ */
 char *tok_type_to_str(token_type type);
 
+/**
+ * @brief Najde typ tokenu odpovidajici danemu lexemu.
+ * 
+ * @param lexeme lexem, pro ktery se hleda typ tokenu
+ * @return typ tokenu, nebo tok_t_sym, pokud nebyl nalezen
+ */
 token_type kw_get_type(char *lexeme);
 
 /**

@@ -15,7 +15,7 @@
 /**
  * @brief Hlavní funkce programu
  * 
- * Hlavní soubor programu, který inicializuje scanner a spouští parsování zdrojového kódu.
+ * Hlavní funkce programu, která inicializuje scanner a spouští parsování zdrojového kódu.
  * Inicializace memory_ht pro hlídání alokované paměti a bezpečné uvolnění při chybě.
  * 
  * @return Návratový kód programu
@@ -27,14 +27,14 @@ int main()
     memory_ht_init(&_memory_table);
 
     // Inicializace scanneru
-    scanner = scn_init(NULL);
+    Scanner_ptr scanner = scn_init(NULL);
     if (scanner == NULL) {
         fprintf(stderr, "Failed to initialize scanner.\n");
         return err_internal;
     }
 
     // Spuštění parsování
-    err_codes error = parse();
+    err_codes error = parse(scanner);
 
     // Uvolnění paměti
     scn_free(scanner);

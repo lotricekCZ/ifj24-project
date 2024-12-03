@@ -11,11 +11,7 @@
 #include <stddef.h>
 #include <string.h>
 
-/**
- * @brief Pole klíčových slov
- * 
- * Pole obsahuje klíčová slova pro odpovídající typy tokenů.
- */
+// Pole obsahuje klíčová slova pro odpovídající typy tokenů.
 Keyword keywords[] = {
     {tok_t_const, "const"},
     {tok_t_else, "else"},
@@ -47,12 +43,7 @@ Keyword keywords[] = {
     {tok_t_false, "false"},
 };
 
-/**
- * @brief Vraci lexem dle typu tokenu.
- * 
- * @param type typ tokenu
- * @return lexem tokenu nebo NULL, pokud nebyl nalezen
- */
+// Funkce vraci lexem dle typu tokenu.
 char *kw_get_lexeme(token_type type)
 {
     for (int i = 0; i < sizeof(keywords) / sizeof(Keyword); i++)
@@ -65,12 +56,7 @@ char *kw_get_lexeme(token_type type)
     return NULL;
 }
 
-/**
- * @brief Najde typ tokenu odpovidajici danemu lexemu.
- * 
- * @param lexeme lexem, pro ktery se hleda typ tokenu
- * @return typ tokenu, nebo tok_t_sym, pokud nebyl nalezen
- */
+// Funkce najde typ tokenu odpovidajici danemu lexemu.
 token_type kw_get_type(char *lexeme)
 {
     for (int i = 0; i < sizeof(keywords) / sizeof(Keyword); i++)
@@ -83,13 +69,7 @@ token_type kw_get_type(char *lexeme)
     return tok_t_sym;
 }
 
-/**
- * @brief Vraci název typu tokenu.
- * @see token_type
- * 
- * @param type typ tokenu
- * @return lexem tokenu nebo NULL, pokud nebyl nalezen
- */
+// Funkce navraci název typu tokenu.
 char *tok_type_to_str(token_type type)
 {
     Keyword all_tokens[] = {

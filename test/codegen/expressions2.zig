@@ -35,7 +35,7 @@
 const ifj = @import("ifj24.zig");
 
 pub fn returnNumber() i32 {
-    return 42;
+    return (((((((((42)))))))));
 }
 
 pub fn returnFloat() f64 {

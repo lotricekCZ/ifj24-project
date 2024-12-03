@@ -6,11 +6,21 @@
  * 
  * Implementace hasovaci tabulky.
  */
+
 #include "hashtable.h"
 #include "sll.h"
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * @brief Inicializace hasovaci tabulky.
+ * 
+ * @param table Ukazatel na hasovaci tabulku.
+ * @param entries Pocet zaznamu v tabulce.
+ * @param prefix Prefix pro nazvy funkci.
+ * @param element Typ prvku v tabulce.
+ * @param key_type Typ klice.
+ */
 #define HT_INIT(entries, prefix, element, key_type)      \
 	void prefix##_ht_init(prefix##_ht *table)            \
 	{                                                    \
@@ -23,11 +33,11 @@
 	}
 
 /**
- * @brief Search for an element in the hash table.
+ * @brief Hledani prvku v hasovaci tabulce.
  *
- * @param table The hash table.
- * @param key The key of the element to search for.
- * @return A pointer to the element if found, NULL otherwise.
+ * @param table Hasovaci tabulka, ve ktere se ma prvek hledat.
+ * @param key Klic, podle ktereho se hleda.
+ * @return Ukazatel na nalezeny prvek, nebo NULL, pokud nebyl prvek nalezen.
  */
 #define HT_SEARCH(entries, prefix, element, key_type, hash_fn, comp_fn)           \
 	prefix##_sll_element_ptr prefix##_ht_search(prefix##_ht *table, key_type key) \

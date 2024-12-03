@@ -11,5 +11,5 @@ const ifj = @import("ifj24.zig");
 pub fn main() void {
     const a: ?i32 = 5;
     const b = true;
-    ifj.write(a.? == 5 and !!b);
+    ifj.write(a.? == 5 and !!b and ((((((a)))).?)) == 5 or !!!(((((((a)))))).? != 5));
 }

@@ -13,13 +13,7 @@
 #include "errors.h"
 
 
-/**
- * @brief Inicializace řetězce
- * 
- * Funkce inicializuje strukturu řetězce a alokuje paměť pro data.
- * 
- * @param string Ukazatel na strukturu řetězce
- */
+// Funkce inicializuje strukturu řetězce a alokuje paměť pro data.
 void str_init(str_t* string) {
     string->length = 0;
     string->capacity = 16;
@@ -32,15 +26,7 @@ void str_init(str_t* string) {
 }
 
 
-/**
- * @brief Přidání formátovaného řetězce
- * 
- * Funkce přidává formátovaný řetězec do struktury řetězce.
- * 
- * @param string Ukazatel na strukturu řetězce
- * @param source Formátovaný řetězec
- * @param ... Argumenty pro formátovaný řetězec
- */
+// Funkce přidává formátovaný řetězec do struktury řetězce.
 void str_append(str_t* string, const char* source, ...) {
     va_list args;
     va_start(args, source);
@@ -75,27 +61,12 @@ void str_append(str_t* string, const char* source, ...) {
     va_end(args);
 }
 
-/**
- * @brief Spojení dvou řetězců
- * 
- * Funkce spojuje dva řetězce do jednoho.
- * 
- * @param string Ukazatel na strukturu řetězce, do kterého se přidává
- * @param tmp Ukazatel na strukturu řetězce, který se přidává na konec prvního
- */
+// Funkce spojuje dva řetězce do jednoho.
 void str_unify(str_t* string, str_t* tmp) {
     str_append(string, "%s", tmp->data);
 }
 
-/**
- * @brief Vyhledání podřetězce v řetězci
- * 
- * Funkce vyhledává podřetězec v řetězci.
- * 
- * @param string Ukazatel na strukturu řetězce
- * @param substring Podřetězec, který se hledá
- * @return Pravdivostní hodnota výsledeku vyhledávání
- */
+// Funkce vyhledává podřetězec v řetězci.
 bool str_search(str_t* string, const char* substring) {
     if (string == NULL || string->data == NULL || substring == NULL) {
         return false;
@@ -103,36 +74,18 @@ bool str_search(str_t* string, const char* substring) {
     return (strstr(string->data, substring) != NULL);
 }
 
-/**
- * @brief Výpis řetězce na standardní výstup
- * 
- * Funkce vypisuje řetězec na standardní výstup.
- * 
- * @param string Ukazatel na strukturu řetězce
- */
+// Funkce vypisuje řetězec na standardní výstup.
 void str_printout(str_t* string) {
     printf("%s", string->data);
 }
 
-/**
- * @brief Výpis řetězce na standardní výstup
- * 
- * Funkce aktuální vyčistí obsah řetězce.
- * 
- * @param string Ukazatel na strukturu řetězce
- */
+// Funkce aktuální vyčistí obsah řetězce.
 void str_clear(str_t* string) {
     string->data[0] = '\0';
     string->length = 0;
 }
 
-/**
- * @brief Uvolnění paměti alokované pro řetězec
- * 
- * Funkce uvolní paměť alokovanou pro řetězec.
- * 
- * @param string Ukazatel na strukturu řetězce
- */
+// Funkce uvolní paměť alokovanou pro řetězec.
 void str_destroy(str_t* string) {
     ifree(string->data);
     string->data = NULL;

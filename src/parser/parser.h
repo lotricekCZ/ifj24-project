@@ -20,7 +20,6 @@
 #include "../utils/token.h"
 #include "../utils/symtable.h"
 #include "../utils/errors.h"
-
 #include "../scanner/scanner.h"
 #include "../utils/token_types.h"
 #include "../utils/codegen.h"
@@ -29,11 +28,6 @@
 #include "../utils/symDLList.h"
 #include "../utils/str.h"
 #include "../utils/dynamic_array.h"
-
-/**
- * @brief
- */
-extern Scanner_ptr scanner;
 
 /**
  * @enum context_t
@@ -56,6 +50,7 @@ typedef enum {
  */
 typedef struct {
     //Parser
+    Scanner_ptr scanner;                            /**< Ukazatel na reprezentaci scanneru */
     Token_ptr current_token;                        /**< Aktuální token parsru */
     err_codes error;                                /**< Chybový kód */
 
@@ -363,9 +358,10 @@ void parser_tools_destroy(parser_tools_t* tools);
  * Při prvním průchodu přidá do tabulky symbolů všechny funkce a proměnné.
  * Při druhém průchodu se provádí samotná syntaktická analýza.
  * 
+ * @param scanner Ukazatel na reprezentaci scanner
  * @return Návratový kód chyby během parsování
  */
-err_codes parse();
+err_codes parse(Scanner_ptr scanner);
 
 #endif // PARSER_H
 
