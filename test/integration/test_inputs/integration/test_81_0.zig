@@ -1,9 +1,9 @@
 const ifj = @import("ifj24.zig");
-// Hlavná funkcia programu
+// Hlavna funkcia programu
 pub fn main() void {
     ifj.write("Vitaj v komplexnom testovacom programe pre jazyk IFJ24!\n");
 
-    // Práca s číslami a základnými operáciami
+    // Praca s cislami a zakladnymi operaciami
     const a: i32 = 42;
     const b: i32 = 13;
     var result: i32 = a + b;
@@ -11,7 +11,7 @@ pub fn main() void {
     ifj.write(result);
     ifj.write("\n");
 
-    // Práca s podmienkami
+    // Praca s podmienkami
     if (result > 50) {
         result = 10;
         ifj.write("Vysledok je vacsi ako 50.\n");
@@ -19,7 +19,7 @@ pub fn main() void {
         ifj.write("Vysledok je mensi alebo rovny 50.\n");
     }
 
-    // Práca s cyklom while
+    // Praca s cyklom while
     ifj.write("Vypis cisel od 1 do 5:\n");
     var i: i32 = 1;
     while (i <= 5) {
@@ -28,7 +28,7 @@ pub fn main() void {
         i = i + 1;
     }
 
-    // Práca s funkciami (faktoriál - rekurzívne)
+    // Praca s funkciami (faktorial - rekurzivne)
     const factorialInput: i32 = 5;
     const factorialResult = factorial(factorialInput);
     ifj.write("Faktorial cisla ");
@@ -37,7 +37,7 @@ pub fn main() void {
     ifj.write(factorialResult);
     ifj.write(".\n");
 
-    // Práca s reťazcami
+    // Praca s retazcami
     const str1 = ifj.string("Testovanie prace s retazcami.");
     const str2 = ifj.string(" IFJ24 je super!");
     const combined = ifj.concat(str1, str2);
@@ -45,7 +45,7 @@ pub fn main() void {
     ifj.write(combined);
     ifj.write("\n");
 
-    // Cyklus while na čítanie vstupu
+    // Cyklus while na citanie vstupu
     var sum: i32 = 0;
     ifj.write("Zadajte cisla na scitanie (0 ukonci vstup):\n");
 
@@ -66,7 +66,7 @@ pub fn main() void {
     ifj.write(sum);
     ifj.write("\n");
 
-    // Práca s porovnávaním reťazcov
+    // Praca s porovnavanim retazcov
     ifj.write("Zadajte 'ahoj', aby ste pokracovali:\n");
     const inputStr = ifj.readstr();
     const expected = ifj.string("ahoj");
@@ -86,7 +86,7 @@ pub fn main() void {
     ifj.write("Testovaci program ukonceny uspesne.\n");
 }
 
-// Rekurzívna funkcia na výpočet faktoriálu
+// Rekurzivna funkcia na vypocet faktorialu
 pub fn factorial(n: i32) i32 {
     if (n <= 1) {
         return 1;

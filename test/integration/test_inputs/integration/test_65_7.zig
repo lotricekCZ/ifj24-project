@@ -1,8 +1,8 @@
 const ifj = @import("ifj24.zig");
 
 pub fn main() void {
-    // Načtení 5 hodnot
-    ifj.write("Zadejte 5 celých čísel pro výpočet statistik:\n");
+    // Nacteni 5 hodnot
+    ifj.write("Zadejte 5 celych cisel pro vypocet statistik:\n");
 
     const val1 = ifj.readi32();
     const val2 = ifj.readi32();
@@ -10,34 +10,34 @@ pub fn main() void {
     const val4 = ifj.readi32();
     const val5 = ifj.readi32();
 
-    // Kontrola správnosti načtení
+    // Kontrola spravnosti nacteni
     if (val1 == null) {
-        ifj.write("Chyba při načítání první hodnoty.\n");
+        ifj.write("Chyba pri nacitani prvni hodnoty.\n");
         return;
     } else {}
     if (val2 == null) {
-        ifj.write("Chyba při načítání druhé hodnoty.\n");
+        ifj.write("Chyba pri nacitani druhe hodnoty.\n");
         return;
     } else {}
     if (val3 == null) {
-        ifj.write("Chyba při načítání třetí hodnoty.\n");
+        ifj.write("Chyba pri nacitani treti hodnoty.\n");
         return;
     } else {}
     if (val4 == null) {
-        ifj.write("Chyba při načítání čtvrté hodnoty.\n");
+        ifj.write("Chyba pri nacitani ctvrte hodnoty.\n");
         return;
     } else {}
     if (val5 == null) {
-        ifj.write("Chyba při načítání páté hodnoty.\n");
+        ifj.write("Chyba pri nacitani pate hodnoty.\n");
         return;
     } else {}
 
-    // Proměnné pro výpočty
+    // Promenne pro vypocty
     var sum: i32 = 0;
     var min: i32 = val1;
     var max: i32 = val1; // max -> max ?i32, val1 -> val1 ?i32
 
-    // Výpočty
+    // Vypocty
     sum = sum + val1;
     if (val1 < min) {
         min = val1;
@@ -83,12 +83,12 @@ pub fn main() void {
         max = val5;
     } else {}
 
-    // Výpočet průměru
+    // Vypocet prumeru
     const temp: f64 = ifj.i2f(sum);
     const avg: f64 = temp / 5.0;
 
-    // Výstup výsledků
-    ifj.write("Průměr: ");
+    // Vystup vysledku
+    ifj.write("Prumer: ");
     ifj.write(avg);
     ifj.write("\n");
     ifj.write("Minimum: ");

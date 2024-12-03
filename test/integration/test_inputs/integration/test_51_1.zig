@@ -3,7 +3,7 @@ const ifj = @import("ifj24.zig");
 // Hlavni funkce
 pub fn main() void {
     const str1 = ifj.string("Toto je text v 
-    programu jazyka IFJ24"); //error 1 - neukončený string (přišlo newline před druhou ")
+    programu jazyka IFJ24"); //error 1 - neukonceny string (prislo newline pred druhou ")
     var str2 = ifj.string(", ktery jeste trochu obohatime");
     str2 = ifj.concat(str1, str2);
     ifj.write(str1);

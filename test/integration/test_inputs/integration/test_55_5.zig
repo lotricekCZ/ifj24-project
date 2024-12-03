@@ -13,7 +13,7 @@ pub fn main() void {
     const num1 = 42;
     const num2 = 3;
     const sum = add(num1, num2);
-    _ = foo(sum);   //chyba - přiřazení do konstanty
+    _ = foo(sum); //chyba - prirazeni do konstanty
     ifj.write("The sum is: ");
     ifj.write(sum);
 }

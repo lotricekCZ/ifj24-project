@@ -5,7 +5,7 @@ pub fn multiply(a: i32, b: i32) i32 {
 }
 
 pub fn main() void {
-    const x: i32 = "hello"; //error 7 - typová kompatibilita
+    const x: i32 = "hello"; //error 7 - typova kompatibilita
     const y = 3;
     const result = multiply(x, y);
     ifj.write("The product is: ");

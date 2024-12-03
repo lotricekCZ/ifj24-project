@@ -5,7 +5,7 @@ pub fn multiply(a: i32, b: i32) i32 {
 }
 
 pub fn main() void {
-    const x = undefined + 1; //error 3 - nedefinovaná proměnná
+    const x = undefined + 1; //error 3 - nedefinovana promenna
     const y = 3;
     const result = multiply(x, y);
     ifj.write("The product is: ");
