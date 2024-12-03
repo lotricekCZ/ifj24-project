@@ -253,7 +253,7 @@ void check_bool(data_t *result_data, data_t *result_data2, Token_ptr popToken, T
         if(popToken2->type == tok_t_sym){
             result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK2;
             check_operator_bool(result_data2, result, error); OK2;
-            check_type(result_data2, DATA_TYPE_DOUBLE, error); OK2;
+            check_two_types(result_data2, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
         }
         else if(popToken2->type != tok_t_flt && popToken2->type != tok_t_int){
             *error = error_found();
