@@ -223,7 +223,7 @@ void check_bool(data_t *result_data, data_t *result_data2, Token_ptr popToken, T
             check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
         }
         else if(popToken2->type == tok_t_flt){
-            check_type(result_data, DATA_TYPE_DOUBLE, error); OK2;
+            check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
         }
         else if(popToken2->type == tok_t_true || popToken2->type == tok_t_false || popToken2->type == tok_t_bool){
             check_type(result_data, DATA_TYPE_BOOLEAN, error); OK2;
