@@ -21,6 +21,7 @@
  */
 #define OK2 if (*error != err_none) return 
 
+// nalezení prvku ze symbolické tabulky
 data_t *find(data_t *result_data, DLList sym_list, Token_ptr popToken, symtable_t *symtable, err_codes *error){
     DLL_Last(&sym_list);
     while(sym_list.current != NULL){
@@ -33,18 +34,20 @@ data_t *find(data_t *result_data, DLList sym_list, Token_ptr popToken, symtable_
     }
 
     if(result_data == NULL){
-        fprintf(stderr, "ERROR: nenalezen v symtable\n");
+        fprintf(stderr, "Semantic error: %s is undefined\n", popToken->attribute);
         *error = err_undef;
         return NULL;
     }
     return result_data;
 }
 
+// návrat chyby typové nekombality
 err_codes error_found(){
     fprintf(stderr, "Semantic error: incompatible data types\n");
     return err_dt_invalid;
 }
 
+// kontrola datovéhoho typu
 void check_type(data_t *result_data, data_type_t type, err_codes *error){
     if(result_data->type != type){
         *error = error_found();
@@ -52,6 +55,7 @@ void check_type(data_t *result_data, data_type_t type, err_codes *error){
     }
 }
 
+// kontrola dvou datových typů
 void check_two_types(data_t *result_data, data_type_t type, data_type_t type2, err_codes *error){
     if(result_data->type != type && result_data->type != type2){
         *error = error_found();
@@ -59,6 +63,7 @@ void check_two_types(data_t *result_data, data_type_t type, data_type_t type2, e
     }
 }
 
+// daná proměnná nesmí nabývat NULL
 void check_not_canNull(data_t *result_data, err_codes *error){
     if(result_data->canNull){
         *error = error_found();
@@ -66,6 +71,7 @@ void check_not_canNull(data_t *result_data, err_codes *error){
     }
 }
 
+// daná proměnná musí nabývat NULL
 void check_canNull(data_t *result_data, err_codes *error){
     if(!result_data->canNull){
         *error = error_found();
@@ -331,6 +337,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
     }
 
     result->type = DATA_TYPE_UND;
+    // odvození potenciálního výsledku
     result = resultType(result, postfix[0], symtable, sym_list, error); OK;
 
     if(result == NULL){
@@ -341,6 +348,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
     stack_init(&stack);
     for (int i = 0; i < postfix_index; i++)
     {
+        // operandy
         if(postfix[i]->type == tok_t_sym || postfix[i]->type == tok_t_int || postfix[i]->type == tok_t_flt || 
            postfix[i]->type == tok_t_true || postfix[i]->type == tok_t_false || postfix[i]->type == tok_t_null ||
            postfix[i]->type == tok_t_unreach)
@@ -349,6 +357,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             continue;
         }
 
+        // sčítání, odčítání, násobení
         if(postfix[i]->type == tok_t_plus || postfix[i]->type == tok_t_minus || postfix[i]->type == tok_t_times){
             popToken2 = stack_pop(&stack);
             popToken = stack_pop(&stack);
@@ -425,6 +434,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             continue;
         }
 
+        // dělení
         if(postfix[i]->type == tok_t_divide){
             popToken2 = stack_pop(&stack);
             popToken = stack_pop(&stack);
@@ -502,6 +512,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             continue;
         }
 
+        // relační operátory
         if(postfix[i]->type == tok_t_neq || postfix[i]->type == tok_t_eq || postfix[i]->type == tok_t_lt || 
            postfix[i]->type == tok_t_gt || postfix[i]->type == tok_t_leq || postfix[i]->type == tok_t_geq){
             popToken2 = stack_pop(&stack);
@@ -514,6 +525,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             continue;
         }
 
+        // logické operátory
         if(postfix[i]->type == tok_t_and || postfix[i]->type == tok_t_or){
             popToken2 = stack_pop(&stack);
             popToken = stack_pop(&stack);
@@ -524,6 +536,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             continue;
         }
 
+        // negace
         if(postfix[i]->type == tok_t_not){
             popToken = stack_pop(&stack);
             check_bool_second(result_data, popToken, sym_list, symtable, error); OK;
@@ -532,6 +545,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             continue;
         }
 
+        // orelse
         if(postfix[i]->type == tok_t_orelse){
             popToken2 = stack_pop(&stack);
             popToken = stack_pop(&stack);
@@ -586,7 +600,8 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
             continue;
         }
 
-        if(postfix[i]->type == tok_t_orelse_un){  //zmněnit token
+        //unreachble
+        if(postfix[i]->type == tok_t_orelse_un){  
             popToken = stack_pop(&stack);
             result_data = check_first_orelse(popToken, result_data, sym_list, symtable, error); OK;
             result->canNull = false;
