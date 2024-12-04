@@ -1,5 +1,10 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @addtogroup IFJ2024
+ * @file token.h
+ * @brief Knihovna pro práci s tokenem
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Knihovna poskytuje funkce pro práci s tokenem.
  */
 
 #ifndef TOKEN_H

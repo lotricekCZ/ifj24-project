@@ -1,7 +1,7 @@
 /**
  * @addtogroup IFJ2024
  * @file errors.h
- * @brief Knihovny výpisů chybových hlašení
+ * @brief Knihovna chyb a výpisů chybových hlašení
  * @author xramas01; Jakub Ramaseuski
  * 
  * Knihovna obsahující chybová hlášení a funkce pro výpis chybových hlášení.

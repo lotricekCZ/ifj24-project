@@ -1,13 +1,14 @@
 /**
+ * @addtogroup IFJ2024
  * @file sll.c
- * @brief Dynamicky alokovany spojovy seznam
+ * @brief Implementace dynamicky alokovaneho seznamu
+ * @author xramas01; Jakub Ramaseuski
+ * @cite xsidlil00; Lukas Sidlik
  *
  * Modul obsahuje funkci pro inicializaci seznamu, vkladani a odebrani prvku
  * a funkcionality pro praci s aktivnim prvkem.
- *
- * @author xramas01 Jakub Ramaseuski
- * @cite xsidlil00 Lukas Sidlik
  */
+
 #include "memory_table.h"
 #include <stdlib.h>
 #include "sll.h"

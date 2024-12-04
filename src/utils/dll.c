@@ -1,15 +1,16 @@
-#include <stdlib.h>
-#include "memory_table.h"
 /**
+ * @defgroup IFJ2024
  * @file dll.c
  * @brief Dynamicky alokovany spojovy seznam
+ * @author xramas01; Jakub Ramaseuski
+ * @cite xsidlil00; Lukáš Šidlík
  *
  * Modul obsahuje funkci pro inicializaci seznamu, vkladani a odebrani prvku
  * a funkcionality pro praci s aktivnim prvkem.
- *
- * @author xramas01; Jakub Ramaseuski
- * @cite xsidlil00; Lukas Sidlik
  */
+
+#include <stdlib.h>
+#include "memory_table.h"
 #include "dll.h"
 #ifndef DLL_C
 #define DLL_C

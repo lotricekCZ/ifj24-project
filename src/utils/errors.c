@@ -1,5 +1,10 @@
-/** IFJ2024
- * xramas01; Jakub Ramaseuski
+/**
+ * @addtogroup IFJ2024
+ * @file errors.c
+ * @brief Implementace chyb a výpisů chybových hlašení
+ * @author xramas01; Jakub Ramaseuski
+ * 
+ * Modul obsahuje funkci pro vypisovani chybovych hlaseni na standardni vystup.
  */
 
 #include <stdlib.h>

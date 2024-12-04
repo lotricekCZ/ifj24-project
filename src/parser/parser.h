@@ -1,6 +1,6 @@
 /** 
  * @addtogroup IFJ2024
- * @file parser.c
+ * @file parser.h
  * @brief Knihovna parseru
  * @author xondre16; Jozef Ondrejička
  * @author xsidlil00; Lukáš Šidlík

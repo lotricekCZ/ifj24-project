@@ -1,9 +1,10 @@
-/** 
- * Projekt IFJ2024
- * 
+/**
+ * @addtogroup IFJ2024
+ * @file symDLList.h
  * @brief Rozhraní dvousměrně vázaného seznamu
- * 
  * @author xsidlil00; Lukáš Šidlík
+ * 
+ * Rozhraní funkcí pro práci s dvousměrně vázaným seznamem.
  */
 
 #ifndef SYMDLLIST_H
