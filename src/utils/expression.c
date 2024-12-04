@@ -523,7 +523,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     stack_push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_flt){
-                    check_type(result_data, DATA_TYPE_DOUBLE, error); OK;
+                    check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK;
                     stack_push(&stack, popToken);
                 }
                 else{
@@ -558,7 +558,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 if(popToken2->type == tok_t_sym){
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, error); OK;
-                    check_type(result_data2, DATA_TYPE_DOUBLE, error); OK;
+                    check_two_types(result_data2, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK;
                     stack_push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_int || popToken2->type == tok_t_flt){
