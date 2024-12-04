@@ -156,3 +156,6 @@ build/
 build-*/
 docgen_tmp/
 flat/
+
+# Ignore test script
+test/codegen/test.sh
