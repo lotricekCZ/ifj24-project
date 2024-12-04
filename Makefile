@@ -2,7 +2,7 @@ all: cmake
 
 cmake:
 	@mkdir -p build
-	@cd build && cp Makefile tmpMakefile && cmake .. && make -j12 && rm -rf CMakeFiles Testing && mv tmpMakefile Makefile
+	@cd build && cp Makefile tmpMakefile && cmake .. && make -j12 && rm -rf CMakeFiles Testing CMakeCache.txt && mv tmpMakefile Makefile
 
 test:
 	@cd build && make test
