@@ -55,12 +55,7 @@ SCA_MATCH_DECL(t, 't')
 SCA_GREATER_DECL(text, 34)
 SCA_GREATER_DECL(comments, 31) // pro komentare
 
-/**
- * @brief Podmínka pro řetězce. Kontroluje, zda znak c je tisknutelný a není zpětným lomítkem či uvozovkou.
- *
- * @param c Znak, který má být zkontrolován.
- * @return Vrací nenulovou hodnotu, pokud je znak tisknutelný a není zpětným lomítkem či uvozovkou, jinak vrací 0.
- */
+// Podmínka pro řetězce. Kontroluje, zda znak c je tisknutelný a není zpětným lomítkem či uvozovkou.
 int sca_string(int c)
 {
     return c != '\\' && c != '"' && isprint(c);
@@ -273,14 +268,7 @@ SCA_PATH_DEF(sca_init, sca_minus)
 // init to comma path
 SCA_PATH_DEF(sca_init, sca_comma)
 
-/**
- * @brief dosadi cesty k Scan_node.
- * @details Tato funkce pouziva seznam variabilnich argumentu k pripojeni synu
- * ke Scan_node.
- * @param node Scan_node, ke ktere mame pripojit deti.
- * @param argc Pocet argumentu.
- * @param ...
- */
+// dosadi cesty k Scan_node.
 void sca_assign_children(Scan_node_ptr node, int argc, ...)
 {
     va_list args;
@@ -292,13 +280,7 @@ void sca_assign_children(Scan_node_ptr node, int argc, ...)
     va_end(args);
 }
 
-/**
- * @brief Uvolni pamet, kterou mel uzel skeneru.
- * @details Funkce projde vsechny cesty, ktere z uzlu vedou, uvolni
- * pamet, kterou mely. Pak uvolni pamet, kterou mel na cesty
- *
- * @param node Uzel, jehoz cesty se maji uvolnit.
- */
+// Funkce projde vsechny cesty, ktere z uzlu vedou, uvolni
 void sca_free(Scan_node_ptr node)
 {
 
@@ -308,12 +290,7 @@ void sca_free(Scan_node_ptr node)
     }
 }
 
-/**
- * @brief Vytvori scanner z konfiguracního souboru.
- * @details Vytvori strukturu Scanner a inicializuje ji s obsahem souboru filename.
- * @param filename Cesta k souboru, ze ktereho chceme cist.
- * @return Struktura Scanner, nebo NULL, pokud doslo k chybe.
- */
+// Vytvori scanner z konfiguracního souboru.
 Scanner_ptr scn_init(char *filename)
 {
     // priprava skeneru
@@ -544,15 +521,7 @@ Scanner_ptr scn_init(char *filename)
     return scanner;
 }
 
-/**
- * @brief Uvolní paměť, která byla alokována pro scanner.
- *
- * Tato funkce uvolní paměť, která byla alokována pro scanner a jeho vnitřní
- * proměnné. Protože scanner používá dynamicky alokovanou paměť, je nutné
- * tuto funkci volat před koncem programu, aby se zabránilo úniku paměti.
- *
- * @param scanner Ukazatel na scanner, jehož paměť má být uvolněna.
- */
+// uvolní paměť, která byla alokována pro scanner.
 void scn_free(Scanner_ptr scanner)
 {
     sca_free(&sca_init);
@@ -606,15 +575,7 @@ void scn_free(Scanner_ptr scanner)
     ifree(scanner->source);
     ifree(scanner);
 }
-/**
- * @brief Vyhleda v poli podminek, zdali je splnena nejaka podminka.
- * @details Vyhleda v poli podminek, zdali je splnena nejaka podminka.
- * Podminky jsou v OR vztahu, takze jakmile najde splnenou podminku, funkce
- * skonci a vraci true. Pokud nesplni zadnou podminku, vraci false.
- * @param path Ukazatel na strukturu Scan_path, ktera obsahuje pole podminek.
- * @param c Char, ktery se ma zkontrolovat.
- * @returns true, pokud byla splnena nejaka podminka, jinak false.
- */
+// Vyhleda v poli podminek, zdali je splnena nejaka podminka.
 bool sca_p_has_match(Scan_path *path, char c)
 {
     for (size_t index = 0; index < path->count; index++)
@@ -623,14 +584,7 @@ bool sca_p_has_match(Scan_path *path, char c)
     return false;
 }
 
-/**
- * @brief Najde cestu z uzlu, ktera vyhovuje danemu znaku.
- * @details Iterativne projde cesty a hleda takovou, ktera vyhovuje danemu znaku.
- * Pokud takova cesta je nalezena, vraci ji. Pokud ne, vraci NULL.
- * @param node Uzel, ktery se ma prohledat.
- * @param c Znak, ktery se ma hledat.
- * @returns Cesta, ktera vyhovuje danemu znaku, nebo NULL, pokud takova cesta neexistuje.
- */
+// Najde cestu z uzlu, ktera vyhovuje danemu znaku.
 Scan_path *sca_n_has_match(Scan_node *node, char c)
 {
     for (int index = 0; index < node->count; index++)
@@ -640,6 +594,8 @@ Scan_path *sca_n_has_match(Scan_node *node, char c)
         }
     return NULL;
 }
+
+// Zpracuje viceradkovy retezec.
 char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
 {
     char *result = imalloc(sizeof(char) * (index - scanner->source_index + 1));
@@ -685,15 +641,7 @@ char *scn_parse_multiline(Scanner_ptr scanner, size_t index)
     return result;
 }
 
-/**
- * @brief Vrati token, ktery je na danem indexu v zdrojovem textu.
- * @details Funkce projde grafem skeneru a nalezne token, ktery je
- * na danem indexu v zdrojovem textu. Pokud je nalezen token, vraci
- * se ukazatel na strukturu, ktera reprezentuje tento token.
- * Pokud token neexistuje, vraci se NULL.
- * @param scanner Struktura, ktera reprezentuje scanner.
- * @returns Ukazatel na strukturu, ktera reprezentuje token, nebo NULL, pokud token neexistuje.
- */
+// Vrati token, ktery je na danem indexu v zdrojovem textu.
 Token_ptr scn_scan(Scanner_ptr scanner)
 {
     size_t high = scanner->source_index; // Inicializace proměnné pro aktuální index ve zdrojovém textu
@@ -776,14 +724,7 @@ Token_ptr scn_scan(Scanner_ptr scanner)
     return NULL;
 }
 
-/**
- * @brief Ziskani dalsiho tokenu
- *
- * Funkce vraci dalsi token v seznamu a posune aktivni prvek na dalsi.
- *
- * @param scanner Ukazatel na strukturu reprezentujici scanner
- * @return Ukazatel na strukturu reprezentujici token
- */
+// Ziskani dalsiho tokenu
 Token_ptr scn_next(Scanner_ptr scanner)
 {
     Token_ptr token = scanner->list->activeElement->ptr;
@@ -793,14 +734,7 @@ Token_ptr scn_next(Scanner_ptr scanner)
     return token;
 }
 
-/**
- * @brief Otevreni souboru se zdrojovym kodem
- *
- * Funkce otevira soubor se zdrojovym kodem, nacte jeho obsah do pameti
- * a vrati ukazatel na dynamicke pole, kde je ulozen zdrojovy kod.
- *
- * @return Ukazatel na dynamicke pole, kde je ulozen zdrojovy kod
- */
+// Otevreni souboru se zdrojovym kodem
 char *scn_open_file(Scanner_ptr scanner)
 {
     size_t buffer_size = 1024;
@@ -850,15 +784,7 @@ char *scn_open_file(Scanner_ptr scanner)
     return final_buffer;
 }
 
-/**
- * @brief Kompozice chyboveho hlaseni.
- *
- * Funkce vraci retezec, ktery popisuje lexikalni chybu.
- * Retezec ma format "Lexical error on line <cislo_radky>: <radek_zdrojoveho_kоdу>\n<^>".
- *
- * @param scanner Struktura, ktera reprezentuje scanner.
- * @returns string, ktery popisuje lexikalni chybu.
- */
+// Kompozice chyboveho hlaseni.
 char *scn_compose_message(Scanner_ptr scanner)
 {
     char *preamble = "Lexical error on line";

@@ -22,6 +22,14 @@
 #include "scan_state.h"
 
 /**
+ * @brief Podmínka pro řetězce. Kontroluje, zda znak c je tisknutelný a není zpětným lomítkem či uvozovkou.
+ *
+ * @param c Znak, který má být zkontrolován.
+ * @return Vrací nenulovou hodnotu, pokud je znak tisknutelný a není zpětným lomítkem či uvozovkou, jinak vrací 0.
+ */
+int sca_string(int c);
+
+/**
  * @def SCA_MATCH_DECL(name, a)
  * @brief Deklarace funkce pro kontrolu shody znaku
  * @param name Jmeno funkce
@@ -267,6 +275,15 @@ bool sca_p_has_match(Scan_path *path, char c);
  * @returns Cesta, ktera vyhovuje danemu znaku, nebo NULL, pokud takova cesta neexistuje.
  */
 Scan_path *sca_n_has_match(Scan_node *node, char c);
+
+/**
+ * @brief Zpracuje viceradkovy retezec.
+ * 
+ * @param scanner Ukazatel na strukturu Scanner.
+ * @param index Index, na kterem zacina viceradkovy retezec.
+ * @returns Viceradkovy retezec.
+ */
+char *scn_parse_multiline(Scanner_ptr scanner, size_t index);
 
 #endif /* SCANNER_H */
 

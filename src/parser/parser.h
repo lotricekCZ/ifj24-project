@@ -216,12 +216,33 @@ void body(parser_tools_t* tools);
 /**
  * @brief Zpracování jednotlivých příkazů
  * 
- * Zpracovávají se jednotlivé příkazy v těle funkce na základě aktuálního tokenu.
+ * Zpracovávají se jednotlivé příkazy těla funkce na základě aktuálního tokenu.
  * Příkazy funkce, které se vyskytují v cyklech mají další stupeň ověření.
  * 
  * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */
 void statement(parser_tools_t* tools);
+
+/**
+ * @brief Pomocná funkce zpracování příkazu if
+ * 
+ * @param tools Ukazatel na strukturu parser_tools_t
+ */
+void statement_if(parser_tools_t* tools);
+
+/**
+ * @brief Pomocná funkce zpracování příkazu while
+ * 
+ * @param tools Ukazatel na strukturu parser_tools_t
+ */
+void statement_while(parser_tools_t* tools);
+
+/**
+ * @brief Pomocná funkce zpracování příkazu for
+ * 
+ * @param tools Ukazatel na strukturu parser_tools_t
+ */
+void statement_for(parser_tools_t* tools);
 
 /**
  * @brief Zpracování příkazu počínající symbolem
@@ -260,6 +281,8 @@ void else_then(parser_tools_t* tools);
 
 /**
  * @brief Zpracování symbolu
+ * 
+ * Rozhoduje, zda se jedná o volání funkce nebo proměnnou.
  * 
  * @param tools Ukazatel na strukturu s nástroji pro fungování parseru
  */

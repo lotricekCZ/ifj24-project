@@ -115,17 +115,6 @@ int get_precedence_index(token_type type) {
     }
 }
 
-void precedence_analysis_print (dynamic_array_t *precedence, token_type input, int precedence_top) {
-    for (int i = 0; i < precedence->size; i++) {
-        if (precedence->data[i] == (int)'>' || precedence->data[i] == (int)'<' || precedence->data[i] == (int)'E') {
-            fprintf(stderr, "%c ", precedence->data[i]);
-        } else
-        fprintf(stderr, "%s ", tok_type_to_str(precedence->data[i]));
-    }
-    fprintf(stderr, "| %c | ", precedence_table[get_precedence_index(precedence_top)][get_precedence_index(input)]);
-    fprintf(stderr, "%s\n", tok_type_to_str(input));
-}
-
 // Funkce pro zpracování precedenční analýzy
 void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, token_type input) {
     int action;
@@ -138,7 +127,6 @@ void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, tok
                 break;
             }
         }
-        precedence_analysis_print(precedence, input, precedence_top);
         // Získání akce z precedenční tabulky pro daný vstup a vrchol zásobníku
         action = precedence_table[get_precedence_index(precedence_top)][get_precedence_index(input)];
         switch (action) {
@@ -148,7 +136,7 @@ void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, tok
                     if (precedence->data[index] == precedence_top) { // Vložení shift na místo za vrcholem zásobníku
                         precedence->data[index + 1] = (int)'<';
                         break;
-                    } else {
+                    } else { // Posunutí prvků výrazu
                         precedence->data[index + 1] = precedence->data[index];
                     }
                 }
@@ -245,7 +233,7 @@ void expression_processing(parser_tools_t* tools, Token_ptr (*postfix)[MAX], int
                 next_token(tools);
 
                 // Vložení operátorů negace na konec postfixové notace, pokud existuje (avšak .? má přednost)
-                while (!stack_isEmpty(&stack_postfix) && stack_peek(&stack_postfix)->type == tok_t_not && tools->current_token->type != tok_t_orelse_un) {
+                while (!stack_isEmpty(&stack_postfix) && tools->current_token->type != tok_t_orelse_un && stack_peek(&stack_postfix)->type == tok_t_not) {
                     (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
                 }
                 break;
@@ -277,15 +265,12 @@ void expression_processing(parser_tools_t* tools, Token_ptr (*postfix)[MAX], int
                 precedence_analysis(tools, &precedence, tok_t_sym); OK;
                 (*postfix)[(*postfix_index)] = tools->current_token;
                 stack_push(&tools->stack_codegen, tools->current_token);
-
                 // Uchování informace současného tokenu
                 Token_ptr func_token = tok_init(tools->current_token->type);
                 strcpy(tools->string_buffer_semantic, tools->current_token->attribute);
-
                 // Zpracování symbolu jakožto funkce nebo proměnné
                 next_token(tools);
                 id_continue(tools); OK;
-
                 // Vyhledání symbolu v symtable a určení jeho typu
                 DLL_First(&tools->sym_list);
                 tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
@@ -363,14 +348,10 @@ void expression_processing(parser_tools_t* tools, Token_ptr (*postfix)[MAX], int
                     tools->error = err_syntax;
                     return;
                 }
-
                 (*postfix)[(*postfix_index)++] = tools->current_token;
-
                 next_token(tools);
                 expect_types(tools, 1, tok_t_rpa); OK;
-
                 next_token(tools);
-
                 // Vložení operátorů negace za operand (pokud existují nebo následujícím tokenem není .?)
                 while (!stack_isEmpty(&stack_postfix) && stack_peek(&stack_postfix)->type == tok_t_not && tools->current_token->type != tok_t_orelse_un) {
                     (*postfix)[(*postfix_index)++] = stack_pop(&stack_postfix);
@@ -466,10 +447,10 @@ void expression(parser_tools_t* tools) {
         if (tools->result_data->type == DATA_TYPE_RETYPABLE_DOUBLE) { // Pokud je výsledek přetypovatelný float
             char source[MAX_STRING_LEN]; // Pomocný buffer pro výpis hodnoty
             if (tools->function_data->type == DATA_TYPE_DOUBLE || tools->function_data->type == DATA_TYPE_UND) { // Ponechání float hodnoty
-                sprintf(source, "float@%a", atof(tools->result_data->id));
+                sprintf(source, "float@%a", atof(tools->result_data->id)); // Generace přesunu hodnoty do unikátní proměnné
                 printi(format[_move], tools->string_buffer_value, source);
             } else if (tools->left_data->type == DATA_TYPE_INT) { // Přetypování float na int
-                sprintf(source, "int@%i", atoi(tools->result_data->id));
+                sprintf(source, "int@%i", atoi(tools->result_data->id)); // Generace přesunu hodnoty do unikátní proměnné
                 printi(format[_move], tools->string_buffer_value, source);
             } else {
                 fprintf(stderr, "Semantic error: missmatch data type\n");
@@ -500,10 +481,10 @@ void expression(parser_tools_t* tools) {
         else if (tools->result_data->type == DATA_TYPE_RETYPABLE_DOUBLE) { // Pokud je výsledek přetypovatelný float
             char source[MAX_STRING_LEN]; // Pomocný buffer pro výpis hodnoty
             if (tools->left_data->type == DATA_TYPE_DOUBLE || tools->left_data->type == DATA_TYPE_UND) { // Ponechání float hodnoty
-                sprintf(source, "float@%a", atof(tools->result_data->id));
+                sprintf(source, "float@%a", atof(tools->result_data->id)); // Generace přesunu hodnoty do unikátní proměnné
                 printi(format[_move], tools->string_buffer_value, source);
             } else if (tools->left_data->type == DATA_TYPE_INT) { // Přetypování float na int
-                sprintf(source, "int@%i", atoi(tools->result_data->id));
+                sprintf(source, "int@%i", atoi(tools->result_data->id)); // Generace přesunu hodnoty do unikátní proměnné
                 printi(format[_move], tools->string_buffer_value, source);
             } else {
                 fprintf(stderr, "Semantic error: missmatch data type\n");
@@ -833,44 +814,34 @@ void body(parser_tools_t* tools) {
 // Funkce zpracování jednotlivých příkazů
 void statement(parser_tools_t* tools) {
     bool constFlag = false; // Příznak konstanty
-    char destination[MAX_STRING_LEN]; // Dočasné uložení cílové proměnné
-    tools->left_data = NULL;
-    tools->params = false;
-    // Získání aktuální symtable
-    DLL_Last(&tools->sym_list);
+    tools->left_data = NULL; // Nastavení levého operandu
+    tools->params = false; // Nastavení parametrů
+    DLL_Last(&tools->sym_list);    // Získání aktuální symtable
     tools->current_symtable = DLL_GetCurrent(&tools->sym_list);
 
     switch (tools->current_token->type) {
     case tok_t_unused: //_
         tools->current_context = CONTEXT_NONE;
-
         next_token(tools);
         expect_types(tools, 1, tok_t_ass); OK;
-
         // Získání hodnoty pro přiřazení
         next_token(tools);
         value(tools); OK;
-
         expect_types(tools, 1, tok_t_semicolon); OK;
-
         // Přiřazení hodnoty do speciální proměnné unused
         sprintf(tools->string_buffer, "LF@_");
         printi(format[_move], tools->string_buffer, tools->string_buffer_value);
-
         next_token(tools);
         break;
 
     case tok_t_sym: //ID
         tools->current_context = CONTEXT_SYMBOL;
-
         //Uchování potřebných informací
         strcpy(tools->string_buffer_semantic, tools->current_token->attribute);
         stack_push(&tools->stack_codegen, tools->current_token);
-
         // Provedení akce v závislosti na tom, zda je symbol funkce či proměnná
         next_token(tools);
         id_statement(tools); OK;
-
         expect_types(tools, 1, tok_t_semicolon); OK;
 
         next_token(tools);
@@ -880,258 +851,49 @@ void statement(parser_tools_t* tools) {
         constFlag = true;
     case tok_t_var: // var
         tools->current_context = CONTEXT_SYMBOL;
-
+        char destination[MAX_STRING_LEN]; // Dočasné uložení cílové proměnné
         next_token(tools);
         expect_types(tools, 1, tok_t_sym); OK;
-
         check_redefinition(tools); OK;
-
         // Uložení proměnné do symtable
         tools->left_data = symtable_insert(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
-        
         tools->left_data->isConst = constFlag;
         tools->left_data->modified = constFlag;
-
         // Generace proměnné / konstanty
         sprintf(tools->string_buffer, "LF@%s", tools->current_token->attribute);
         printi(format[_defvar], tools->string_buffer);
         strcpy(destination, tools->string_buffer);
-        
         next_token(tools);
         definition(tools); OK;
-        
         expect_types(tools, 1, tok_t_ass); OK;
 
         next_token(tools);
         value(tools); OK;
-        
         // Generace přiřazení hodnoty k dané proměnné
         printi(format[_move], destination, tools->string_buffer_value);
-
         expect_types(tools, 1, tok_t_semicolon); OK;
-
         next_token(tools);
         break;
 
     case tok_t_if: // if
-        tools->current_context = CONTEXT_CONDITION;
-        next_token(tools);
-        expect_types(tools, 1, tok_t_lpa); OK; 
-
-        next_token(tools);
-        // Generace proměnné výsledku podmínky
-        int if_number = tools->counter_codegen_if++;
-        sprintf(tools->string_buffer, "LF@%%if%i", if_number);
-        printi(format[_defvar], tools->string_buffer);
-        value(tools); OK;
-        sprintf(tools->string_buffer, "LF@%%if%i", if_number);
-        printi(format[_move], tools->string_buffer, tools->string_buffer_value);
-
-        expect_types(tools, 1, tok_t_rpa); OK;
-        
-        // Generace pro vyhodnocení podmíněného skoku
-        printi_condition_jump(&tools->string_tmp, "if", if_number);
-
-        // Vytvoření nové symtable pro tělo if
-        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
-        
-        // Případné provedení výrazu podmíněného neprázdnou hodnotou
-        next_token(tools);
-        sprintf(tools->string_buffer, "LF@%%if%i", if_number);
-        not_null_value(tools); OK;
-
-        // Tělo pozitivního výsledku podmínky
-        then(tools); OK;
-
-        // Generace skoku za celý if
-        sprintf(tools->string_buffer, "*$if%i", if_number);
-        printi(format[_jump], tools->string_buffer);
-
-        // Generace návěští pro else
-        sprintf(tools->string_buffer, "!$if%i", if_number);
-        printi(format[_label], tools->string_buffer);
-
-        // Uvolnění symtable pro tělo if
-        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
-
-        // Vytvoření nové symtable pro tělo else
-        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
-        
-        // Tělo negativního výsledku podmínky
-        else_then(tools); OK;
-
-        //Uvolnění symtable pro tělo else
-        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
-
-        // Generace návěští pro konec if
-        sprintf(tools->string_buffer, "*$if%i", if_number);
-        printi(format[_label], tools->string_buffer);
+        statement_if(tools); OK;
         break;
 
     case tok_t_while: // while
-        tools->current_context = CONTEXT_CONDITION;
-        int cycle_while = tools->cycle; // Uložení cyklu while
-        tools->counter_codegen_while += 2;
-        int while_number = tools->counter_codegen_while; // Uložení počitadla cyklů while
-        tools->cycle = tools->counter_codegen_while;
-
-        next_token(tools);
-        expect_types(tools, 1, tok_t_lpa); OK;
-
-        // Generace proměnné výsledku podmínky
-        sprintf(tools->string_buffer, "LF@%%while%i", while_number);
-        printi(format[_defvar], tools->string_buffer);
-
-        // Generace návěští pro počátek while
-        sprintf(tools->string_buffer, "*$while%i", while_number);
-        printi(format[_label], tools->string_buffer);
-
-        // Generace vyhodnocení podmínky
-        next_token(tools);
-        value(tools); OK;
-        sprintf(tools->string_buffer, "LF@%%while%i", while_number);
-        printi(format[_move], tools->string_buffer, tools->string_buffer_value);
-
-        expect_types(tools, 1, tok_t_rpa); OK;
-
-        // Generace pro vyhodnocení podmíněného skoku
-        printi_condition_jump(&tools->string_tmp, "while", while_number);
-
-        // Vytvoření nové symtable pro tělo while
-        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
-
-        // Případné provedení výrazu podmíněného neprázdnou hodnotou
-        next_token(tools);
-        sprintf(tools->string_buffer, "LF@%%while%i", while_number);
-        not_null_value(tools); OK;
-
-        // Tělo pozitivního výsledku podmínky
-        then(tools); OK;
-        // Uvolnění symtable pro tělo while
-        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
-
-        // Generace skoku na začátek while
-        sprintf(tools->string_buffer, "*$while%i", while_number);
-        printi(format[_jump], tools->string_buffer);
-
-        // Generace návěští pro konec while
-        sprintf(tools->string_buffer, "!$while%i", while_number);
-        printi(format[_label], tools->string_buffer);
-        tools->cycle = cycle_while;
-
-        // Vytvoření nové symtable pro tělo else
-        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
-
-        // Tělo negativního výsledku podmínky
-        else_then(tools); OK;
-        // Uvolnění symtable pro tělo else
-        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
-
-        // Generace návěští pro konec while
-        sprintf(tools->string_buffer, "&$while%i", while_number);
-        printi(format[_label], tools->string_buffer);
+        statement_while(tools); OK;
         break;
 
     case tok_t_for: //for
-        tools->current_context = CONTEXT_CONDITION_FOR;
-        int cycle_for = tools->cycle; // Uložení cyklu for
-        tools->counter_codegen_for += 2;
-        int for_number = tools->counter_codegen_for; // Uložení počitadla cyklů for
-        tools->cycle = tools->counter_codegen_for;
-
-        next_token(tools);
-        expect_types(tools, 1, tok_t_lpa); OK;
-
-        next_token(tools);
-        expect_types(tools, 3, tok_t_sym, tok_t_str, tok_t_mstr); OK;
-
-        strcat(tools->string_buffer_semantic, tools->current_token->attribute);
-
-        // Získání řetězce ve for, generace proměnné pro for a počitadla cyklů for
-        for_value(tools); OK;
-        sprintf(tools->string_buffer, "LF@%%forcounter%i", for_number);
-        printi(format[_defvar], tools->string_buffer);
-        printi(format[_move], tools->string_buffer, "int@0");
-        sprintf(tools->string_buffer, "LF@%%for%i", for_number);
-        printi(format[_defvar], tools->string_buffer);
-        sprintf(tools->string_buffer, "LF@%%for%i", for_number);
-        printi(format[_move], tools->string_buffer, tools->string_buffer_value);
-
-        expect_types(tools, 1, tok_t_rpa); OK;
-
-        // Vytvoření nové symtable pro tělo for
-        tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
-
-        next_token(tools);
-        expect_types(tools, 1, tok_t_alias); OK;
-
-        next_token(tools);
-        expect_types(tools, 2, tok_t_sym, tok_t_unused); OK;
-
-        // Generace proměnné pro uložeí hodnoty výrazu ve for
-        if (tools->current_token->type == tok_t_sym) { // ID
-            // Generace proměnné
-            sprintf(destination, "LF@%s", tools->current_token->attribute);
-            printi(format[_defvar], destination);
-
-            check_redefinition(tools); OK;
-            // Uložení proměnné do symtable
-            tools->left_data = symtable_insert(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
-            tools->left_data->type = DATA_TYPE_INT;
-            tools->left_data->canNull = false;
-            tools->left_data->modified = true;
-        } else { // Specialní proměnná _
-            sprintf(destination, "LF@_");
-        }
-
-        // Generace přiřazení hodnoty výrazu ve for
-        sprintf(tools->string_buffer, "*$for%i", for_number);
-        printi(format[_label], tools->string_buffer);
-
-        // Generace získání ordinální hodnoty řetězce ve for na základě počitadla cyklů
-        printi("%s", format[_createframe]);
-        sprintf(tools->string_buffer, "LF@%%forcounter%i", for_number);
-        printi(format[_pushs], tools->string_buffer);
-        sprintf(tools->string_buffer, "LF@%%for%i", for_number);
-        printi(format[_pushs], tools->string_buffer);
-        sprintf(tools->string_buffer, "LF@%%forcounter%i", for_number);
-        printi(format[_add], tools->string_buffer, tools->string_buffer, "int@1");
-        printi(format[_call], "$$$ord");
-        printi(format[_move], destination, "TF@%retval");
-        // Podmínka pro ukončení cyklu for
-        printi("JUMPIFEQ !$for%i %s int@0\n", for_number, destination);
-
-        next_token(tools);
-        expect_types(tools, 1, tok_t_alias); OK;
-
-        next_token(tools);
-
-        then(tools); OK;
-
-        // Skok na začátek cyklu for
-        sprintf(tools->string_buffer, "*$for%i", for_number);
-        printi(format[_jump], tools->string_buffer);
-
-        // Návěští pro konec cyklu for
-        sprintf(tools->string_buffer, "!$for%i", for_number);
-        printi(format[_label], tools->string_buffer);
-
-        tools->cycle = cycle_for;
-
-        // Uvolnění symtable pro tělo for
-        DLL_Delete_last(&tools->sym_list, &tools->error); OK;
+        statement_for(tools); OK;
         break;
 
     case tok_t_return: // return
         tools->current_context = CONTEXT_RETURN;
         next_token(tools);
         return_value(tools); OK;
-
         printi("%s", format[_popframe]);
         printi("%s", format[_return]);
-
         expect_types(tools, 1, tok_t_semicolon); OK;
-
         next_token(tools);
         break;
 
@@ -1147,10 +909,8 @@ void statement(parser_tools_t* tools) {
             sprintf(tools->string_buffer, "&$for%i", tools->cycle);
             printi(format[_jump], tools->string_buffer);
         }
-
         next_token(tools);
         expect_types(tools, 1, tok_t_semicolon); OK;
-
         next_token(tools);
         break;
 
@@ -1166,13 +926,182 @@ void statement(parser_tools_t* tools) {
             sprintf(tools->string_buffer, "*$for%i", tools->cycle);
             printi(format[_jump], tools->string_buffer);
         }
-
         next_token(tools);
         expect_types(tools, 1, tok_t_semicolon); OK;
-
         next_token(tools);
         break;
     }
+}
+
+// Pomocná funkce zpracování příkazu if
+void statement_if(parser_tools_t* tools) {
+    tools->current_context = CONTEXT_CONDITION;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_lpa); OK; 
+
+    next_token(tools);
+    // Generace proměnné výsledku podmínky
+    int if_number = tools->counter_codegen_if++;
+    sprintf(tools->string_buffer, "LF@%%if%i", if_number);
+    printi(format[_defvar], tools->string_buffer);
+    value(tools); OK;
+    sprintf(tools->string_buffer, "LF@%%if%i", if_number);
+    printi(format[_move], tools->string_buffer, tools->string_buffer_value);
+    expect_types(tools, 1, tok_t_rpa); OK;
+    // Generace pro vyhodnocení podmíněného skoku
+    printi_condition_jump(&tools->string_tmp, "if", if_number);
+    // Vytvoření nové symtable pro tělo if
+    tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
+    // Případné provedení výrazu podmíněného neprázdnou hodnotou
+    next_token(tools);
+    sprintf(tools->string_buffer, "LF@%%if%i", if_number);
+    not_null_value(tools); OK;
+    // Tělo pozitivního výsledku podmínky
+    then(tools); OK;
+    // Generace skoku za celý if
+    sprintf(tools->string_buffer, "*$if%i", if_number);
+    printi(format[_jump], tools->string_buffer);
+    // Generace návěští pro else
+    sprintf(tools->string_buffer, "!$if%i", if_number);
+    printi(format[_label], tools->string_buffer);
+    // Uvolnění symtable pro tělo if
+    DLL_Delete_last(&tools->sym_list, &tools->error); OK;
+    // Vytvoření nové symtable pro tělo else
+    tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
+    // Tělo negativního výsledku podmínky
+    else_then(tools); OK;
+    //Uvolnění symtable pro tělo else
+    DLL_Delete_last(&tools->sym_list, &tools->error); OK;
+    // Generace návěští pro konec if
+    sprintf(tools->string_buffer, "*$if%i", if_number);
+    printi(format[_label], tools->string_buffer);
+}
+
+// Pomocná funkce zpracování příkazu while
+void statement_while(parser_tools_t* tools) {
+    tools->current_context = CONTEXT_CONDITION;
+    int cycle_while = tools->cycle; // Uložení cyklu while
+    tools->counter_codegen_while += 2;
+    int while_number = tools->counter_codegen_while; // Uložení počitadla cyklů while
+    tools->cycle = tools->counter_codegen_while;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_lpa); OK;
+    // Generace proměnné výsledku podmínky
+    sprintf(tools->string_buffer, "LF@%%while%i", while_number);
+    printi(format[_defvar], tools->string_buffer);
+    // Generace návěští pro počátek while
+    sprintf(tools->string_buffer, "*$while%i", while_number);
+    printi(format[_label], tools->string_buffer);
+    // Generace vyhodnocení podmínky
+    next_token(tools);
+    value(tools); OK;
+    sprintf(tools->string_buffer, "LF@%%while%i", while_number);
+    printi(format[_move], tools->string_buffer, tools->string_buffer_value);
+    expect_types(tools, 1, tok_t_rpa); OK;
+    // Generace pro vyhodnocení podmíněného skoku
+    printi_condition_jump(&tools->string_tmp, "while", while_number);
+    // Vytvoření nové symtable pro tělo while
+    tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
+    // Případné provedení výrazu podmíněného neprázdnou hodnotou
+    next_token(tools);
+    sprintf(tools->string_buffer, "LF@%%while%i", while_number);
+    not_null_value(tools); OK;
+    // Tělo pozitivního výsledku podmínky
+    then(tools); OK;
+    // Uvolnění symtable pro tělo while
+    DLL_Delete_last(&tools->sym_list, &tools->error); OK;
+    // Generace skoku na začátek while
+    sprintf(tools->string_buffer, "*$while%i", while_number);
+    printi(format[_jump], tools->string_buffer);
+    // Generace návěští pro konec while
+    sprintf(tools->string_buffer, "!$while%i", while_number);
+    printi(format[_label], tools->string_buffer);
+    tools->cycle = cycle_while;
+    // Vytvoření nové symtable pro tělo else
+    tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
+    // Tělo negativního výsledku podmínky
+    else_then(tools); OK;
+    // Uvolnění symtable pro tělo else
+    DLL_Delete_last(&tools->sym_list, &tools->error); OK;
+    // Generace návěští pro konec while
+    sprintf(tools->string_buffer, "&$while%i", while_number);
+    printi(format[_label], tools->string_buffer);
+}
+
+// Pomocná funkce zpracování příkazu for
+void statement_for(parser_tools_t* tools) {
+    tools->current_context = CONTEXT_CONDITION_FOR;
+    char destination[MAX_STRING_LEN]; // Dočasné uložení cílové proměnné
+    int cycle_for = tools->cycle; // Uložení cyklu for
+    tools->counter_codegen_for += 2;
+    int for_number = tools->counter_codegen_for; // Uložení počitadla cyklů for
+    tools->cycle = tools->counter_codegen_for;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_lpa); OK;
+    
+    next_token(tools);
+    expect_types(tools, 3, tok_t_sym, tok_t_str, tok_t_mstr); OK;
+    strcat(tools->string_buffer_semantic, tools->current_token->attribute);
+    // Získání řetězce ve for, generace proměnné pro for a počitadla cyklů for
+    for_value(tools); OK;
+    sprintf(tools->string_buffer, "LF@%%forcounter%i", for_number);
+    printi(format[_defvar], tools->string_buffer);
+    printi(format[_move], tools->string_buffer, "int@0");
+    sprintf(tools->string_buffer, "LF@%%for%i", for_number);
+    printi(format[_defvar], tools->string_buffer);
+    sprintf(tools->string_buffer, "LF@%%for%i", for_number);
+    printi(format[_move], tools->string_buffer, tools->string_buffer_value);
+    expect_types(tools, 1, tok_t_rpa); OK;
+    // Vytvoření nové symtable pro tělo for
+    tools->current_symtable = DLL_Insert_last(&tools->sym_list, &tools->error); OK;
+    next_token(tools);
+    expect_types(tools, 1, tok_t_alias); OK;
+    next_token(tools);
+    expect_types(tools, 2, tok_t_sym, tok_t_unused); OK;
+    // Generace proměnné pro uložeí hodnoty výrazu ve for
+    if (tools->current_token->type == tok_t_sym) { // ID
+        // Generace proměnné
+        sprintf(destination, "LF@%s", tools->current_token->attribute);
+        printi(format[_defvar], destination);
+
+        check_redefinition(tools); OK;
+        // Uložení proměnné do symtable
+        tools->left_data = symtable_insert(tools->current_symtable, tools->current_token->attribute, &tools->error); OK;
+        tools->left_data->type = DATA_TYPE_INT;
+        tools->left_data->canNull = false;
+        tools->left_data->modified = true;
+    } else { // Specialní proměnná _
+        sprintf(destination, "LF@_");
+    }
+    // Generace přiřazení hodnoty výrazu ve for
+    sprintf(tools->string_buffer, "*$for%i", for_number);
+    printi(format[_label], tools->string_buffer);
+    // Generace získání ordinální hodnoty řetězce ve for na základě počitadla cyklů
+    printi("%s", format[_createframe]);
+    sprintf(tools->string_buffer, "LF@%%forcounter%i", for_number);
+    printi(format[_pushs], tools->string_buffer);
+    sprintf(tools->string_buffer, "LF@%%for%i", for_number);
+    printi(format[_pushs], tools->string_buffer);
+    sprintf(tools->string_buffer, "LF@%%forcounter%i", for_number);
+    printi(format[_add], tools->string_buffer, tools->string_buffer, "int@1");
+    printi(format[_call], "$$$ord");
+    printi(format[_move], destination, "TF@%retval");
+    // Podmínka pro ukončení cyklu for
+    printi("JUMPIFEQ !$for%i %s int@0\n", for_number, destination);
+    
+    next_token(tools);
+    expect_types(tools, 1, tok_t_alias); OK;
+    next_token(tools);
+    then(tools); OK;
+    // Skok na začátek cyklu for
+    sprintf(tools->string_buffer, "*$for%i", for_number);
+    printi(format[_jump], tools->string_buffer);
+    // Návěští pro konec cyklu for
+    sprintf(tools->string_buffer, "!$for%i", for_number);
+    printi(format[_label], tools->string_buffer);
+    tools->cycle = cycle_for;
+    // Uvolnění symtable pro tělo for
+    DLL_Delete_last(&tools->sym_list, &tools->error); OK;
 }
 
 // Funkce zpracování příkazu počínající symbolem
@@ -1560,10 +1489,10 @@ void call_params(parser_tools_t* tools) {
                     }
                     break;
                 case DATA_TYPE_RETYPABLE_DOUBLE:
-                    if (data->parameters->data[param_count_save] == tok_t_flt || data->parameters->data[param_count_save] == tok_t_unused) { // Bez implicitního přetypování
-                        sprintf(source, "float@%a", atof(tools->result_data->id)); // Přesunutí hodnoty do pomocné proměnné výrazu
+                    if (data->parameters->data[param_count_save] == tok_t_flt || data->parameters->data[param_count_save] == tok_t_unused) { // Ponechání float hodnoty
+                        sprintf(source, "float@%a", atof(tools->result_data->id)); // Generace přesunu hodnoty do unikátní proměnné
                         printi(format[_move], tools->string_buffer_value, source);
-                    } else if (data->parameters->data[param_count_save] == tok_t_i32) { // Implicitní přetypování
+                    } else if (data->parameters->data[param_count_save] == tok_t_i32) { // Přetypování na float na int
                         sprintf(source, "int@%i", atoi(tools->result_data->id)); // Přesunutí přetypované hodnoty do pomocné proměnné výrazu
                         printi(format[_move], tools->string_buffer_value, source);
                     } else {
