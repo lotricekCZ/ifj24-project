@@ -1,5 +1,5 @@
 const ifj = @import("ifj24.zig");
 
-pub fn test_39_2() void {
+pub fn main() void {
    Fn main() void {}
 }

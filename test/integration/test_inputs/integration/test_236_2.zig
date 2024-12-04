@@ -5,6 +5,6 @@ const x = 1;
 const y = 1;
 const z = 1;
 
-   const input = xyz - 4 * (((((1))))) -;
+   const input = x+y-z - 4 * (((((1))))) -;
    _ = input;
 }

@@ -1,5 +1,5 @@
 const ifj = @import("ifj24.zig");
 
-pub fn test_37_1() void {
+pub fn main() void {
    "Text with escape: \n\x41"
 }
