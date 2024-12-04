@@ -79,12 +79,14 @@ void check_canNull(data_t *result_data, err_codes *error){
     }
 }
 
+// kontrola prměnné pro aritmetické operace
 void check_operator_calc(data_t *result_data, err_codes *error){
     check_not_canNull(result_data, error); OK2;
     check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
     result_data->used = true;
 }
 
+// kontrola dvou proměnných, jestli mají stejný datový typ
 void check_second_symbol(data_t *result_data, data_t *result_data2, err_codes *error){
     if(result_data->type != result_data2->type){
         *error = error_found();
@@ -92,6 +94,7 @@ void check_second_symbol(data_t *result_data, data_t *result_data2, err_codes *e
     }  
 }
 
+// kontrola validního datového typu pro logické operace
 void check_operator_bool(data_t *result_data, data_t *result, err_codes *error){
     if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE && result_data->type != DATA_TYPE_BOOLEAN){
         *error = error_found();
@@ -100,6 +103,7 @@ void check_operator_bool(data_t *result_data, data_t *result, err_codes *error){
     result_data->used = true;
 }
 
+// kontrola prvního symbolu v ligickém výrazu
 data_t *check_bool_first(data_t *result_data, Token_ptr popToken, DLList sym_list, symtable_t *symtable, err_codes *error){
     result_data = find(result_data, sym_list, popToken, symtable, error); OK;
     check_type(result_data, DATA_TYPE_BOOLEAN, error); OK;
@@ -107,6 +111,7 @@ data_t *check_bool_first(data_t *result_data, Token_ptr popToken, DLList sym_lis
     return result_data;
 }
 
+// kontrola druheho symbolu v logickém výrazu
 void check_bool_second(data_t *result_data, Token_ptr popToken, DLList sym_list, symtable_t *symtable, err_codes *error){
     if(popToken->type == tok_t_sym){
         result_data = find(result_data, sym_list, popToken, symtable, error); OK2;
@@ -120,6 +125,7 @@ void check_bool_second(data_t *result_data, Token_ptr popToken, DLList sym_list,
     }
 }
 
+// kontrola logického výrazu
 void check_bool(data_t *result_data, data_t *result_data2, Token_ptr popToken, Token_ptr popToken2, DLList sym_list, symtable_t *symtable, data_t *result, err_codes *error){
     switch (popToken->type)
     {
@@ -215,6 +221,7 @@ void check_bool(data_t *result_data, data_t *result_data2, Token_ptr popToken, T
     }
 }
 
+// kontrola prvního symbolu v logickém výrazu
 Token_ptr check_and_or(Token_ptr popToken, Token_ptr popToken2, data_t *result_data, DLList sym_list, symtable_t *symtable, err_codes *error){
     switch (popToken->type)
     {
@@ -238,6 +245,7 @@ Token_ptr check_and_or(Token_ptr popToken, Token_ptr popToken2, data_t *result_d
     return popToken;
 }
 
+// kontrola prvního symbolu v orelse operace
 data_t *check_first_orelse(Token_ptr popToken, data_t *result_data, DLList sym_list, symtable_t *symtable, err_codes *error){
     if(popToken->type != tok_t_sym){
         *error = error_found();
@@ -251,6 +259,7 @@ data_t *check_first_orelse(Token_ptr popToken, data_t *result_data, DLList sym_l
     return result_data;
 }
 
+// kontrola druheho symbolu v orelse operace
 data_t *check_second_orelse(data_t *result_data, data_t *result_data2, Token_ptr popToken2, DLList sym_list, symtable_t *symtable, err_codes *error){
     if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE && result_data->type != DATA_TYPE_U8){
         *error = error_found();
@@ -262,6 +271,7 @@ data_t *check_second_orelse(data_t *result_data, data_t *result_data2, Token_ptr
     return result_data2;
 }
 
+// odvození typu z unreachable
 Token_ptr unreachble_type(Token_ptr popToken, data_t *result, err_codes *error){
     if(result->type == DATA_TYPE_INT){
         popToken->type = tok_t_int;
@@ -279,6 +289,7 @@ Token_ptr unreachble_type(Token_ptr popToken, data_t *result, err_codes *error){
     return popToken;
 }
 
+// odvození potenciálního výsledku
 data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLList sym_list, err_codes *error){
     symtable = DLL_GetLast(&sym_list);
     data_t *sym;
@@ -313,6 +324,7 @@ data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLL
     }
 }
 
+// funkce s kontrolou datových typů z postfixového výrazu.
 data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list, symtable_t *symtable, err_codes *error){
     Stack stack;
     data_t *result;
