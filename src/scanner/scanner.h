@@ -238,8 +238,7 @@ char *scn_compose_message(Scanner_ptr scanner);
 
 /**
  * @brief dosadi cesty k Scan_node.
- * @details Tato funkce pouziva seznam variabilnich argumentu k pripojeni synu
- * ke Scan_node.
+ * @details Tato funkce pouziva seznam variabilnich argumentu k pripojeni synu ke Scan_node.
  * @param node Scan_node, ke ktere mame pripojit deti.
  * @param argc Pocet argumentu.
  * @param ...

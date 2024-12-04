@@ -583,12 +583,10 @@ void program(parser_tools_t* tools) {
     // Zpracování prologu programu
     next_token(tools);
     prolog(tools); OK;
-
     // Generace prvního rámce
     printi("%s", format[_createframe]);
     printi(format[_call], "$main");
     printi(format[_jump], "&$main");
-
     // Zpracování funkcí programu
     next_token(tools);
     function(tools); OK;
@@ -616,7 +614,6 @@ void prolog(parser_tools_t* tools) {
         tools->error = err_syntax;
         return;
     }
-
     stack_push(&tools->stack_codegen, tools->current_token);
 
     next_token(tools);
@@ -627,7 +624,6 @@ void prolog(parser_tools_t* tools) {
 
     next_token(tools);
     expect_types(tools, 1, tok_t_lpa); OK;
-
     // Kontrola zadaného souboru v řetězci prologu
     next_token(tools);
     expect_types(tools, 1, tok_t_str); OK;
@@ -641,10 +637,8 @@ void prolog(parser_tools_t* tools) {
 
     next_token(tools);
     expect_types(tools, 1, tok_t_semicolon); OK;
-
     // Vytvoření hlavní symtable
     symtable_insert_builtin(tools->current_symtable, &tools->error); OK;
-
     // Generace hlavičky cílového kódu
     printi(".ifjcode24\n");
 }
