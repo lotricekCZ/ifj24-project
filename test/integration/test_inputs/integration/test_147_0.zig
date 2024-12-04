@@ -7,6 +7,6 @@ const f = 1;
 const h = 1;
 const s = 1;
 
-   const input = (((((((((((((3+4)*f)-asd)/78))))))))))-48+ah;
+   const input = (((((((((((((3+4)*f)-a+s*d)/78))))))))))-48+a/h;
    _ = input;
 }

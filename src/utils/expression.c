@@ -21,15 +21,6 @@
  */
 #define OK2 if (*error != err_none) return 
 
-/**
- * @brief Hledá položku v symbolické tabulce s daným jménem.
- * @param result_data nalezená položka symtable
- * @param sym_list dvousmerný seznam symtable
- * @param popToken token s jménem proměnné
- * @param symtable aktuální symtable
- * @param error místo, kam se uloží chybový kód v případě chyby
- * @return nalezená položka symtable, NULL pokud nebylo nalezeno
- */
 data_t *find(data_t *result_data, DLList sym_list, Token_ptr popToken, symtable_t *symtable, err_codes *error){
     DLL_Last(&sym_list);
     while(sym_list.current != NULL){
@@ -49,23 +40,11 @@ data_t *find(data_t *result_data, DLList sym_list, Token_ptr popToken, symtable_
     return result_data;
 }
 
-/**
- * @brief Vrací chybový kód pro neslučitelné datové typy.
- *
- * @return chybový kód err_dt_invalid
- */
 err_codes error_found(){
     fprintf(stderr, "Semantic error: incompatible data types\n");
     return err_dt_invalid;
 }
 
-/**
- * @brief Kontroluje, zda datový typ v result_data odpovídá očekávanému typu.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param type očekávaný datový typ
- * @param error místo, kam se uloží chybový kód v případě chyby
- */
 void check_type(data_t *result_data, data_type_t type, err_codes *error){
     if(result_data->type != type){
         *error = error_found();
@@ -73,14 +52,6 @@ void check_type(data_t *result_data, data_type_t type, err_codes *error){
     }
 }
 
-/**
- * @brief Kontroluje, zda datový typ v result_data odpovídá jednomu z očekávaných typů.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param type první očekávaný datový typ
- * @param type2 druhý očekávaný datový typ
- * @param error místo, kam se uloží chybový kód v případě chyby
- */
 void check_two_types(data_t *result_data, data_type_t type, data_type_t type2, err_codes *error){
     if(result_data->type != type && result_data->type != type2){
         *error = error_found();
@@ -88,12 +59,6 @@ void check_two_types(data_t *result_data, data_type_t type, data_type_t type2, e
     }
 }
 
-/**
- * @brief Zkontroluje, zda datový typ v result_data nemůže být NULL.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param error místo, kam se uloží chybový kód v případě chyby
- */
 void check_not_canNull(data_t *result_data, err_codes *error){
     if(result_data->canNull){
         *error = error_found();
@@ -101,12 +66,6 @@ void check_not_canNull(data_t *result_data, err_codes *error){
     }
 }
 
-/**
- * @brief Kontroluje, zda datový typ v result_data může být NULL.
- * 
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param error místo, kam se uloží chybový kód v případě chyby
- */
 void check_canNull(data_t *result_data, err_codes *error){
     if(!result_data->canNull){
         *error = error_found();
@@ -114,25 +73,12 @@ void check_canNull(data_t *result_data, err_codes *error){
     }
 }
 
-/**
- * @brief Zkontroluje, zda datový typ v result_data je vhodný pro aritmetické operace.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param error místo, kam se uloží chybový kód v případě chyby
- */
 void check_operator_calc(data_t *result_data, err_codes *error){
     check_not_canNull(result_data, error); OK2;
     check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
     result_data->used = true;
 }
 
-/**
- * @brief Kontroluje, zda datový typ v result_data a result_data2 je shodný.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param result_data2 ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param error místo, kam se uloží chybový kód v případě chyby
- */
 void check_second_symbol(data_t *result_data, data_t *result_data2, err_codes *error){
     if(result_data->type != result_data2->type){
         *error = error_found();
@@ -140,13 +86,6 @@ void check_second_symbol(data_t *result_data, data_t *result_data2, err_codes *e
     }  
 }
 
-/**
- * @brief Kontroluje, zda datový typ v result_data je vhodný pro porovnávání.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param result ukazatel na strukturu, kam se má uložit výsledný datový typ
- * @param error místo, kam se uloží chybový kód v případě chyby
- */
 void check_operator_bool(data_t *result_data, data_t *result, err_codes *error){
     if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE && result_data->type != DATA_TYPE_BOOLEAN){
         *error = error_found();
@@ -155,17 +94,6 @@ void check_operator_bool(data_t *result_data, data_t *result, err_codes *error){
     result_data->used = true;
 }
 
-
-/**
- * @brief Najde prvni symbol v DLList sym_list, kontroluje, zda je typu boolean.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param popToken token, který má být zkontrolován
- * @param sym_list dvousmerný seznam tabulek symbolů
- * @param symtable aktuální symbolická tabulka
- * @param error místo, kam se uloží chybový kód v případě chyby
- * @return ukazatel na strukturu obsahující datový typ, byl zkontrolován nebo NULL v případě chyby
- */
 data_t *check_bool_first(data_t *result_data, Token_ptr popToken, DLList sym_list, symtable_t *symtable, err_codes *error){
     result_data = find(result_data, sym_list, popToken, symtable, error); OK;
     check_type(result_data, DATA_TYPE_BOOLEAN, error); OK;
@@ -173,15 +101,6 @@ data_t *check_bool_first(data_t *result_data, Token_ptr popToken, DLList sym_lis
     return result_data;
 }
 
-/**
- * @brief Kontroluje, zda datový typ v result_data je vhodný pro bool operace.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param popToken token, který má být zkontrolován
- * @param sym_list dvousmerný seznam tabulek symbolů
- * @param symtable aktuální symbolická tabulka
- * @param error místo, kam se uloží chybový kód v případě chyby
- */
 void check_bool_second(data_t *result_data, Token_ptr popToken, DLList sym_list, symtable_t *symtable, err_codes *error){
     if(popToken->type == tok_t_sym){
         result_data = find(result_data, sym_list, popToken, symtable, error); OK2;
@@ -195,18 +114,6 @@ void check_bool_second(data_t *result_data, Token_ptr popToken, DLList sym_list,
     }
 }
 
-/**
- * @brief Kontroluje, zda datový typ v result_data a result_data2 je vhodný pro bool operace.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param result_data2 druhý ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param popToken token, který má být zkontrolován
- * @param popToken2 token, který má být zkontrolován
- * @param sym_list dvousmerný seznam tabulek symbolů
- * @param symtable aktuální symbolická tabulka
- * @param result ukazatel na strukturu obsahující datový typ výsledku
- * @param error místo, kam se uloží chybový kód v případě chyby
- */
 void check_bool(data_t *result_data, data_t *result_data2, Token_ptr popToken, Token_ptr popToken2, DLList sym_list, symtable_t *symtable, data_t *result, err_codes *error){
     switch (popToken->type)
     {
@@ -222,7 +129,7 @@ void check_bool(data_t *result_data, data_t *result_data2, Token_ptr popToken, T
         else if(popToken2->type == tok_t_int){
             check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
         }
-        else if(popToken2->type == tok_t_flt){
+        else if(popToken2->type == tok_t_flt){     
             check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK2;
         }
         else if(popToken2->type == tok_t_true || popToken2->type == tok_t_false || popToken2->type == tok_t_bool){
@@ -302,17 +209,6 @@ void check_bool(data_t *result_data, data_t *result_data2, Token_ptr popToken, T
     }
 }
 
-/**
- * @brief Kontroluje, zda datový typ v result_data je vhodný pro AND a OR operace.
- *
- * @param popToken token, který má být zkontrolován
- * @param popToken2 druhý token, který má být zkontrolován
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param sym_list dvousmerný seznam tabulek symbolů
- * @param symtable aktuální symbolická tabulka
- * @param error místo, kam se uloží chybový kód v případě chyby
- * @return popToken, pokud je vše v pořádku, jinak NULL
- */
 Token_ptr check_and_or(Token_ptr popToken, Token_ptr popToken2, data_t *result_data, DLList sym_list, symtable_t *symtable, err_codes *error){
     switch (popToken->type)
     {
@@ -336,16 +232,6 @@ Token_ptr check_and_or(Token_ptr popToken, Token_ptr popToken2, data_t *result_d
     return popToken;
 }
 
-/**
- * @brief Najde prvni symbol v DLList sym_list, kontroluje, jestli může nabývat hodnoty NULL.
- *
- * @param popToken token, který má být zkontrolován
- * @param result_data ukazatel na strukturu obsahující datový typ, který má být zkontrolován
- * @param sym_list dvousmerný seznam tabulek symbolů
- * @param symtable aktuální symbolická tabulka
- * @param error místo, kam se uloží chybový kód v případě chyby
- * @return ukazatel na strukturu obsahující datový typ, byl zkontrolován nebo NULL v případě chyby
- */
 data_t *check_first_orelse(Token_ptr popToken, data_t *result_data, DLList sym_list, symtable_t *symtable, err_codes *error){
     if(popToken->type != tok_t_sym){
         *error = error_found();
@@ -359,17 +245,6 @@ data_t *check_first_orelse(Token_ptr popToken, data_t *result_data, DLList sym_l
     return result_data;
 }
 
-/**
- * @brief Kontroluje druhý symbol v DLList sym_list a ověřuje datové typy.
- *
- * @param result_data ukazatel na strukturu obsahující datový typ prvního symbolu
- * @param result_data2 ukazatel na strukturu obsahující datový typ druhého symbolu
- * @param popToken2 token pro druhý symbol
- * @param sym_list dvousměrný seznam tabulek symbolů
- * @param symtable aktuální symbolická tabulka
- * @param error místo, kam se uloží chybový kód v případě chyby
- * @return ukazatel na strukturu obsahující datový typ druhého symbolu, nebo NULL v případě chyby
- */
 data_t *check_second_orelse(data_t *result_data, data_t *result_data2, Token_ptr popToken2, DLList sym_list, symtable_t *symtable, err_codes *error){
     if(result_data->type != DATA_TYPE_INT && result_data->type != DATA_TYPE_DOUBLE && result_data->type != DATA_TYPE_U8){
         *error = error_found();
@@ -381,14 +256,6 @@ data_t *check_second_orelse(data_t *result_data, data_t *result_data2, Token_ptr
     return result_data2;
 }
 
-/**
- * @brief Funkce, která nahradí typ tokenu.
- *
- * @param popToken token, který má být nahrazen
- * @param result datový typ, podle kterého má být nahrazen
- * @param error místo, kam se uloží chybový kód v případě chyby
- * @return nahrazený token, nebo NULL v případě chyby
- */
 Token_ptr unreachble_type(Token_ptr popToken, data_t *result, err_codes *error){
     if(result->type == DATA_TYPE_INT){
         popToken->type = tok_t_int;
@@ -406,16 +273,6 @@ Token_ptr unreachble_type(Token_ptr popToken, data_t *result, err_codes *error){
     return popToken;
 }
 
-/**
- * @brief Nastaví typ dat v result podle tokenu popToken.
- *
- * @param result struktura, kam má být typ dat uložen
- * @param popToken token, podle kterého má být nastaven typ dat
- * @param symtable aktuální symbolická tabulka
- * @param sym_list dvousmerný seznam tabulek symbolů
- * @param error místo, kam se uloží chybový kód v případě chyby
- * @return ukazatel na strukturu s nastaveným typem dat, nebo NULL v případě chyby
- */
 data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLList sym_list, err_codes *error){
     symtable = DLL_GetLast(&sym_list);
     data_t *sym;
@@ -450,16 +307,6 @@ data_t* resultType(data_t *result, Token_ptr popToken, symtable_t *symtable, DLL
     }
 }
 
-/**
- * @brief Funkce pro výpočet postfixového výrazu s kontrolou datových typů.
- * 
- * @param postfix pole s postfixovým vyjádřením výrazu
- * @param postfix_index počet prvků v poli postfix
- * @param sym_list dvousmerný seznam tabulek symbolů
- * @param symtable aktuální symbolická tabulka
- * @param error místo, kam se uloží chybový kód v případě chyby
- * @return struktura s datovým typem výsledku
- */
 data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list, symtable_t *symtable, err_codes *error){
     Stack stack;
     data_t *result;
@@ -523,7 +370,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                     stack_push(&stack, popToken);
                 }
                 else if(popToken2->type == tok_t_flt){
-                    check_type(result_data, DATA_TYPE_DOUBLE, error); OK;
+                    check_two_types(result_data, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK;
                     stack_push(&stack, popToken);
                 }
                 else{
@@ -558,7 +405,7 @@ data_t* postfix_semantic(Token_ptr *postfix, int postfix_index, DLList sym_list,
                 if(popToken2->type == tok_t_sym){
                     result_data2 = find(result_data2, sym_list, popToken2, symtable, error); OK;
                     check_operator_calc(result_data2, error); OK;
-                    check_type(result_data2, DATA_TYPE_DOUBLE, error); OK;
+                    check_two_types(result_data2, DATA_TYPE_INT, DATA_TYPE_DOUBLE, error); OK;
                     stack_push(&stack, popToken2);
                 }
                 else if(popToken2->type == tok_t_int || popToken2->type == tok_t_flt){

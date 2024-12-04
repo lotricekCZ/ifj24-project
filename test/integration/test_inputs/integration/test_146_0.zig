@@ -6,6 +6,6 @@ const d = 1;
 const x = 1;
 const y = 1;
 
-   const input = ((3+(((4*2)-1)/2)+ad) > (xy));
+   const input = ((3+(((4*2)-1)/2)+a+d) > (x+y));
    _ = input;
 }

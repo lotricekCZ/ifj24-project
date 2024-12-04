@@ -8,6 +8,6 @@ const g = 1;
 const h = 1;
 const s = 1;
 
-   const input = (1+1)*   1222 - 3.6 * asdfgh / 8 * 4;
+   const input = (1+1)*   1222 - 3.6 * a*s/d-f+g*h / 8 * 4;
    _ = input;
 }
