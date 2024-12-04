@@ -1816,11 +1816,8 @@ err_codes parse(Scanner_ptr scanner) {
                 tools.error = err_param;
             }
             tools.left_data->used = true;
-        }
 
-        // Výpis výsledného kódu při úspěšném průchodu
-        if (tools.error == err_none) {
-            str_printout(&tools.string);
+            str_printout(&tools.string); // Výpis výsledného kódu při úspěšném průchodu
         }
     }
     
