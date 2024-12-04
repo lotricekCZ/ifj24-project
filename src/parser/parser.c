@@ -1160,6 +1160,21 @@ void id_statement(parser_tools_t* tools) {
 
 // Funkce zpracování hodnoty
 void value(parser_tools_t* tools) {
+    if(tools->current_token->type == tok_t_str || tools->current_token->type == tok_t_mstr){
+        if(tools->left_data != NULL){
+            if(tools->left_data->type != DATA_TYPE_UND){
+                fprintf(stderr, "Semantic error: cannot cast string to ID.\n");
+                tools->error = err_dt_invalid;
+                return;
+            }
+            else{
+                fprintf(stderr, "Semantic error: cannot deduce type from string.\n");
+                tools->error = err_dt_unknown;
+                return;
+            }
+        }
+    }
+
     expect_types(tools, 9, tok_t_null, tok_t_int, tok_t_flt, tok_t_true, tok_t_false, tok_t_as, tok_t_sym, tok_t_lpa, tok_t_not); OK;
 
     // Zpracování výrazu
