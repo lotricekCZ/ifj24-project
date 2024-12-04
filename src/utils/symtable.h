@@ -28,13 +28,14 @@
  */
 typedef enum
 {
-    DATA_TYPE_INT,     // integer
-    DATA_TYPE_DOUBLE,  // double
-    DATA_TYPE_U8,      // unsigned char
-    DATA_TYPE_STRING,  // string
-    DATA_TYPE_BOOLEAN, // boolean
-    DATA_TYPE_VOID,    // void
-    DATA_TYPE_UND      // undefined
+    DATA_TYPE_INT,              // integer
+    DATA_TYPE_DOUBLE,           // double
+    DATA_TYPE_U8,               // unsigned char
+    DATA_TYPE_STRING,           // string
+    DATA_TYPE_BOOLEAN,          // boolean
+    DATA_TYPE_VOID,             // void
+    DATA_TYPE_UND,              // undefined
+    DATA_TYPE_RETYPABLE_DOUBLE  // float
 } data_type_t;
 
 /**

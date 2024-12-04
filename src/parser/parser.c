@@ -17,6 +17,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdarg.h>
+#include <float.h>
 #include "parser.h"
 #include "../scanner/scanner.h"
 #include "../utils/token.h"
@@ -114,6 +115,17 @@ int get_precedence_index(token_type type) {
     }
 }
 
+void precedence_analysis_print (dynamic_array_t *precedence, token_type input, int precedence_top) {
+    for (int i = 0; i < precedence->size; i++) {
+        if (precedence->data[i] == (int)'>' || precedence->data[i] == (int)'<' || precedence->data[i] == (int)'E') {
+            fprintf(stderr, "%c ", precedence->data[i]);
+        } else
+        fprintf(stderr, "%s ", tok_type_to_str(precedence->data[i]));
+    }
+    fprintf(stderr, "| %c | ", precedence_table[get_precedence_index(precedence_top)][get_precedence_index(input)]);
+    fprintf(stderr, "%s\n", tok_type_to_str(input));
+}
+
 // Funkce pro zpracování precedenční analýzy
 void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, token_type input) {
     int action;
@@ -126,6 +138,7 @@ void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, tok
                 break;
             }
         }
+        precedence_analysis_print(precedence, input, precedence_top);
         // Získání akce z precedenční tabulky pro daný vstup a vrchol zásobníku
         action = precedence_table[get_precedence_index(precedence_top)][get_precedence_index(input)];
         switch (action) {
@@ -157,10 +170,15 @@ void precedence_analysis(parser_tools_t* tools, dynamic_array_t *precedence, tok
                     // Existence hodnoty mezi operátory
                     if (precedence->data[index] == tok_t_sym || precedence->data[index] == (int)'E') {
                         without_value = false;
-                    } else if (precedence->data[index] == precedence_top && without_value && precedence_top != tok_t_rpa && precedence_top != tok_t_orelse_un) { // Redukce výrazu bez hodnoty
-                        fprintf(stderr, "Syntax error: Error in expression.\n");
-                        tools->error = err_syntax;
-                        return;
+                    } else if (precedence->data[index] == precedence_top) { // Redukce výrazu bez hodnoty
+                        if (without_value && precedence_top != tok_t_rpa && precedence_top != tok_t_orelse_un) {
+                            fprintf(stderr, "Syntax error: Error in expression.\n");
+                            tools->error = err_syntax;
+                            return;
+                        }
+                        if (precedence_top != tok_t_not) {
+                            without_value = true;
+                        }
                     }
                     precedence->size--; // Odstranění prvku z výrazu
                     // Neplatný výraz
@@ -405,12 +423,35 @@ void expression(parser_tools_t* tools) {
     dynamic_array_init(&functions_retval);
     expression_processing(tools, &postfix, &postfix_index, &functions_retval); OK;
 
-    // Generování výrazu v cílovém kódu
-    printi_postfix(&tools->string_tmp, postfix, postfix_index, &functions_retval, &tools->sym_list, tools->current_symtable, &tools->error); OK;
+    sprintf(tools->string_buffer_value, "LF@%%expression%i", tools->counter_global++);
+    printi(format[_defvar], tools->string_buffer_value);
 
-    // Sémantická kontrola výrazu
-    tools->result_data = postfix_semantic(postfix, postfix_index, tools->sym_list, tools->current_symtable, &tools->error); OK;
-    tools->current_context = save_context;
+    bool single_flat_float = false; // Příznak pro jednoduché floatové číslo
+    if (postfix_index == 1 && postfix[0]->type == tok_t_flt &&
+        (tools->current_context == CONTEXT_SYMBOL || tools->current_context == CONTEXT_NONE || tools->current_context == CONTEXT_RETURN)) { // Pokud lze float hodnotu převést implicitně na int
+        char *endptr;
+        double cislo = strtod(postfix[0]->attribute, &endptr);
+        single_flat_float = endptr != postfix[0]->attribute && *endptr == '\0' && cislo == (int)cislo; // Zjištění desetinné části float čísla
+    }
+    if (single_flat_float) { //Pokud je výraz jednoduché floatové číslo
+        tools->result_data = imalloc(sizeof(data_t));
+        if (tools->result_data == NULL) { 
+            tools->error = err_internal;
+            return;
+        }
+        tools->result_data->type = DATA_TYPE_RETYPABLE_DOUBLE; // Vytvoření výsledných dat jakožto přetypovatelný float
+        tools->result_data->id = imalloc(strlen(postfix[0]->attribute) + 1);
+        strcpy(tools->result_data->id, postfix[0]->attribute);
+    } else {
+        // Generování výrazu v cílovém kódu
+        printi_postfix(&tools->string_tmp, postfix, postfix_index, &functions_retval, &tools->sym_list, tools->current_symtable, &tools->error); OK;
+        printi(format[_pops], tools->string_buffer_value); // Přesun výsledku do unikátní proměnné
+
+        // Sémantická kontrola výrazu
+        tools->result_data = postfix_semantic(postfix, postfix_index, tools->sym_list, tools->current_symtable, &tools->error); OK;
+        tools->current_context = save_context;
+    }
+
     switch (tools->current_context)
     {
     case CONTEXT_CONDITION:
@@ -422,11 +463,22 @@ void expression(parser_tools_t* tools) {
     break;
 
     case CONTEXT_RETURN:// todo hlídat null
-        if((tools->function_data->type != tools->result_data->type || tools->function_data->canNull != tools->result_data->canNull)){
+        if (tools->result_data->type == DATA_TYPE_RETYPABLE_DOUBLE) { // Pokud je výsledek přetypovatelný float
+            char source[MAX_STRING_LEN]; // Pomocný buffer pro výpis hodnoty
+            if (tools->function_data->type == DATA_TYPE_DOUBLE || tools->function_data->type == DATA_TYPE_UND) { // Ponechání float hodnoty
+                sprintf(source, "float@%a", atof(tools->result_data->id));
+                printi(format[_move], tools->string_buffer_value, source);
+            } else if (tools->left_data->type == DATA_TYPE_INT) { // Přetypování float na int
+                sprintf(source, "int@%i", atoi(tools->result_data->id));
+                printi(format[_move], tools->string_buffer_value, source);
+            } else {
+                fprintf(stderr, "Semantic error: missmatch data type\n");
+            }
+        } else if((tools->function_data->type != tools->result_data->type || tools->function_data->canNull != tools->result_data->canNull)){
             fprintf(stderr, "Semantic error: Invalid return type\n");
             tools->error = err_param;
             return;
-        }    
+        }
     break;
 
     case CONTEXT_SYMBOL:
@@ -444,6 +496,18 @@ void expression(parser_tools_t* tools) {
             }
             tools->left_data->type = tools->result_data->type;
             tools->left_data->canNull = tools->result_data->canNull;
+        }
+        else if (tools->result_data->type == DATA_TYPE_RETYPABLE_DOUBLE) { // Pokud je výsledek přetypovatelný float
+            char source[MAX_STRING_LEN]; // Pomocný buffer pro výpis hodnoty
+            if (tools->left_data->type == DATA_TYPE_DOUBLE || tools->left_data->type == DATA_TYPE_UND) { // Ponechání float hodnoty
+                sprintf(source, "float@%a", atof(tools->result_data->id));
+                printi(format[_move], tools->string_buffer_value, source);
+            } else if (tools->left_data->type == DATA_TYPE_INT) { // Přetypování float na int
+                sprintf(source, "int@%i", atoi(tools->result_data->id));
+                printi(format[_move], tools->string_buffer_value, source);
+            } else {
+                fprintf(stderr, "Semantic error: missmatch data type\n");
+            }
         }
         else{
             if(!tools->left_data->canNull){
@@ -1179,9 +1243,6 @@ void value(parser_tools_t* tools) {
 
     // Zpracování výrazu
     expression(tools); OK;
-    sprintf(tools->string_buffer_value, "LF@%%expression%i", tools->counter_global++);
-    printi(format[_defvar], tools->string_buffer_value);
-    printi(format[_pops], tools->string_buffer_value);
 }
 
 // Funkce přiřazení hodnoty výrazu podmíněného neprázdnou hodnotou
@@ -1444,7 +1505,7 @@ void call(parser_tools_t* tools) {
 // Funkce zpracování parametrů volání funkce
 void call_params(parser_tools_t* tools) {
     tools->current_context = CONTEXT_NONE;
-    
+    char source[MAX_STRING_LEN]; // Dočasné uložení cílové proměnné
     if (tools->current_token->type != tok_t_rpa) { // Pokud jsou nějaké parametry
         // Zpracování hodnoty parametru
         tools->param_count++;
@@ -1473,7 +1534,6 @@ void call_params(parser_tools_t* tools) {
                 case DATA_TYPE_INT:
                     if (tools->result_data->canNull) {
                         if (data->parameters->data[param_count_save] != tok_t_i32_opt) {
-                            tools->error = err_param;
                             found = false;
                         }
                     }
@@ -1481,7 +1541,6 @@ void call_params(parser_tools_t* tools) {
                 case DATA_TYPE_DOUBLE:
                     if (tools->result_data->canNull) {
                         if (data->parameters->data[param_count_save] != tok_t_f64_opt) {
-                            tools->error = err_param;
                             found = false;
                         }
                     }
@@ -1489,17 +1548,25 @@ void call_params(parser_tools_t* tools) {
                 case DATA_TYPE_U8:
                     if (tools->result_data->canNull) {
                         if (data->parameters->data[param_count_save] != tok_t_u8_opt) {
-                            tools->error = err_param;
                             found = false;
                         }
                     } else if (data->parameters->data[param_count_save] != tok_t_u8) {
-                        tools->error = err_param;
                         found = false;
                     }
                     break;
                 case DATA_TYPE_BOOLEAN:
                     if (data->parameters->data[param_count_save] != tok_t_bool) {
-                        tools->error = err_param;
+                        found = false;
+                    }
+                    break;
+                case DATA_TYPE_RETYPABLE_DOUBLE:
+                    if (data->parameters->data[param_count_save] == tok_t_flt || data->parameters->data[param_count_save] == tok_t_unused) { // Bez implicitního přetypování
+                        sprintf(source, "float@%a", atof(tools->result_data->id)); // Přesunutí hodnoty do pomocné proměnné výrazu
+                        printi(format[_move], tools->string_buffer_value, source);
+                    } else if (data->parameters->data[param_count_save] == tok_t_i32) { // Implicitní přetypování
+                        sprintf(source, "int@%i", atoi(tools->result_data->id)); // Přesunutí přetypované hodnoty do pomocné proměnné výrazu
+                        printi(format[_move], tools->string_buffer_value, source);
+                    } else {
                         found = false;
                     }
                     break;
@@ -1517,7 +1584,6 @@ void call_params(parser_tools_t* tools) {
         }
 
         // Generace přiřazení hodnoty parametru
-        char source[MAX_STRING_LEN];
         token_type tmp_type = stack_peek(&tools->stack_codegen)->type; // Uložení typu parametru
         strcpy(source, tools->string_buffer_value);
         bool string_value = false; // Příznak, zdali je parametrem řetězec
